@@ -6,21 +6,24 @@ import { CurriculumManager } from '@/components/curriculum-manager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCourseById } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function EditCoursePage({ params }: { params: { id: string } }) {
+export default function EditCoursePage() {
+  const params = useParams<{ id: string }>();
+  const courseId = params.id;
+
   const [course, setCourse] = useState<Course | undefined | null>(undefined);
 
   const refreshCourse = () => {
-    const courseData = getCourseById(params.id);
+    const courseData = getCourseById(courseId);
     setCourse(courseData);
   }
 
   useEffect(() => {
     refreshCourse();
-  }, [params.id]);
+  }, [courseId]);
 
   if (course === undefined) {
     return (
