@@ -11,6 +11,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  sidebarMenuButtonVariants,
 } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { getUserById } from '@/lib/data';
@@ -27,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const userId = cookies().get('userId')?.value;
@@ -75,21 +77,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {user.role === 'admin' && (
               <Collapsible className="w-full">
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="justify-between">
+                  <div
+                    role="button"
+                    className={cn(
+                      sidebarMenuButtonVariants(),
+                      'w-full justify-between'
+                    )}
+                  >
                     <div className="flex items-center gap-2">
                       <UserCog />
                       <span>Admin</span>
                     </div>
                     <ChevronDown className="h-4 w-4" />
-                  </SidebarMenuButton>
+                  </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                          <Link href={item.href}>
-                            <SidebarMenuSubButton>{item.label}</SidebarMenuSubButton>
-                          </Link>
+                        <Link href={item.href}>
+                          <SidebarMenuSubButton>{item.label}</SidebarMenuSubButton>
+                        </Link>
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
