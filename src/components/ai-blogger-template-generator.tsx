@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,41 @@ export function AiBloggerTemplateGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [templateCode, setTemplateCode] = useState('');
   const { toast } = useToast();
+
+  const previewCode = useMemo(() => {
+    if (!templateCode) return '';
+
+    // 1. Strip XML declaration
+    let code = templateCode.replace(/<\?xml[^?]*\?>\s*/, '');
+
+    // 2. Extract variables and their default values
+    const variables: Record<string, string> = {};
+    const varRegex = /<b:variable\s+name='([^']*)'[^>]*default='([^']*)'[^>]*\/>/g;
+    let match;
+    while ((match = varRegex.exec(templateCode)) !== null) {
+        variables[match[1]] = match[2];
+    }
+
+    // 3. Find and process the CSS inside b:skin
+    const skinRegex = /<b:skin\s*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/b:skin>/;
+    const skinMatch = code.match(skinRegex);
+    
+    if (skinMatch && skinMatch[1]) {
+        let cssContent = skinMatch[1];
+        
+        // 4. Replace Blogger variables with their default values
+        for (const [name, defaultValue] of Object.entries(variables)) {
+            const varAsRegex = new RegExp(`\\$${name.replace('.', '\\.')}`, 'g');
+            cssContent = cssContent.replace(varAsRegex, defaultValue);
+        }
+        
+        // 5. Replace the entire <b:skin> block with a <style> block for preview
+        const styleTag = `<style type="text/css">${cssContent}</style>`;
+        code = code.replace(skinRegex, styleTag);
+    }
+    
+    return code;
+  }, [templateCode]);
 
   const handleGenerate = async () => {
     if (!niche || !style || !creatorName) {
@@ -179,7 +214,7 @@ export function AiBloggerTemplateGenerator() {
                 <div className="w-full aspect-[16/10] border rounded-lg overflow-hidden bg-white">
                     <iframe
                         id="template-preview"
-                        srcDoc={templateCode}
+                        srcDoc={previewCode}
                         title="Pratinjau Template Blogger"
                         className="w-full h-full border-0"
                         sandbox="allow-scripts allow-same-origin"
