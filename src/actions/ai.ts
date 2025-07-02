@@ -6,6 +6,7 @@ import { suggestCourses as suggestCoursesFlow, CourseSuggestionInput, CourseSugg
 import { generateBloggerTemplate as generateBloggerTemplateFlow, GenerateBloggerTemplateInput, GenerateBloggerTemplateOutput } from '@/ai/flows/generate-blogger-template';
 import { editBloggerTemplate as editBloggerTemplateFlow, EditBloggerTemplateInput, EditBloggerTemplateOutput } from '@/ai/flows/edit-blogger-template';
 import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiChapterInput, GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
+import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, GenerateWordpressPluginBoilerplateInput, GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
 
 
 export async function generateThumbnailAction(
@@ -98,4 +99,20 @@ export async function generateSkripsiChapterAction(
     console.error('Error generating skripsi chapter:', error);
     return { error: 'Gagal membuat draf bab skripsi. Silakan coba lagi.' };
   }
+}
+
+export async function generateWordpressPluginBoilerplateAction(
+  input: GenerateWordpressPluginBoilerplateInput
+): Promise<GenerateWordpressPluginBoilerplateOutput | { error: string }> {
+    if (!input.pluginName || !input.description || !input.authorName) {
+        return { error: 'Nama plugin, deskripsi, dan nama pembuat tidak boleh kosong.' };
+    }
+
+    try {
+        const result = await generateWordpressPluginBoilerplateFlow(input);
+        return { readmeTxtContent: result.readmeTxtContent, phpFileContent: result.phpFileContent };
+    } catch (error) {
+        console.error('Error generating WordPress plugin boilerplate:', error);
+        return { error: 'Gagal membuat kerangka plugin. Silakan coba lagi.' };
+    }
 }

@@ -5,15 +5,16 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
+import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
 
 
 function ProFeatures() {
-  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | null>(null);
+  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | null>(null);
 
-  const handleAppSelect = (app: 'blogger' | 'skripsi') => {
+  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress') => {
     setActiveApp(app);
   };
 
@@ -29,6 +30,12 @@ function ProFeatures() {
       title: 'AI Asisten Skripsi',
       description: 'Hasilkan draf untuk bab skripsi Anda dengan bantuan AI.',
       icon: <FileText className="h-10 w-10 text-primary" />,
+    },
+    {
+      id: 'wordpress',
+      title: 'AI Kerangka Plugin WP',
+      description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.',
+      icon: <Plug className="h-10 w-10 text-primary" />,
     }
   ];
 
@@ -48,7 +55,7 @@ function ProFeatures() {
           {apps.map((app) => (
             <Card
               key={app.id}
-              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi')}
+              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress')}
               className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
             >
               <CardContent className="flex flex-col items-center text-center gap-4 p-6">
@@ -72,6 +79,7 @@ function ProFeatures() {
 
           {activeApp === 'blogger' && <AiBloggerTemplateGenerator />}
           {activeApp === 'skripsi' && <AiSkripsiGenerator />}
+          {activeApp === 'wordpress' && <AiWordpressPluginGenerator />}
         </div>
       )}
     </div>
