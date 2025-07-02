@@ -61,8 +61,8 @@ export default function AdminPage() {
 
     try {
         const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 800,
+            maxSizeMB: 0.1,
+            maxWidthOrHeight: 256,
             useWebWorker: true,
             fileType: 'image/webp',
         };
