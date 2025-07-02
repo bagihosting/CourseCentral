@@ -180,7 +180,7 @@ export function getUserById(id: string): User | undefined {
 export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username'>>;
 
-export function registerUser(data: RegisterUserInput): User {
+export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): User {
   const db = getDB();
   if (db.users.some(u => u.username === data.username)) {
     throw new Error('Nama pengguna sudah digunakan. Silakan pilih nama pengguna lain.');
@@ -191,7 +191,7 @@ export function registerUser(data: RegisterUserInput): User {
     username: data.username,
     password: data.password, // In a real app, this should be hashed.
     role: 'member',
-    avatarUrl: 'https://placehold.co/100x100.png',
+    avatarUrl: data.avatarUrl || 'https://placehold.co/100x100.png',
   };
   db.users.push(newUser);
   saveDB(db);
