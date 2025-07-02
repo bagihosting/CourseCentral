@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAllUsers, updateUser, registerUser } from '@/lib/data';
 import type { UpdateUserInput, RegisterUserInput } from '@/lib/data';
-import { uploadAvatarAction } from '@/actions/files';
 import { useToast } from '@/hooks/use-toast';
 import { User, Pencil, Loader2, Camera, PlusCircle } from 'lucide-react';
 import type { User as UserType } from '@/types';
@@ -27,7 +26,6 @@ export default function AdminPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +52,6 @@ export default function AdminPage() {
         setAvatarPreview(undefined);
         setPassword('');
     }
-    setAvatarFile(null);
     setIsDialogOpen(true);
   };
 
@@ -70,8 +67,14 @@ export default function AdminPage() {
             fileType: 'image/webp',
         };
         const compressedFile = await imageCompression(file, options);
-        setAvatarFile(compressedFile);
-        setAvatarPreview(URL.createObjectURL(compressedFile));
+        
+        // Convert compressed file to a Data URL to store in localStorage
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+
     } catch (error) {
         toast({
             title: 'Gagal Mengompres Gambar',
@@ -87,17 +90,9 @@ export default function AdminPage() {
     setIsSubmitting(true);
 
     try {
-      let newAvatarUrl: string | undefined = selectedUser?.avatarUrl;
-
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append('avatar', avatarFile);
-        const result = await uploadAvatarAction(formData);
-        if (result.error || !result.avatarUrl) {
-          throw new Error(result.error || 'Gagal mengunggah avatar.');
-        }
-        newAvatarUrl = result.avatarUrl;
-      }
+      // The avatar is now a data URL stored in `avatarPreview`.
+      // No server-side upload action is needed.
+      const newAvatarUrl = avatarPreview;
 
       if (selectedUser) {
         // --- UPDATE LOGIC ---
