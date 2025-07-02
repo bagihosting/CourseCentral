@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/hooks/use-user';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllCourses, getAllUsers } from '@/lib/data';
+import { getAllCourses, getAllUsers, getEnrolledCoursesForUser } from '@/lib/data';
 import type { Course, User as UserType } from '@/types';
 import { BookOpenCheck, Users, GraduationCap, ArrowRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,24 +14,24 @@ import { CourseCard } from '@/components/course-card';
 
 export default function DashboardPage() {
   const { user } = useUser();
-  // Initialize data states to null to represent "not yet loaded"
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [users, setUsers] = useState<UserType[] | null>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[] | null>(null);
 
   useEffect(() => {
-    // This effect runs on the client after the user is identified.
-    // It fetches all necessary data from localStorage.
     if (user) {
       setCourses(getAllCourses());
       if (user.role === 'admin') {
         setUsers(getAllUsers());
+      } else {
+        setEnrolledCourses(getEnrolledCoursesForUser(user.id));
       }
     }
-  }, [user]); // This will re-run whenever the user object changes.
+  }, [user]);
 
-  // The loading skeleton is shown until the user is identified AND all their required data is loaded.
-  // This is a more robust check than a separate 'loading' state.
-  if (!user || courses === null || (user.role === 'admin' && users === null)) {
+  const loading = !user || courses === null || (user.role === 'admin' && users === null) || (user.role === 'member' && enrolledCourses === null);
+  
+  if (loading) {
     return (
       <div className="space-y-8">
         <div className="space-y-2">
@@ -68,14 +68,11 @@ export default function DashboardPage() {
     );
   }
   
-  // At this point, `user` and `courses` (and `users` for admin) are guaranteed to be loaded.
   const userName = user.name || 'Pengguna';
-  
   const totalLessons = courses.reduce((acc, course) => 
     acc + course.modules.reduce((modAcc, mod) => modAcc + mod.lessons.length, 0), 0);
 
   const recentCourses = [...courses].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
-  const suggestedCourses = courses.slice(0, 3);
 
   return (
     <div className="flex flex-col gap-8">
@@ -109,13 +106,14 @@ export default function DashboardPage() {
                 <div className="text-2xl font-bold">{courses.length}</div>
               </CardContent>
             </Card>
-            <Card>
+             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pelajaran</CardTitle>
-                <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Kursus Tersedia</CardTitle>
+                <BookOpenCheck className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalLessons}</div>
+                <div className="text-2xl font-bold">{courses.length}</div>
+                 <p className="text-xs text-muted-foreground">Di semua kursus yang tersedia</p>
               </CardContent>
             </Card>
           </>
@@ -124,11 +122,11 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Kursus Diikuti</CardTitle>
-                <BookOpenCheck className="h-5 w-5 text-muted-foreground" />
+                <GraduationCap className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">Mulai belajar kursus baru!</p>
+                <div className="text-2xl font-bold">{enrolledCourses.length}</div>
+                <p className="text-xs text-muted-foreground">{enrolledCourses.length > 0 ? 'Lanjutkan pembelajaran Anda!' : 'Mulai belajar kursus baru!'}</p>
               </CardContent>
             </Card>
              <Card>
@@ -199,22 +197,25 @@ export default function DashboardPage() {
         ) : (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold tracking-tight">Rekomendasi Untuk Anda</h2>
-              <Link href="/dashboard/courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+              <h2 className="text-2xl font-bold tracking-tight">Kursus Saya</h2>
+              <Link href="/dashboard/my-courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                 Lihat Semua
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-             {suggestedCourses.length > 0 ? (
+             {enrolledCourses.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {suggestedCourses.map(course => (
+                    {enrolledCourses.slice(0, 3).map(course => (
                         <CourseCard key={course.id} course={course} />
                     ))}
                 </div>
              ) : (
                 <div className="py-20 text-center text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed">
-                    <h2 className="text-xl font-semibold">Tidak Ada Kursus Tersedia</h2>
-                    <p className="mt-2">Silakan kembali lagi nanti untuk melihat kursus baru.</p>
+                    <h2 className="text-xl font-semibold">Anda Belum Mengikuti Kursus</h2>
+                    <p className="mt-2">Jelajahi katalog untuk menemukan kursus yang cocok untuk Anda.</p>
+                     <Button asChild className="mt-4">
+                        <Link href="/dashboard/courses">Jelajahi Katalog</Link>
+                    </Button>
                 </div>
              )}
           </div>

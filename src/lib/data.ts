@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -9,6 +9,7 @@ const DB_KEY = 'course_app_data';
 interface Database {
   users: User[];
   courses: Course[];
+  enrollments: Enrollment[];
 }
 
 // --- Seed Data ---
@@ -95,7 +96,8 @@ function getInitialData(): Database {
             imageUrl: 'https://placehold.co/600x400.png',
             modules: []
           },
-        ]
+        ],
+        enrollments: [],
     };
 }
 
@@ -113,7 +115,12 @@ function getDB(): Database {
         return initialData;
     }
     try {
-        return JSON.parse(dbString) as Database;
+        const data = JSON.parse(dbString) as Database;
+        // Ensure enrollments array exists for backward compatibility
+        if (!data.enrollments) {
+            data.enrollments = [];
+        }
+        return data;
     } catch (e) {
         console.error("Failed to parse DB from localStorage, resetting.", e);
         const initialData = getInitialData();
@@ -278,4 +285,37 @@ export function deleteLesson(courseId: string, moduleId: string, lessonId: strin
     if (module.lessons.length === initialLength) throw new Error("Pelajaran tidak ditemukan.");
     
     saveDB(db);
+}
+
+// --- Enrollment API Functions ---
+
+export function isUserEnrolled(userId: string, courseId: string): boolean {
+  if (!userId) return false;
+  const db = getDB();
+  return db.enrollments.some(e => e.userId === userId && e.courseId === courseId);
+}
+
+export function enrollUserInCourse(userId: string, courseId: string): void {
+  if (!userId) throw new Error("User ID is required to enroll.");
+  const db = getDB();
+  
+  if (isUserEnrolled(userId, courseId)) {
+    return;
+  }
+  
+  if (!db.courses.some(c => c.id === courseId)) throw new Error("Course not found.");
+  if (!db.users.some(u => u.id === userId)) throw new Error("User not found.");
+
+  db.enrollments.push({ userId, courseId });
+  saveDB(db);
+}
+
+export function getEnrolledCoursesForUser(userId: string): Course[] {
+  if (!userId) return [];
+  const db = getDB();
+  const enrolledCourseIds = db.enrollments
+    .filter(e => e.userId === userId)
+    .map(e => e.courseId);
+  
+  return db.courses.filter(c => enrolledCourseIds.includes(c.id));
 }

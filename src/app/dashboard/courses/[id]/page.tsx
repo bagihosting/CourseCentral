@@ -3,38 +3,36 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
-import { getCourseById } from '@/lib/data';
+import { getCourseById, isUserEnrolled, enrollUserInCourse } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Film, FileText, Package, Download, Youtube } from 'lucide-react';
+import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/hooks/use-user';
 
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
   let videoId = null;
   
-  // Regular watch URL
-  const urlParams = new URLSearchParams(new URL(url).search);
-  videoId = urlParams.get('v');
-  if (videoId) return `https://www.youtube.com/embed/${videoId}`;
-  
-  // Short youtu.be URL
-  const youtuBeMatch = url.match(/youtu\.be\/([^?&]+)/);
-  if (youtuBeMatch && youtuBeMatch[1]) {
-    return `https://www.youtube.com/embed/${youtuBeMatch[1]}`;
-  }
-
-  // Embed URL (already correct)
-  const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
-  if (embedMatch && embedMatch[1]) {
-    return url;
+  try {
+    const urlObject = new URL(url);
+    if (urlObject.hostname.includes('youtu.be')) {
+      videoId = urlObject.pathname.substring(1);
+    } else {
+      videoId = urlObject.searchParams.get('v');
+    }
+  } catch (e) {
+      const youtuBeMatch = url.match(/youtu\.be\/([^?&]+)/);
+      if (youtuBeMatch && youtuBeMatch[1]) videoId = youtuBeMatch[1];
+      const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+      if (embedMatch && embedMatch[1]) videoId = embedMatch[1];
   }
   
-  return null;
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 }
 
 function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; onComplete: () => void; isCompleted: boolean }) {
@@ -174,8 +172,9 @@ export default function CoursePage() {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  const startButtonRef = useRef<HTMLButtonElement>(null);
-
+  const { user } = useUser();
+  const [enrolled, setEnrolled] = useState(false);
+  const [isCheckingEnrollment, setIsCheckingEnrollment] = useState(true);
 
   // Load course data
   useEffect(() => {
@@ -185,9 +184,21 @@ export default function CoursePage() {
     }
   }, [params.id]);
 
-  // Load progress and set initial lesson
+  // Check enrollment status when user and course are loaded
   useEffect(() => {
-    if (course) {
+    if (user && course) {
+      if (user.role === 'admin') {
+        setEnrolled(true);
+      } else {
+        setEnrolled(isUserEnrolled(user.id, course.id));
+      }
+      setIsCheckingEnrollment(false);
+    }
+  }, [user, course]);
+  
+  // Load progress and set initial lesson IF enrolled
+  useEffect(() => {
+    if (course && enrolled) {
       const storedProgress = localStorage.getItem(`progress_${course.id}`);
       if (storedProgress) {
         setCompletedLessons(new Set(JSON.parse(storedProgress)));
@@ -197,7 +208,7 @@ export default function CoursePage() {
         setActiveLesson(course.modules[0].lessons[0]);
       }
     }
-  }, [course, activeLesson]);
+  }, [course, enrolled, activeLesson]);
 
   // Save progress
   useEffect(() => {
@@ -239,7 +250,18 @@ export default function CoursePage() {
     }
   };
 
-  if (course === undefined) {
+  const handleEnroll = () => {
+    if (user && course) {
+        enrollUserInCourse(user.id, course.id);
+        setEnrolled(true);
+        toast({
+            title: "Pendaftaran Berhasil!",
+            description: `Anda sekarang terdaftar di kursus "${course.title}".`,
+        });
+    }
+  };
+
+  if (course === undefined || isCheckingEnrollment) {
     return (
       <div className="grid lg:grid-cols-5 gap-8 p-4 md:p-6">
         <div className="lg:col-span-3 space-y-6">
@@ -268,18 +290,31 @@ export default function CoursePage() {
         <div className="lg:col-span-3 space-y-6">
           <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">{course.title}</h1>
           
-          {activeLesson ? (
+          {enrolled && activeLesson ? (
             <LessonDisplay 
               lesson={activeLesson}
               onComplete={handleMarkAsComplete}
               isCompleted={completedLessons.has(activeLesson.id)}
             />
-          ) : (
+          ) : enrolled ? (
              <Card>
               <CardContent className='p-6'>
                 <p className="text-center text-muted-foreground">Pilih pelajaran dari daftar untuk memulai.</p>
               </CardContent>
             </Card>
+          ) : (
+             <Card>
+                <CardContent className="p-6 text-center">
+                    <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">Anda Belum Terdaftar</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        Ikuti kursus ini untuk mengakses semua pelajaran dan materi.
+                    </p>
+                    <Button onClick={handleEnroll} className="mt-4">
+                        Ikuti Kursus Ini
+                    </Button>
+                </CardContent>
+             </Card>
           )}
 
           <Card>
@@ -308,12 +343,19 @@ export default function CoursePage() {
             </CardHeader>
             <CardContent className="p-0">
               {course.modules.length > 0 ? (
-                <CourseContentDisplay
-                  modules={course.modules}
-                  activeLessonId={activeLesson?.id || null}
-                  completedLessonIds={completedLessons}
-                  onLessonClick={handleLessonClick}
-                />
+                enrolled ? (
+                    <CourseContentDisplay
+                    modules={course.modules}
+                    activeLessonId={activeLesson?.id || null}
+                    completedLessonIds={completedLessons}
+                    onLessonClick={handleLessonClick}
+                    />
+                ) : (
+                    <div className="p-6 text-center text-muted-foreground">
+                        <Lock className="h-6 w-6 mx-auto mb-2" />
+                        Daftar untuk melihat kurikulum.
+                    </div>
+                )
               ) : (
                 <p className="text-center text-muted-foreground p-6">Kurikulum belum tersedia.</p>
               )}

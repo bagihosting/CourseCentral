@@ -7,40 +7,39 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
 import {
   BookOpenCheck,
   LayoutDashboard,
   Users,
-  ChevronDown,
   Download,
   Settings,
   FolderKanban,
+  GraduationCap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { getUser } from '@/actions/auth';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
-import { sidebarMenuButtonVariants } from '@/components/ui/sidebar-variants';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser();
 
-  const navItems = [
+  const memberNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-    { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Kursus' },
+    { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+    { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
   ];
-
+  
   const adminNavItems = [
-    { href: '/dashboard/admin', label: 'Pengguna' },
-    { href: '/dashboard/admin/courses', label: 'Manajemen Kursus' },
-    { href: '/dashboard/admin/course-settings', label: 'Pengaturan Kursus' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+    { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
+    { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
+    { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
+
+  const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
 
   return (
     <SidebarProvider>
@@ -65,38 +64,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-            {user?.role === 'admin' && (
-              <Collapsible className="w-full">
-                <CollapsibleTrigger asChild>
-                  <div
-                    role="button"
-                    className={cn(
-                      sidebarMenuButtonVariants(),
-                      'w-full justify-between'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users />
-                      <span>Admin</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {adminNavItems.map((item) => (
-                      <SidebarMenuSubItem key={item.label}>
-                        <Link href={item.href}>
-                           <SidebarMenuButton size="sm" type="button" className="w-full">
-                              {item.label}
-                           </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
