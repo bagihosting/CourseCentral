@@ -5,19 +5,20 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
 import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
 import { AiGoogleAdsGenerator } from '@/components/ai-google-ads-generator';
 import { AiDigitalInvitationGenerator } from '@/components/ai-digital-invitation-generator';
 import { AiUmkmProfileGenerator } from '@/components/ai-umkm-profile-generator';
+import { AiSpssAssistant } from '@/components/ai-spss-assistant';
 
 
 function ProFeatures() {
-  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | null>(null);
+  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | null>(null);
 
-  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm') => {
+  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss') => {
     setActiveApp(app);
   };
 
@@ -57,6 +58,12 @@ function ProFeatures() {
       title: 'AI Asisten UMKM',
       description: 'Buat nama, slogan, dan deskripsi singkat untuk bisnis Anda.',
       icon: <Briefcase className="h-10 w-10 text-primary" />,
+    },
+    {
+      id: 'spss',
+      title: 'AI Asisten SPSS',
+      description: 'Buat sintaks SPSS dan dapatkan penjelasan untuk analisis statistik Anda.',
+      icon: <BarChart className="h-10 w-10 text-primary" />,
     }
   ];
 
@@ -76,7 +83,7 @@ function ProFeatures() {
           {apps.map((app) => (
             <Card
               key={app.id}
-              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm')}
+              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss')}
               className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
             >
               <CardContent className="flex flex-col items-center text-center gap-4 p-6">
@@ -104,6 +111,7 @@ function ProFeatures() {
           {activeApp === 'google-ads' && <AiGoogleAdsGenerator />}
           {activeApp === 'digital-invitation' && <AiDigitalInvitationGenerator />}
           {activeApp === 'umkm' && <AiUmkmProfileGenerator />}
+          {activeApp === 'spss' && <AiSpssAssistant />}
         </div>
       )}
     </div>

@@ -10,6 +10,7 @@ import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplat
 import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
 import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDigitalInvitationInput, GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
 import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInput, GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
+import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
 
 
 export async function generateThumbnailAction(
@@ -165,5 +166,21 @@ export async function generateUmkmProfileAction(
   } catch (error) {
     console.error('Error generating UMKM profile:', error);
     return { error: 'Gagal membuat profil UMKM. Silakan coba lagi.' };
+  }
+}
+
+export async function generateSpssSyntaxAction(
+  input: GenerateSpssSyntaxInput
+): Promise<GenerateSpssSyntaxOutput | { error: string }> {
+  if (!input.analysisDescription) {
+    return { error: 'Deskripsi analisis tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateSpssSyntaxFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating SPSS syntax:', error);
+    return { error: 'Gagal membuat sintaks SPSS. Silakan coba lagi.' };
   }
 }
