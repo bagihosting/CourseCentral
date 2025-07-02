@@ -105,7 +105,7 @@ export function AiWordpressPluginGenerator() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Plug className="text-primary" />
-            AI WordPress Plugin Boilerplate Generator
+            AI Plugin Wordpress Generator
         </CardTitle>
         <CardDescription>
           Buat file kerangka dasar (boilerplate) untuk plugin WordPress baru Anda. Cukup isi detail di bawah ini dan AI akan membuatkan file `readme.txt` dan file PHP utama untuk Anda.

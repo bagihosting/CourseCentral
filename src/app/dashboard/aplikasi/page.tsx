@@ -33,7 +33,7 @@ function ProFeatures() {
     },
     {
       id: 'wordpress',
-      title: 'AI Kerangka Plugin WP',
+      title: 'Plugin Wordpress',
       description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.',
       icon: <Plug className="h-10 w-10 text-primary" />,
     }
