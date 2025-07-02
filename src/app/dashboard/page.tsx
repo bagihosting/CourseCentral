@@ -1,0 +1,134 @@
+import { AiSuggestions } from '@/components/ai-suggestions';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getCourseById, getUserById } from '@/lib/data';
+import { BookCheck, CheckCircle, Clock, Users } from 'lucide-react';
+import type { User } from '@/types';
+
+export default async function DashboardPage() {
+  // In a real app, you would get the user from session/auth
+  const user: User | undefined = await getUserById('user-2');
+
+  if (!user) {
+    return <div>User not found</div>;
+  }
+
+  const inProgressCourses = await Promise.all(
+    Object.entries(user.courseProgress)
+      .filter(([, progress]) => progress < 100)
+      .map(async ([courseId, progress]) => {
+        const course = await getCourseById(courseId);
+        return { ...course, progress };
+      })
+  );
+
+  const completedCoursesCount = Object.values(user.courseProgress).filter(
+    (progress) => progress === 100
+  ).length;
+  
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome back, {user.name}!</CardTitle>
+            <CardDescription>
+              {user.role === 'admin'
+                ? "Here's an overview of your platform."
+                : "Here's what's happening with your courses."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {user.role === 'member' && user.membershipDuration && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Membership Status</p>
+                <Badge variant="default">Premium Member</Badge>
+                <p className="text-xs text-muted-foreground">
+                  Your membership is active for the next {user.membershipDuration} months.
+                </p>
+              </div>
+            )}
+             {user.role === 'admin' && (
+                <div className="grid grid-cols-2 gap-4">
+                     <div className="flex items-center gap-4 rounded-lg bg-secondary p-4">
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <p className="text-2xl font-bold">1,234</p>
+                            <p className="text-sm text-muted-foreground">Total Users</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 rounded-lg bg-secondary p-4">
+                        <BookCheck className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <p className="text-2xl font-bold">42</p>
+                            <p className="text-sm text-muted-foreground">Total Courses</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <AiSuggestions user={user} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>My Courses</CardTitle>
+          <CardDescription>An overview of your current and completed courses.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+             <div className="flex items-center gap-4 rounded-lg border p-4">
+                <Clock className="h-8 w-8 text-muted-foreground" />
+                <div>
+                    <p className="text-2xl font-bold">{inProgressCourses.length}</p>
+                    <p className="text-sm text-muted-foreground">Courses in Progress</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-lg border p-4">
+                <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                <div>
+                    <p className="text-2xl font-bold">{completedCoursesCount}</p>
+                    <p className="text-sm text-muted-foreground">Completed Courses</p>
+                </div>
+            </div>
+          </div>
+        
+          <h3 className="mb-4 mt-6 text-lg font-semibold">In Progress</h3>
+          {inProgressCourses.length > 0 ? (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Course</TableHead>
+                        <TableHead className="w-[150px] text-center">Progress</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                {inProgressCourses.map((course) => (
+                    course.id && (
+                    <TableRow key={course.id}>
+                    <TableCell className="font-medium">{course.title}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2">
+                            <Progress value={course.progress} className="w-full" />
+                            <span className="text-sm font-medium">{course.progress}%</span>
+                        </div>
+                    </TableCell>
+                    </TableRow>
+                    )
+                ))}
+                </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              You have no courses in progress. Explore the course catalog to get started!
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
