@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Copy } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Download } from 'lucide-react';
 import { generateBloggerTemplateAction } from '@/actions/ai';
 
 export function AiBloggerTemplateGenerator() {
@@ -50,6 +50,7 @@ export function AiBloggerTemplateGenerator() {
   };
   
   const handleCopy = () => {
+    if (!templateCode) return;
     navigator.clipboard.writeText(templateCode).then(() => {
         toast({
             title: 'Tersalin!',
@@ -63,6 +64,32 @@ export function AiBloggerTemplateGenerator() {
             variant: 'destructive',
         });
     });
+  };
+
+  const handleDownload = () => {
+    if (!templateCode) return;
+    try {
+        const blob = new Blob([templateCode], { type: 'application/xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `template-blogger-${niche.toLowerCase().replace(/\s/g, '-')}.xml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({
+            title: 'Mengunduh...',
+            description: 'File template Anda telah mulai diunduh.',
+        });
+    } catch (err) {
+        console.error('Download failed: ', err);
+        toast({
+            title: 'Gagal Mengunduh',
+            description: 'Tidak dapat membuat file untuk diunduh.',
+            variant: 'destructive',
+        });
+    }
   };
 
   return (
@@ -109,24 +136,48 @@ export function AiBloggerTemplateGenerator() {
         </Button>
 
         {templateCode && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-                <Label htmlFor="template-output">Kode Template XML</Label>
-                <Button variant="ghost" size="sm" onClick={handleCopy}>
-                    <Copy className="mr-2 h-4 w-4"/>
-                    Salin Kode
-                </Button>
+          <div className="space-y-6">
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="template-output">Kode Template XML</Label>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={handleCopy}>
+                            <Copy className="mr-2 h-4 w-4"/>
+                            Salin
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handleDownload}>
+                            <Download className="mr-2 h-4 w-4"/>
+                            Unduh
+                        </Button>
+                    </div>
+                </div>
+                <Textarea
+                id="template-output"
+                readOnly
+                value={templateCode}
+                className="font-mono h-96 text-xs bg-muted/30"
+                placeholder="Kode template XML Anda akan muncul di sini..."
+                />
+                <p className="text-xs text-muted-foreground">
+                    Salin kode ini dan tempelkan di editor HTML tema Blogger Anda, atau unduh sebagai file XML.
+                </p>
             </div>
-            <Textarea
-              id="template-output"
-              readOnly
-              value={templateCode}
-              className="font-mono h-96 text-xs"
-              placeholder="Kode template XML Anda akan muncul di sini..."
-            />
-             <p className="text-xs text-muted-foreground">
-                Salin kode ini dan tempelkan di editor HTML tema Blogger Anda.
-             </p>
+            
+            <div className="space-y-2">
+                <Label htmlFor="template-preview">Pratinjau Langsung</Label>
+                <div className="w-full aspect-[16/10] border rounded-lg overflow-hidden bg-white">
+                    <iframe
+                        id="template-preview"
+                        srcDoc={templateCode}
+                        title="Pratinjau Template Blogger"
+                        className="w-full h-full border-0"
+                        sandbox="allow-scripts allow-same-origin"
+                    />
+                </div>
+                 <p className="text-xs text-muted-foreground">
+                    Pratinjau ini mungkin tidak sepenuhnya akurat karena keterbatasan sandbox. Untuk tampilan terbaik, uji langsung di Blogger.
+                 </p>
+            </div>
           </div>
         )}
       </CardContent>
