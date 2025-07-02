@@ -8,6 +8,7 @@ import { editBloggerTemplate as editBloggerTemplateFlow, EditBloggerTemplateInpu
 import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiChapterInput, GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
 import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, GenerateWordpressPluginBoilerplateInput, GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
 import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
+import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDigitalInvitationInput, GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
 
 
 export async function generateThumbnailAction(
@@ -131,5 +132,21 @@ export async function generateGoogleAdsAction(
   } catch (error) {
     console.error('Error generating Google Ads copy:', error);
     return { error: 'Gagal membuat teks iklan. Silakan coba lagi.' };
+  }
+}
+
+export async function generateDigitalInvitationAction(
+  input: GenerateDigitalInvitationInput
+): Promise<GenerateDigitalInvitationOutput | { error: string }> {
+  if (!input.eventType || !input.personOneName || !input.eventDate || !input.eventVenue) {
+    return { error: 'Jenis acara, nama, tanggal, dan lokasi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateDigitalInvitationFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating digital invitation:', error);
+    return { error: 'Gagal membuat konten undangan. Silakan coba lagi.' };
   }
 }
