@@ -57,8 +57,8 @@ const prompt = ai.definePrompt({
 
     **CRITICAL INSTRUCTIONS:**
 
-    1.  **Generate `readme.txt` Content**:
-        -   Create a full `readme.txt` file content that is compliant with the WordPress.org plugin directory standards.
+    1.  **Generate \`readme.txt\` Content**:
+        -   Create a full \`readme.txt\` file content that is compliant with the WordPress.org plugin directory standards.
         -   The header section must include the plugin name, contributors (use "author" as a placeholder), "Requires at least", "Tested up to", "Stable tag", and "License" fields. Use sensible defaults.
         -   Include standard sections like "== Description ==", "== Installation ==", "== Frequently Asked Questions ==", and "== Changelog ==".
         -   Populate the Description section with the user-provided description.
