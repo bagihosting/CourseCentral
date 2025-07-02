@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Copy, Download } from 'lucide-react';
-import { generateBloggerTemplateAction } from '@/actions/ai';
+import { Sparkles, Loader2, Copy, Download, Pencil } from 'lucide-react';
+import { generateBloggerTemplateAction, editBloggerTemplateAction } from '@/actions/ai';
 
 export function AiBloggerTemplateGenerator() {
   const [niche, setNiche] = useState('');
@@ -16,6 +16,11 @@ export function AiBloggerTemplateGenerator() {
   const [creatorName, setCreatorName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [templateCode, setTemplateCode] = useState('');
+  
+  // State for the new edit feature
+  const [editRequest, setEditRequest] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
   const { toast } = useToast();
 
   const previewCode = useMemo(() => {
@@ -65,6 +70,7 @@ export function AiBloggerTemplateGenerator() {
 
     setIsLoading(true);
     setTemplateCode('');
+    setEditRequest(''); // Reset edit request on new generation
 
     const result = await generateBloggerTemplateAction({ niche, style, creatorName });
 
@@ -128,6 +134,37 @@ export function AiBloggerTemplateGenerator() {
     }
   };
 
+  // Handler for the new edit feature
+  const handleEdit = async () => {
+    if (!editRequest) {
+      toast({
+        title: 'Input Diperlukan',
+        description: 'Silakan isi permintaan edit Anda.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsEditing(true);
+    const result = await editBloggerTemplateAction({ templateCode, editRequest });
+    setIsEditing(false);
+
+    if ('error' in result) {
+      toast({
+        title: 'Gagal Mengedit Template',
+        description: result.error,
+        variant: 'destructive',
+      });
+    } else {
+      setTemplateCode(result.editedTemplateCode);
+      setEditRequest(''); // Clear input after successful edit
+      toast({
+        title: 'Sukses!',
+        description: 'Template Anda telah berhasil diedit.',
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -148,7 +185,7 @@ export function AiBloggerTemplateGenerator() {
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
               placeholder="Contoh: Teknologi"
-              disabled={isLoading}
+              disabled={isLoading || isEditing}
             />
           </div>
           <div className="space-y-2">
@@ -158,7 +195,7 @@ export function AiBloggerTemplateGenerator() {
               value={style}
               onChange={(e) => setStyle(e.target.value)}
               placeholder="Contoh: Minimalis"
-              disabled={isLoading}
+              disabled={isLoading || isEditing}
             />
           </div>
           <div className="space-y-2">
@@ -168,24 +205,58 @@ export function AiBloggerTemplateGenerator() {
               value={creatorName}
               onChange={(e) => setCreatorName(e.target.value)}
               placeholder="Contoh: Studio Desain"
-              disabled={isLoading}
+              disabled={isLoading || isEditing}
             />
           </div>
         </div>
-        <Button onClick={handleGenerate} disabled={isLoading || !niche || !style || !creatorName} className="w-full">
+        <Button onClick={handleGenerate} disabled={isLoading || isEditing || !niche || !style || !creatorName} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Sparkles className="mr-2 h-4 w-4" />
           )}
-          Buat Template Sekarang
+          Buat Template Baru
         </Button>
 
         {templateCode && (
-          <div className="space-y-6">
+          <div className="space-y-6 pt-6 border-t">
+            {/* --- Edit with AI Section --- */}
+            <Card className="bg-muted/30">
+                <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        <Pencil className="text-primary" />
+                        Edit Template dengan Kata Kunci
+                    </CardTitle>
+                    <CardDescription>
+                        Masukkan instruksi untuk mengubah templat di atas. Misalnya: "Ubah warna utama menjadi biru tua" atau "Buat header lebih tinggi 100px".
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-request">Permintaan Perubahan Anda</Label>
+                        <Textarea
+                            id="edit-request"
+                            value={editRequest}
+                            onChange={(e) => setEditRequest(e.target.value)}
+                            placeholder="Ketik permintaan edit Anda di sini..."
+                            disabled={isEditing || isLoading}
+                            rows={3}
+                        />
+                    </div>
+                    <Button onClick={handleEdit} disabled={isEditing || isLoading || !editRequest} className="w-full md:w-auto">
+                        {isEditing ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menerapkan...</>
+                        ) : (
+                            <><Pencil className="mr-2 h-4 w-4" /> Terapkan Perubahan</>
+                        )}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {/* --- Output Section --- */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <Label htmlFor="template-output">Kode Template XML</Label>
+                    <Label htmlFor="template-output">Kode Template XML (Hasil Akhir)</Label>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="sm" onClick={handleCopy}>
                             <Copy className="mr-2 h-4 w-4"/>
