@@ -37,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const adminNavItems = [
     { href: '/dashboard/admin', label: 'Pengguna' },
+    { href: '/dashboard/admin/course-settings', label: 'Pengaturan Kursus' },
   ];
 
   return (
@@ -83,11 +84,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                        <SidebarMenuButton asChild size="sm" type="button" className="w-full">
-                          <Link href={item.href}>
-                            {item.label}
-                          </Link>
-                        </SidebarMenuButton>
+                        <Link href={item.href}>
+                           <SidebarMenuButton size="sm" type="button" className="w-full">
+                              {item.label}
+                           </SidebarMenuButton>
+                        </Link>
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
