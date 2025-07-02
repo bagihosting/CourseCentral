@@ -17,7 +17,7 @@ const GenerateDescriptionInputSchema = z.object({
 const GenerateDescriptionOutputSchema = z.object({
   description: z
     .string()
-    .describe('The generated course description.'),
+    .describe('The generated course description, at least 3-4 sentences long.'),
 });
 
 export type GenerateDescriptionInput = z.infer<
@@ -33,30 +33,6 @@ export async function generateDescription(
   return generateDescriptionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-    name: 'generateDescriptionPrompt',
-    input: { schema: GenerateDescriptionInputSchema },
-    output: { schema: GenerateDescriptionOutputSchema },
-    prompt: `
-        You are an expert copywriter specializing in creating compelling online course descriptions.
-        Based on the provided course title, generate a detailed, engaging, and persuasive description in Bahasa Indonesia.
-
-        The description should:
-        1.  Start with a strong opening sentence that grabs the reader's attention.
-        2.  Clearly explain what the student will learn and what skills they will acquire.
-        3.  Highlight the key benefits of taking the course.
-        4.  Mention the target audience (e.g., "for beginners," "for experienced developers").
-        5.  End with a strong call to action.
-        6.  Be well-structured, using paragraphs for readability.
-        7.  The entire description should be at least 3-4 sentences long.
-
-        Course Title: "{{{title}}}"
-        
-        IMPORTANT: Your final output must be a valid JSON object containing a single key "description" which holds the generated text.
-    `,
-});
-
-
 const generateDescriptionFlow = ai.defineFlow(
   {
     name: 'generateDescriptionFlow',
@@ -64,7 +40,29 @@ const generateDescriptionFlow = ai.defineFlow(
     outputSchema: GenerateDescriptionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const prompt = `
+      You are an expert copywriter specializing in creating compelling online course descriptions.
+      Based on the provided course title, generate a detailed, engaging, and persuasive description in Bahasa Indonesia.
+
+      The description should:
+      1.  Start with a strong opening sentence that grabs the reader's attention.
+      2.  Clearly explain what the student will learn and what skills they will acquire.
+      3.  Highlight the key benefits of taking the course.
+      4.  Mention the target audience (e.g., "for beginners," "for experienced developers").
+      5.  Be well-structured, using paragraphs for readability.
+      
+      Course Title: "${input.title}"
+    `;
+
+    const llmResponse = await ai.generate({
+        prompt: prompt,
+        output: {
+            schema: GenerateDescriptionOutputSchema
+        }
+    });
+    
+    const output = llmResponse.output;
+
     if (!output) {
       throw new Error('Description generation failed.');
     }
