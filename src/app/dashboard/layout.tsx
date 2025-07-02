@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Download,
   Settings,
+  FolderKanban,
 } from 'lucide-react';
 import Link from 'next/link';
 import { getUser } from '@/actions/auth';
@@ -37,6 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const adminNavItems = [
     { href: '/dashboard/admin', label: 'Pengguna' },
+    { href: '/dashboard/admin/courses', label: 'Manajemen Kursus' },
     { href: '/dashboard/admin/course-settings', label: 'Pengaturan Kursus' },
   ];
 
