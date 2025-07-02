@@ -5,6 +5,7 @@ import { generateDescription as generateDescriptionFlow } from '@/ai/flows/gener
 import { suggestCourses as suggestCoursesFlow, CourseSuggestionInput, CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
 import { generateBloggerTemplate as generateBloggerTemplateFlow, GenerateBloggerTemplateInput, GenerateBloggerTemplateOutput } from '@/ai/flows/generate-blogger-template';
 import { editBloggerTemplate as editBloggerTemplateFlow, EditBloggerTemplateInput, EditBloggerTemplateOutput } from '@/ai/flows/edit-blogger-template';
+import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiChapterInput, GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
 
 
 export async function generateThumbnailAction(
@@ -80,5 +81,21 @@ export async function editBloggerTemplateAction(
   } catch (error) {
     console.error('Error editing Blogger template:', error);
     return { error: 'Gagal mengedit templat. Silakan coba lagi.' };
+  }
+}
+
+export async function generateSkripsiChapterAction(
+  input: GenerateSkripsiChapterInput
+): Promise<GenerateSkripsiChapterOutput | { error: string }> {
+  if (!input.topic || !input.chapterTitle) {
+    return { error: 'Topik skripsi dan judul bab tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateSkripsiChapterFlow(input);
+    return { content: result.content };
+  } catch (error) {
+    console.error('Error generating skripsi chapter:', error);
+    return { error: 'Gagal membuat draf bab skripsi. Silakan coba lagi.' };
   }
 }

@@ -4,20 +4,40 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
+import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 function ProFeatures() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Fitur Aplikasi Pro</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Pusat Aplikasi AI</h1>
         <p className="text-muted-foreground">
-          Anda memiliki akses penuh ke semua fitur eksklusif kami.
+          Anda memiliki akses penuh ke semua alat bantu AI eksklusif kami.
         </p>
       </div>
-      <AiBloggerTemplateGenerator />
+
+      <Tabs defaultValue="blogger" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="blogger">
+            <Bot className="mr-2" />
+            AI Template Blogger
+          </TabsTrigger>
+          <TabsTrigger value="skripsi">
+            <FileText className="mr-2" />
+            AI Asisten Skripsi
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="blogger" className="mt-6">
+          <AiBloggerTemplateGenerator />
+        </TabsContent>
+        <TabsContent value="skripsi" className="mt-6">
+          <AiSkripsiGenerator />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -33,7 +53,7 @@ function UpgradePrompt() {
         <CardDescription>
           Upgrade ke akun Pro untuk mendapatkan akses eksklusif ke alat bantu canggih,
           <br />
-          termasuk AI Template Blogger Generator.
+          termasuk AI Template Blogger dan AI Asisten Skripsi.
         </CardDescription>
       </CardHeader>
       <CardContent>
