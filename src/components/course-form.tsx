@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState, useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { createCourse, updateCourse } from '@/actions/courses';
 import type { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 interface CourseFormProps {
@@ -17,7 +16,7 @@ interface CourseFormProps {
 
 export function CourseForm({ course }: CourseFormProps) {
   const action = course ? updateCourse.bind(null, course.id) : createCourse;
-  const [state, formAction] = useFormState(action, { message: '', errors: {} });
+  const [state, formAction] = useActionState(action, { message: '', errors: {} });
   const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState(course?.imageUrl || '');
 

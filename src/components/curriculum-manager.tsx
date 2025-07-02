@@ -32,8 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Film, FileText, Package, Pencil, PlusCircle, Trash2 } from 'lucide-react';
-import { useState, useEffect, useOptimistic } from 'react';
-import { useFormState } from 'react-dom';
+import { useState, useEffect, useOptimistic, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/actions/curriculum';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -48,7 +47,7 @@ type ActionResponse = {
 // --- Module Form ---
 function ModuleForm({ courseId, module, onFinished }: { courseId: string, module?: Module, onFinished: () => void }) {
   const action = module ? updateModule.bind(null, courseId, module.id) : addModule.bind(null, courseId);
-  const [state, formAction] = useFormState<ActionResponse, FormData>(action, { message: '' });
+  const [state, formAction] = useActionState<ActionResponse, FormData>(action, { message: '' });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,7 +77,7 @@ function ModuleForm({ courseId, module, onFinished }: { courseId: string, module
 // --- Lesson Form ---
 function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: string, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
     const action = lesson ? updateLesson.bind(null, courseId, moduleId, lesson.id) : addLesson.bind(null, courseId, moduleId);
-    const [state, formAction] = useFormState<ActionResponse, FormData>(action, { message: '' });
+    const [state, formAction] = useActionState<ActionResponse, FormData>(action, { message: '' });
     const { toast } = useToast();
   
     useEffect(() => {
