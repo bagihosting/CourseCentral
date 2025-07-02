@@ -5,16 +5,17 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
 import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
+import { AiGoogleAdsGenerator } from '@/components/ai-google-ads-generator';
 
 
 function ProFeatures() {
-  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | null>(null);
+  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | null>(null);
 
-  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress') => {
+  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads') => {
     setActiveApp(app);
   };
 
@@ -36,6 +37,12 @@ function ProFeatures() {
       title: 'Plugin Wordpress',
       description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.',
       icon: <Plug className="h-10 w-10 text-primary" />,
+    },
+    {
+      id: 'google-ads',
+      title: 'AI Google Ads Copy',
+      description: 'Buat teks iklan (headlines & descriptions) untuk kampanye Google Ads.',
+      icon: <Megaphone className="h-10 w-10 text-primary" />,
     }
   ];
 
@@ -55,7 +62,7 @@ function ProFeatures() {
           {apps.map((app) => (
             <Card
               key={app.id}
-              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress')}
+              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads')}
               className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
             >
               <CardContent className="flex flex-col items-center text-center gap-4 p-6">
@@ -80,6 +87,7 @@ function ProFeatures() {
           {activeApp === 'blogger' && <AiBloggerTemplateGenerator />}
           {activeApp === 'skripsi' && <AiSkripsiGenerator />}
           {activeApp === 'wordpress' && <AiWordpressPluginGenerator />}
+          {activeApp === 'google-ads' && <AiGoogleAdsGenerator />}
         </div>
       )}
     </div>

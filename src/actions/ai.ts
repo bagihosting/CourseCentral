@@ -7,6 +7,7 @@ import { generateBloggerTemplate as generateBloggerTemplateFlow, GenerateBlogger
 import { editBloggerTemplate as editBloggerTemplateFlow, EditBloggerTemplateInput, EditBloggerTemplateOutput } from '@/ai/flows/edit-blogger-template';
 import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiChapterInput, GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
 import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, GenerateWordpressPluginBoilerplateInput, GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
+import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
 
 
 export async function generateThumbnailAction(
@@ -115,4 +116,20 @@ export async function generateWordpressPluginBoilerplateAction(
         console.error('Error generating WordPress plugin boilerplate:', error);
         return { error: 'Gagal membuat kerangka plugin. Silakan coba lagi.' };
     }
+}
+
+export async function generateGoogleAdsAction(
+  input: GenerateGoogleAdsInput
+): Promise<GenerateGoogleAdsOutput | { error: string }> {
+  if (!input.productName || !input.targetAudience || !input.keyFeatures) {
+    return { error: 'Semua kolom wajib diisi.' };
+  }
+
+  try {
+    const result = await generateGoogleAdsFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating Google Ads copy:', error);
+    return { error: 'Gagal membuat teks iklan. Silakan coba lagi.' };
+  }
 }
