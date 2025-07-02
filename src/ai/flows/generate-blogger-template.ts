@@ -13,6 +13,7 @@ import { z } from 'zod';
 const GenerateBloggerTemplateInputSchema = z.object({
   niche: z.string().describe('The niche or topic of the blog (e.g., "Tech", "Culinary", "Fashion", "Travel").'),
   style: z.string().describe('The desired visual style (e.g., "Minimalist", "Modern", "Vintage", "Bold").'),
+  creatorName: z.string().describe('The name of the template creator.'),
 });
 
 const GenerateBloggerTemplateOutputSchema = z.object({
@@ -45,6 +46,7 @@ const prompt = ai.definePrompt({
     The user has specified the following requirements:
     - Blog Niche: {{{niche}}}
     - Visual Style: {{{style}}}
+    - Creator Name: {{{creatorName}}}
 
     **CRITICAL REQUIREMENTS:**
 
@@ -61,6 +63,7 @@ const prompt = ai.definePrompt({
         -   Use CSS Grid or Flexbox for the main layout structure (e.g., content area and sidebar).
     5.  **Clean Code**: The generated HTML and CSS should be clean, well-commented (inside the CSS, not XML comments), and easy to understand. Do not include any external JavaScript libraries unless absolutely necessary.
     6.  **Full Code**: Provide the entire, complete XML code for the template. Do not provide snippets.
+    7.  **Creator Credit**: In the footer section, you MUST include a credit for the template creator. For example: \`<div id='creator-credit' class='text-center p-4'>Template designed by {{{creatorName}}}</div>\`. Also, include an XML comment at the top of the theme, like so: \`<!-- Template created for a {{{niche}}} blog by {{{creatorName}}} -->\`. This credit must be visible in the template's footer.
   `,
 });
 

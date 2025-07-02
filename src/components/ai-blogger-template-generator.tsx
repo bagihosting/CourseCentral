@@ -13,15 +13,16 @@ import { generateBloggerTemplateAction } from '@/actions/ai';
 export function AiBloggerTemplateGenerator() {
   const [niche, setNiche] = useState('');
   const [style, setStyle] = useState('');
+  const [creatorName, setCreatorName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [templateCode, setTemplateCode] = useState('');
   const { toast } = useToast();
 
   const handleGenerate = async () => {
-    if (!niche || !style) {
+    if (!niche || !style || !creatorName) {
       toast({
         title: 'Input Diperlukan',
-        description: 'Silakan isi niche dan gaya visual.',
+        description: 'Silakan isi semua kolom: niche, gaya visual, dan nama pembuat.',
         variant: 'destructive',
       });
       return;
@@ -30,7 +31,7 @@ export function AiBloggerTemplateGenerator() {
     setIsLoading(true);
     setTemplateCode('');
 
-    const result = await generateBloggerTemplateAction({ niche, style });
+    const result = await generateBloggerTemplateAction({ niche, style, creatorName });
 
     setIsLoading(false);
 
@@ -104,14 +105,14 @@ export function AiBloggerTemplateGenerator() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="niche">Niche Blog</Label>
             <Input
               id="niche"
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              placeholder="Contoh: Teknologi, Kuliner, Fashion"
+              placeholder="Contoh: Teknologi"
               disabled={isLoading}
             />
           </div>
@@ -121,12 +122,22 @@ export function AiBloggerTemplateGenerator() {
               id="style"
               value={style}
               onChange={(e) => setStyle(e.target.value)}
-              placeholder="Contoh: Minimalis, Modern, Vintage"
+              placeholder="Contoh: Minimalis"
+              disabled={isLoading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="creator">Nama Pembuat</Label>
+            <Input
+              id="creator"
+              value={creatorName}
+              onChange={(e) => setCreatorName(e.target.value)}
+              placeholder="Contoh: Studio Desain"
               disabled={isLoading}
             />
           </div>
         </div>
-        <Button onClick={handleGenerate} disabled={isLoading || !niche || !style} className="w-full">
+        <Button onClick={handleGenerate} disabled={isLoading || !niche || !style || !creatorName} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

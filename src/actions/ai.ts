@@ -53,8 +53,8 @@ export async function suggestCoursesAction(
 export async function generateBloggerTemplateAction(
   input: GenerateBloggerTemplateInput
 ): Promise<GenerateBloggerTemplateOutput | { error: string }> {
-  if (!input.niche || !input.style) {
-    return { error: 'Niche dan gaya visual tidak boleh kosong.' };
+  if (!input.niche || !input.style || !input.creatorName) {
+    return { error: 'Niche, gaya visual, dan nama pembuat tidak boleh kosong.' };
   }
 
   try {
