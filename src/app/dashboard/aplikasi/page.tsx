@@ -4,53 +4,20 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Zap, Sparkles, Rocket, Lock } from 'lucide-react';
+import { Sparkles, Lock } from 'lucide-react';
+import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
+
 
 function ProFeatures() {
-  const proFeaturesList = [
-    {
-      icon: Rocket,
-      title: 'Akses Fitur Beta',
-      description: 'Coba fitur terbaru kami sebelum dirilis untuk umum dan berikan masukan Anda.'
-    },
-    {
-      icon: Sparkles,
-      title: 'Generator Konten AI Lanjutan',
-      description: 'Gunakan model AI yang lebih canggih untuk menghasilkan materi kursus yang lebih kaya.'
-    },
-    {
-      icon: Zap,
-      title: 'Dukungan Prioritas',
-      description: 'Dapatkan bantuan lebih cepat dari tim dukungan kami untuk setiap pertanyaan Anda.'
-    }
-  ];
-
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Selamat Datang di Aplikasi Pro!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Fitur Aplikasi Pro</h1>
         <p className="text-muted-foreground">
           Anda memiliki akses penuh ke semua fitur eksklusif kami.
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {proFeaturesList.map((feature, index) => {
-          const Icon = feature.icon;
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-6 w-6" />
-                </div>
-                <CardTitle>{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <AiBloggerTemplateGenerator />
     </div>
   );
 }
@@ -66,7 +33,7 @@ function UpgradePrompt() {
         <CardDescription>
           Upgrade ke akun Pro untuk mendapatkan akses eksklusif ke alat bantu canggih,
           <br />
-          dukungan prioritas, dan banyak lagi.
+          termasuk AI Template Blogger Generator.
         </CardDescription>
       </CardHeader>
       <CardContent>

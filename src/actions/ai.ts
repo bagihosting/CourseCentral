@@ -3,6 +3,8 @@
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
 import { generateDescription as generateDescriptionFlow } from '@/ai/flows/generate-description';
 import { suggestCourses as suggestCoursesFlow, CourseSuggestionInput, CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
+import { generateBloggerTemplate as generateBloggerTemplateFlow, GenerateBloggerTemplateInput, GenerateBloggerTemplateOutput } from '@/ai/flows/generate-blogger-template';
+
 
 export async function generateThumbnailAction(
   title: string
@@ -45,5 +47,21 @@ export async function suggestCoursesAction(
   } catch (error) {
     console.error('Error suggesting courses:', error);
     return { suggestions: [] };
+  }
+}
+
+export async function generateBloggerTemplateAction(
+  input: GenerateBloggerTemplateInput
+): Promise<GenerateBloggerTemplateOutput | { error: string }> {
+  if (!input.niche || !input.style) {
+    return { error: 'Niche dan gaya visual tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateBloggerTemplateFlow(input);
+    return { templateCode: result.templateCode };
+  } catch (error) {
+    console.error('Error generating Blogger template:', error);
+    return { error: 'Gagal membuat template. Silakan coba lagi.' };
   }
 }
