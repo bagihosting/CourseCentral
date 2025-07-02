@@ -40,6 +40,7 @@ export async function createCourse(prevState: FormState, formData: FormData): Pr
   }
 
   revalidatePath('/dashboard/courses');
+  revalidatePath('/dashboard/admin/courses');
   redirect(`/dashboard/courses/${newCourse.id}/edit`);
 }
 
@@ -62,8 +63,9 @@ export async function updateCourse(id: string, prevState: FormState, formData: F
   }
 
   revalidatePath('/dashboard/courses');
+  revalidatePath('/dashboard/admin/courses');
   revalidatePath(`/dashboard/courses/${id}/edit`);
-  redirect('/dashboard/courses');
+  redirect('/dashboard/admin/courses');
 }
 
 
@@ -71,6 +73,7 @@ export async function deleteCourse(id: string) {
   try {
     await dbDeleteCourse(id);
     revalidatePath('/dashboard/courses');
+    revalidatePath('/dashboard/admin/courses');
   } catch (error) {
     throw new Error('Gagal menghapus kursus.');
   }
