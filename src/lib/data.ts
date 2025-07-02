@@ -1,12 +1,12 @@
 import { db } from './firebase-admin';
 import type { Course, User, Module, Lesson } from '@/types';
 
-// --- Firestore Collection References ---
-const usersCollection = db.collection('users');
-const coursesCollection = db.collection('courses');
-
 // --- Helper to delete subcollections recursively ---
 async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number = 50) {
+    if (!db) {
+        console.warn('Firestore is not initialized. Skipping collection deletion.');
+        return;
+    }
     const query = collectionRef.limit(batchSize);
     let snapshot = await query.get();
 
@@ -25,7 +25,16 @@ async function deleteCollection(collectionRef: FirebaseFirestore.CollectionRefer
 // --- API FUNCTIONS ---
 
 export async function getAllUsers(): Promise<User[]> {
+  if (!db) {
+    console.warn("Firestore not initialized. Returning default users for login functionality.");
+    // Return a default set of users for login to work in unconfigured dev environments
+    return [
+        { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
+        { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
+    ];
+  }
   try {
+    const usersCollection = db.collection('users');
     const snapshot = await usersCollection.get();
     if (snapshot.empty) {
       // Seed initial users if the collection is empty, so login works on a fresh database.
@@ -52,7 +61,12 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 export async function getAllCourses(): Promise<Course[]> {
+  if (!db) {
+    console.warn("Firestore not initialized. Cannot fetch courses.");
+    return [];
+  }
   try {
+    const coursesCollection = db.collection('courses');
     const snapshot = await coursesCollection.get();
     // Note: We don't fetch nested modules/lessons for the main course list
     // to optimize performance and reduce Firestore read costs.
@@ -75,7 +89,12 @@ export async function getAllCourses(): Promise<Course[]> {
 }
 
 export async function getCourseById(id: string): Promise<Course | undefined> {
+  if (!db) {
+    console.warn("Firestore not initialized. Cannot fetch course by ID.");
+    return undefined;
+  }
   try {
+    const coursesCollection = db.collection('courses');
     const courseDoc = await coursesCollection.doc(id).get();
     if (!courseDoc.exists) {
       return undefined;
@@ -113,6 +132,10 @@ export async function getCourseById(id: string): Promise<Course | undefined> {
 }
 
 export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promise<Course> {
+  if (!db) {
+    throw new Error("Firestore not initialized. Cannot create course.");
+  }
+  const coursesCollection = db.collection('courses');
   // Ensure modules is not part of the data being written to the main course document
   const { modules, ...courseData } = data as Course;
   const docRef = await coursesCollection.add(courseData);
@@ -124,6 +147,10 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promis
 }
 
 export async function updateCourse(id: string, data: Omit<Course, 'id' | 'modules'>): Promise<Course | null> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot update course.");
+    }
+    const coursesCollection = db.collection('courses');
     const courseRef = coursesCollection.doc(id);
     // Ensure modules is not part of the data being written to the main course document
     const { modules, ...courseData } = data as Course;
@@ -133,6 +160,10 @@ export async function updateCourse(id: string, data: Omit<Course, 'id' | 'module
 }
 
 export async function deleteCourse(id: string): Promise<void> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot delete course.");
+    }
+    const coursesCollection = db.collection('courses');
     const courseRef = coursesCollection.doc(id);
     const modulesRef = courseRef.collection('modules');
     
@@ -155,11 +186,19 @@ export async function deleteCourse(id: string): Promise<void> {
 // --- Curriculum API Functions ---
 
 export async function addModule(courseId: string, data: { title: string }): Promise<Module> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot add module.");
+    }
+    const coursesCollection = db.collection('courses');
     const moduleRef = await coursesCollection.doc(courseId).collection('modules').add(data);
     return { id: moduleRef.id, title: data.title, lessons: [] };
 }
 
 export async function updateModule(courseId: string, moduleId: string, data: { title: string }): Promise<Module> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot update module.");
+    }
+    const coursesCollection = db.collection('courses');
     const moduleRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId);
     await moduleRef.update(data);
     const moduleSnapshot = await moduleRef.get();
@@ -168,6 +207,10 @@ export async function updateModule(courseId: string, moduleId: string, data: { t
 }
 
 export async function deleteModule(courseId: string, moduleId: string): Promise<void> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot delete module.");
+    }
+    const coursesCollection = db.collection('courses');
     const moduleRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId);
     // First, delete the 'lessons' subcollection within the module
     await deleteCollection(moduleRef.collection('lessons'));
@@ -176,6 +219,10 @@ export async function deleteModule(courseId: string, moduleId: string): Promise<
 }
 
 export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot add lesson.");
+    }
+    const coursesCollection = db.collection('courses');
     const lessonData = {...data};
     if (data.type === 'zip' || data.type === 'text') {
         lessonData.downloadable = true;
@@ -188,6 +235,10 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
 }
 
 export async function updateLesson(courseId: string, moduleId: string, lessonId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot update lesson.");
+    }
+    const coursesCollection = db.collection('courses');
     const lessonData = {...data};
      if (data.type === 'zip' || data.type === 'text') {
         lessonData.downloadable = true;
@@ -201,6 +252,10 @@ export async function updateLesson(courseId: string, moduleId: string, lessonId:
 }
 
 export async function deleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<void> {
+    if (!db) {
+        throw new Error("Firestore not initialized. Cannot delete lesson.");
+    }
+    const coursesCollection = db.collection('courses');
     const lessonRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId);
     await lessonRef.delete();
 }
