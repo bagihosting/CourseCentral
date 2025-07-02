@@ -19,7 +19,60 @@ function getInitialData(): Database {
             { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
             { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
         ],
-        courses: []
+        courses: [
+          {
+            id: 'course_1',
+            title: 'Dasar-Dasar Pengembangan Web Modern',
+            description: 'Pelajari dasar-dasar HTML, CSS, dan JavaScript untuk membangun website interaktif pertama Anda. Kursus ini dirancang untuk pemula absolut tanpa pengalaman pemrograman sebelumnya.',
+            instructor: 'Andi Bachtiar',
+            price: 0,
+            imageUrl: 'https://placehold.co/600x400.png',
+            modules: [
+              {
+                id: 'module_1_1',
+                title: 'Pengenalan HTML',
+                lessons: [
+                  { id: 'lesson_1_1_1', title: 'Struktur Dasar Halaman HTML', type: 'text' },
+                  { id: 'lesson_1_1_2', title: 'Video: Elemen dan Tag Penting', type: 'video' },
+                ]
+              },
+              {
+                id: 'module_1_2',
+                title: 'Styling dengan CSS',
+                lessons: [
+                  { id: 'lesson_1_2_1', title: 'Pengenalan CSS', type: 'text' },
+                ]
+              }
+            ]
+          },
+          {
+            id: 'course_2',
+            title: 'React: Dari Pemula Hingga Mahir',
+            description: 'Kuasai framework JavaScript paling populer, React. Bangun aplikasi web yang cepat, dinamis, dan dapat diskalakan dari awal.',
+            instructor: 'Citra Dewi',
+            price: 250000,
+            imageUrl: 'https://placehold.co/600x400.png',
+            modules: []
+          },
+          {
+            id: 'course_3',
+            title: 'Manajemen Proyek dengan Agile dan Scrum',
+            description: 'Pelajari cara mengelola proyek kompleks secara efisien menggunakan metodologi Agile dan framework Scrum. Tingkatkan produktivitas tim Anda.',
+            instructor: 'Budi Santoso',
+            price: 150000,
+            imageUrl: 'https://placehold.co/600x400.png',
+            modules: []
+          },
+           {
+            id: 'course_4',
+            title: 'Desain UI/UX untuk Aplikasi Mobile',
+            description: 'Ciptakan antarmuka yang indah dan pengalaman pengguna yang menyenangkan. Pelajari prinsip-prinsip desain, wireframing, dan prototyping.',
+            instructor: 'Rina Kartika',
+            price: 200000,
+            imageUrl: 'https://placehold.co/600x400.png',
+            modules: []
+          },
+        ]
     };
 }
 
