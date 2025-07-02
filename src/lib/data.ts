@@ -32,15 +32,32 @@ function getInitialData(): Database {
                 id: 'module_1_1',
                 title: 'Pengenalan HTML',
                 lessons: [
-                  { id: 'lesson_1_1_1', title: 'Struktur Dasar Halaman HTML', type: 'text' },
-                  { id: 'lesson_1_1_2', title: 'Video: Elemen dan Tag Penting', type: 'video' },
+                  { 
+                    id: 'lesson_1_1_1', 
+                    title: 'Struktur Dasar Halaman HTML', 
+                    type: 'text', 
+                    content: '<h1>Selamat Datang di Pelajaran HTML!</h1>\n\n<p>HTML adalah singkatan dari HyperText Markup Language. Ini adalah bahasa markup standar untuk dokumen yang dirancang untuk ditampilkan di browser web.</p>\n\n<p>Setiap halaman HTML terdiri dari serangkaian <strong>elemen</strong>, yang Anda gunakan untuk melampirkan, atau membungkus, berbagai bagian konten agar terlihat atau bertindak dengan cara tertentu.</p>\n\n<h2>Elemen Dasar</h2>\n<ul>\n  <li><code>&lt;html&gt;</code>: Elemen root yang membungkus semua konten di seluruh halaman.</li>\n  <li><code>&lt;head&gt;</code>: Elemen ini bertindak sebagai wadah untuk semua hal yang ingin Anda sertakan di halaman HTML yang bukan konten yang Anda tunjukkan kepada pemirsa halaman Anda.</li>\n  <li><code>&lt;body&gt;</code>: Elemen ini berisi semua konten yang ingin Anda tampilkan kepada pengguna web saat mereka mengunjungi halaman Anda.</li>\n</ul>',
+                    downloadable: true,
+                  },
+                  { 
+                    id: 'lesson_1_1_2', 
+                    title: 'Video: Elemen dan Tag Penting', 
+                    type: 'video',
+                    contentUrl: 'https://storage.googleapis.com/web-dev-assets/video-and-source-tags/chrome.mp4',
+                  },
                 ]
               },
               {
                 id: 'module_1_2',
                 title: 'Styling dengan CSS',
                 lessons: [
-                  { id: 'lesson_1_2_1', title: 'Pengenalan CSS', type: 'text' },
+                  { 
+                    id: 'lesson_1_2_1', 
+                    title: 'Pengenalan CSS', 
+                    type: 'text',
+                    content: '<h1>Pengenalan CSS</h1>\n\n<p>CSS (Cascading Style Sheets) digunakan untuk menata dan menata halaman web — misalnya, untuk mengubah font, warna, ukuran, dan jarak konten Anda, memisahkannya menjadi beberapa kolom, atau menambahkan animasi dan dekorasi lainnya.</p>',
+                    downloadable: true,
+                  },
                 ]
               }
             ]

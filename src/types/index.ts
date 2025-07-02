@@ -26,6 +26,7 @@ export type Lesson = {
   title: string;
   type: 'video' | 'text' | 'zip';
   contentUrl?: string;
+  content?: string;
   downloadable?: boolean;
 };
 

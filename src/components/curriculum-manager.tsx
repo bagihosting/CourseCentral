@@ -36,6 +36,7 @@ import { useState, useOptimistic, FormEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
 
 type FormErrors = {
     title?: string;
@@ -94,13 +95,13 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
     const [title, setTitle] = useState(lesson?.title || '');
     const [type, setType] = useState<Lesson['type']>(lesson?.type || 'video');
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
+    const [content, setContent] = useState(lesson?.content || '');
     const [errors, setErrors] = useState<FormErrors>({});
     const { toast } = useToast();
 
     const validate = () => {
         const newErrors: FormErrors = {};
         if(title.length < 3) newErrors.title = 'Judul pelajaran minimal 3 karakter.';
-        // Basic URL validation for video/zip
         if ((type === 'video' || type === 'zip') && contentUrl && !contentUrl.startsWith('http')) {
             newErrors.contentUrl = 'URL konten tidak valid.';
         }
@@ -113,7 +114,12 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
         if(!validate()) return;
         
         try {
-            const lessonData = { title, type, contentUrl };
+            const lessonData: Omit<Lesson, 'id' | 'downloadable'> = {
+                title,
+                type,
+                ...(type === 'text' ? { content } : { contentUrl })
+            };
+
             if(lesson) {
                 updateLesson(courseId, moduleId, lesson.id, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
@@ -150,11 +156,26 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
             </Select>
             {errors.type && <p className="text-sm text-destructive">{errors.type}</p>}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="contentUrl">URL Konten (untuk Video/ZIP)</Label>
-          <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..." />
-          {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
-        </div>
+
+        {type === 'text' ? (
+          <div className="space-y-2">
+            <Label htmlFor="content">Konten Teks</Label>
+            <Textarea 
+              id="content" 
+              name="content" 
+              value={content} 
+              onChange={e => setContent(e.target.value)} 
+              rows={10} 
+              placeholder="Tulis konten pelajaran (mendukung HTML dasar)." 
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="contentUrl">URL Konten (untuk Video/ZIP)</Label>
+            <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..." />
+            {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
+          </div>
+        )}
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
