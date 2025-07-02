@@ -9,6 +9,7 @@ import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiCh
 import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, GenerateWordpressPluginBoilerplateInput, GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
 import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
 import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDigitalInvitationInput, GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
+import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInput, GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
 
 
 export async function generateThumbnailAction(
@@ -148,5 +149,21 @@ export async function generateDigitalInvitationAction(
   } catch (error) {
     console.error('Error generating digital invitation:', error);
     return { error: 'Gagal membuat konten undangan. Silakan coba lagi.' };
+  }
+}
+
+export async function generateUmkmProfileAction(
+  input: GenerateUmkmProfileInput
+): Promise<GenerateUmkmProfileOutput | { error: string }> {
+  if (!input.businessType || !input.targetMarket || !input.uniqueSellingPoint) {
+    return { error: 'Semua kolom wajib diisi.' };
+  }
+
+  try {
+    const result = await generateUmkmProfileFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating UMKM profile:', error);
+    return { error: 'Gagal membuat profil UMKM. Silakan coba lagi.' };
   }
 }
