@@ -8,51 +8,7 @@ let users: User[] = [
   { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
 ];
 
-let courses: Course[] = [
-  {
-    id: 'c1',
-    title: 'Pengembangan Web Modern dengan React & Next.js',
-    description: 'Pelajari cara membangun aplikasi web full-stack yang cepat dan modern dari awal hingga deployment.',
-    instructor: 'Budi Santoso',
-    price: 550000,
-    imageUrl: 'https://placehold.co/600x400.png',
-    modules: [
-      { id: 'm1', title: 'Pendahuluan React', lessons: [{ id: 'l1', title: 'Setup Lingkungan', type: 'text', downloadable: true }, { id: 'l2', title: 'Dasar-dasar JSX', type: 'video', contentUrl: 'https://www.youtube.com/watch?v=SqcY0GlETPk' }] },
-      { id: 'm2', title: 'Manajemen State', lessons: [{ id: 'l3', title: 'useState & useEffect', type: 'video', contentUrl: 'https://www.youtube.com/watch?v=SqcY0GlETPk' }] },
-    ],
-  },
-  {
-    id: 'c2',
-    title: 'Dasar-dasar Desain UI/UX untuk Pemula',
-    description: 'Kuasai prinsip-prinsip desain fundamental untuk menciptakan antarmuka yang indah dan ramah pengguna.',
-    instructor: 'Citra Lestari',
-    price: 450000,
-    imageUrl: 'https://placehold.co/600x400.png',
-    modules: [
-       { id: 'm1', title: 'Prinsip Desain', lessons: [{ id: 'l1', title: 'Teori Warna', type: 'text', downloadable: true }, { id: 'l2', title: 'Tipografi', type: 'text', downloadable: true }] },
-    ],
-  },
-  {
-    id: 'c3',
-    title: 'Machine Learning dengan Python',
-    description: 'Bangun model machine learning cerdas menggunakan library Python populer seperti Scikit-learn dan TensorFlow.',
-    instructor: 'Dewi Anggraini',
-    price: 750000,
-    imageUrl: 'https://placehold.co/600x400.png',
-    modules: [
-      { id: 'm1', title: 'Pengenalan', lessons: [{ id: 'l1', title: 'Instalasi Python & Jupyter', type: 'zip', downloadable: true, contentUrl: 'https://example.com/file.zip' }] },
-    ],
-  },
-  {
-    id: 'c4',
-    title: 'Manajemen Proyek Agile & Scrum',
-    description: 'Tingkatkan efisiensi tim Anda dengan menguasai metodologi pengembangan perangkat lunak Agile dan Scrum.',
-    instructor: 'Eko Prasetyo',
-    price: 0,
-    imageUrl: 'https://placehold.co/600x400.png',
-    modules: [],
-  },
-];
+let courses: Course[] = [];
 
 
 // --- API FUNCTIONS ---
