@@ -1,14 +1,43 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-7 w-48" />
+                <Skeleton className="h-5 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-20" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
 
   if (!user) {
     return (
@@ -17,7 +46,7 @@ export default function SettingsPage() {
                 <CardTitle>Pengguna Tidak Ditemukan</CardTitle>
             </CardHeader>
             <CardContent>
-                <p>Silakan login untuk mengakses halaman ini.</p>
+                <p>Silakan masuk untuk mengakses halaman ini.</p>
             </CardContent>
         </Card>
     );
@@ -40,7 +69,7 @@ export default function SettingsPage() {
                 </Avatar>
                 <div>
                     <h3 className="text-lg font-semibold">{user.name}</h3>
-                    <p className="text-sm text-muted-foreground">{user.role}</p>
+                    <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
                 </div>
             </div>
             <div className="space-y-2">
@@ -48,8 +77,8 @@ export default function SettingsPage() {
                 <Input id="name" defaultValue={user.name} readOnly />
             </div>
              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" defaultValue={`${user.id}@example.com`} readOnly />
+                <Label htmlFor="username">Nama Pengguna</Label>
+                <Input id="username" defaultValue={user.username} readOnly />
             </div>
         </CardContent>
       </Card>

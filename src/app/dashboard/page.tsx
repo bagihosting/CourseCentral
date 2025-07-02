@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllCourses, getAllUsers, getEnrolledCoursesForUser } from '@/lib/data';
 import type { Course, User as UserType } from '@/types';
@@ -13,13 +13,15 @@ import { Button } from '@/components/ui/button';
 import { CourseCard } from '@/components/course-card';
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (userLoading) return; // Wait for user to be available
+
     if (user) {
       const allCourses = getAllCourses();
       setCourses(allCourses);
@@ -28,11 +30,13 @@ export default function DashboardPage() {
       } else {
         setEnrolledCourses(getEnrolledCoursesForUser(user.id));
       }
-      setLoading(false);
     }
-  }, [user]);
+    setLoading(false);
+  }, [user, userLoading]);
 
-  if (loading) {
+  const isLoading = userLoading || loading;
+
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <div className="space-y-2">

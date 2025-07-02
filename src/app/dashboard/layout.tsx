@@ -1,3 +1,5 @@
+'use client';
+
 import {
   SidebarProvider,
   Sidebar,
@@ -17,12 +19,15 @@ import {
   Settings,
   FolderKanban,
   GraduationCap,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { getUser } from '@/actions/auth';
+import { useAuth } from '@/contexts/auth-context';
+import { Skeleton } from '@/components/ui/skeleton';
+import { redirect } from 'next/navigation';
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const user = await getUser();
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
 
   const memberNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
@@ -38,6 +43,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    redirect('/');
+    return null;
+  }
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
 

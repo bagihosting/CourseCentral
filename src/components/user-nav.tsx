@@ -11,13 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { logout } from '@/actions/auth';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export function UserNav() {
-  const { user } = useUser();
+  const { user, logout } = useAuth();
 
   if (!user) {
     return null;
@@ -40,7 +39,7 @@ export function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.id}@example.com
+              {user.username}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -51,14 +50,12 @@ export function UserNav() {
           </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <form action={logout}>
-          <DropdownMenuItem asChild>
-            <button type="submit" className="w-full text-left cursor-pointer flex items-center">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Keluar</span>
-            </button>
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem asChild>
+          <button onClick={() => logout()} className="w-full text-left cursor-pointer flex items-center">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Keluar</span>
+          </button>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

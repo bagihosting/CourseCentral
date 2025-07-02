@@ -1,20 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { User } from '@/types';
-import { getUser } from '@/actions/auth';
+// This hook is deprecated. Please use the `useAuth` hook instead.
+// import { useAuth } from '@/contexts/auth-context';
+// export function useUser() {
+//   return useAuth();
+// }
+
+import { useAuth } from "@/contexts/auth-context";
 
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    async function loadUser() {
-      const userData = await getUser();
-      setUser(userData);
-    }
-
-    loadUser();
-  }, []);
-
-  return { user };
+  return useAuth();
 }

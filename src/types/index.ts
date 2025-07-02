@@ -1,6 +1,8 @@
 export type User = {
   id: string;
   name: string;
+  username: string;
+  password: string;
   role: 'admin' | 'member';
   avatarUrl: string;
 };
@@ -16,7 +18,7 @@ export type Course = {
 };
 
 export type Module = {
-  id: string;
+  id:string;
   title: string;
   lessons: Lesson[];
 };

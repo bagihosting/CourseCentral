@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
 import { getCourseById, isUserEnrolled, enrollUserInCourse } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
@@ -172,46 +172,49 @@ export default function CoursePage() {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useAuth();
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Consolidated effect to load all data and set initial state
   useEffect(() => {
-    if (params.id && user) {
-      const courseData = getCourseById(params.id);
-      setCourse(courseData);
+    if (userLoading) return; // Wait for user authentication to resolve
 
-      if (courseData) {
-        const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
-        setEnrolled(isEnrolled);
+    if (!user) {
+        toast({ title: 'Akses Ditolak', description: 'Anda harus masuk untuk melihat kursus.', variant: 'destructive'});
+        router.push('/');
+        return;
+    }
 
-        if (isEnrolled) {
-          const storedProgress = localStorage.getItem(`progress_${courseData.id}`);
-          if (storedProgress) {
-            setCompletedLessons(new Set(JSON.parse(storedProgress)));
-          }
-          
-          if (!activeLesson && courseData.modules?.[0]?.lessons?.[0]) {
-            setActiveLesson(courseData.modules[0].lessons[0]);
-          }
+    const courseData = getCourseById(params.id);
+    setCourse(courseData);
+
+    if (courseData) {
+      const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
+      setEnrolled(isEnrolled);
+
+      if (isEnrolled) {
+        const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
+        if (storedProgress) {
+          setCompletedLessons(new Set(JSON.parse(storedProgress)));
+        }
+        
+        if (!activeLesson && courseData.modules?.[0]?.lessons?.[0]) {
+          setActiveLesson(courseData.modules[0].lessons[0]);
         }
       }
-      setLoading(false);
-    } else if (user === null && params.id) {
-        // Handle case where user is not logged in
-        const courseData = getCourseById(params.id);
-        setCourse(courseData);
-        setLoading(false);
     }
-  }, [params.id, user, activeLesson]);
+    setLoading(false);
+    
+  }, [params.id, user, userLoading, activeLesson, router, toast]);
 
   // Save progress whenever it changes
   useEffect(() => {
-    if (course) {
-      localStorage.setItem(`progress_${course.id}`, JSON.stringify(Array.from(completedLessons)));
+    if (course && user) {
+      localStorage.setItem(`progress_${user.id}_${course.id}`, JSON.stringify(Array.from(completedLessons)));
     }
-  }, [completedLessons, course]);
+  }, [completedLessons, course, user]);
 
   const findNextLesson = (currentLessonId: string): Lesson | null => {
     if (!course) return null;
@@ -257,7 +260,7 @@ export default function CoursePage() {
     }
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="grid lg:grid-cols-5 gap-8 p-4 md:p-6">
         <div className="lg:col-span-3 space-y-6">

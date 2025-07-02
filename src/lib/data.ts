@@ -17,8 +17,8 @@ interface Database {
 function getInitialData(): Database {
     return {
         users: [
-            { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
-            { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
+            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
+            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
         ],
         courses: [
           {
@@ -116,7 +116,6 @@ function getDB(): Database {
     }
     try {
         const data = JSON.parse(dbString) as Database;
-        // Ensure enrollments array exists for backward compatibility
         if (!data.enrollments) {
             data.enrollments = [];
         }
@@ -140,6 +139,41 @@ export function getAllUsers(): User[] {
   const db = getDB();
   return db.users;
 }
+
+export function getUserById(id: string): User | undefined {
+    const db = getDB();
+    return db.users.find(user => user.id === id);
+}
+
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
+
+export function registerUser(data: RegisterUserInput): User {
+  const db = getDB();
+  if (db.users.some(u => u.username === data.username)) {
+    throw new Error('Nama pengguna sudah digunakan. Silakan pilih nama pengguna lain.');
+  }
+  const newUser: User = {
+    id: `user_${Date.now()}`,
+    name: data.name,
+    username: data.username,
+    password: data.password, // In a real app, this should be hashed.
+    role: 'member',
+    avatarUrl: 'https://placehold.co/100x100.png',
+  };
+  db.users.push(newUser);
+  saveDB(db);
+  return newUser;
+}
+
+export function validateUser(username: string, password: string): User | null {
+  const db = getDB();
+  const user = db.users.find(u => u.username === username);
+  if (user && user.password === password) {
+    return user;
+  }
+  return null;
+}
+
 
 // --- Course API Functions ---
 

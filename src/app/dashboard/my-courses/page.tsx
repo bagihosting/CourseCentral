@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CourseCard } from '@/components/course-card';
 import { getEnrolledCoursesForUser } from '@/lib/data';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -12,19 +12,19 @@ import { Button } from '@/components/ui/button';
 export default function MyCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
+  const { user, loading: userLoading } = useAuth();
 
   useEffect(() => {
+    if (userLoading) return; // Wait for user to be loaded
+
     if (user) {
       setCourses(getEnrolledCoursesForUser(user.id));
-      setLoading(false);
-    } else if (user === null) {
-      // User is loaded but is null (not logged in), stop loading
-      setLoading(false);
     }
-  }, [user]);
+    setLoading(false);
+    
+  }, [user, userLoading]);
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
