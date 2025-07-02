@@ -28,12 +28,12 @@ export default function AdminCoursesPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-8">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <Skeleton className="h-9 w-64 mb-2" />
                 <Skeleton className="h-5 w-80" />
             </div>
-            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-full md:w-48" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
@@ -50,13 +50,13 @@ export default function AdminCoursesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Manajemen Kursus</h1>
           <p className="text-muted-foreground">Tambah, ubah, dan hapus kursus dari sini.</p>
         </div>
-        <Link href="/dashboard/courses/new">
-          <Button>
+        <Link href="/dashboard/courses/new" className="w-full md:w-auto">
+          <Button className="w-full md:w-auto">
             <PlusCircle className="mr-2" />
             Tambah Kursus Baru
           </Button>
