@@ -11,6 +11,7 @@ import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, Gen
 import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDigitalInvitationInput, GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
 import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInput, GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
 import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
+import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOutput } from '@/ai/flows/generate-image';
 
 
 export async function generateThumbnailAction(
@@ -182,5 +183,21 @@ export async function generateSpssSyntaxAction(
   } catch (error) {
     console.error('Error generating SPSS syntax:', error);
     return { error: 'Gagal membuat sintaks SPSS. Silakan coba lagi.' };
+  }
+}
+
+export async function generateImageAction(
+  input: GenerateImageInput
+): Promise<GenerateImageOutput | { error: string }> {
+  if (!input.prompt) {
+    return { error: 'Deskripsi gambar tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateImageFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating image:', error);
+    return { error: 'Gagal membuat gambar. Silakan coba lagi.' };
   }
 }
