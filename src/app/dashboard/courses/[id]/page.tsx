@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
 import { getCourseById } from '@/lib/data';
@@ -56,6 +56,7 @@ function CourseContentDisplay({ modules }: { modules: Module[] }) {
 export default function CoursePage() {
   const params = useParams<{ id: string }>();
   const [course, setCourse] = useState<Course | null | undefined>(undefined);
+  const curriculumRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -63,6 +64,13 @@ export default function CoursePage() {
       setCourse(courseData);
     }
   }, [params.id]);
+
+  const handleStartLearning = () => {
+    curriculumRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+    });
+  };
 
   if (course === undefined) {
     // Loading state
@@ -125,10 +133,10 @@ export default function CoursePage() {
                     <CardContent className="space-y-4">
                          <Progress value={progress} className="w-full" />
                          <p className="text-sm text-muted-foreground">{completedLessons} dari {totalLessons} pelajaran selesai.</p>
-                         <Button className="w-full text-lg" size="lg">Mulai Belajar</Button>
+                         <Button onClick={handleStartLearning} className="w-full text-lg" size="lg">Mulai Belajar</Button>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card ref={curriculumRef}>
                     <CardHeader>
                         <CardTitle>Isi Kursus</CardTitle>
                     </CardHeader>
