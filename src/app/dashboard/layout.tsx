@@ -20,6 +20,7 @@ import {
   FolderKanban,
   GraduationCap,
   Loader2,
+  AppWindow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const memberNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
     { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+    { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
@@ -42,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
+    { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
 

@@ -7,9 +7,12 @@ export type Rank = {
   color: string;
 };
 
-export function getRank(completedCourses: number, role: 'admin' | 'member'): Rank {
+export function getRank(completedCourses: number, role: 'admin' | 'member' | 'pro'): Rank {
   if (role === 'admin') {
     return { title: 'Admin', icon: Shield, color: 'text-primary' };
+  }
+   if (role === 'pro') {
+    return { title: 'Pro Member', icon: Award, color: 'text-violet-400' };
   }
 
   if (completedCourses >= 50) {

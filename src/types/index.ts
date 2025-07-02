@@ -3,7 +3,7 @@ export type User = {
   name: string;
   username: string;
   password: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'pro';
   avatarUrl: string;
   whatsapp?: string;
 };

@@ -173,7 +173,7 @@ export default function AdminPage() {
                       </Avatar>
                       {user.name}
                     </TableCell>
-                    <TableCell>{user.role === 'admin' ? 'Admin' : 'Member'}</TableCell>
+                    <TableCell>{user.role === 'admin' ? 'Admin' : user.role === 'pro' ? 'Pro' : 'Member'}</TableCell>
                     <TableCell className="text-right">
                        <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)} disabled={user.role === 'admin'}>
                           <Pencil className="h-3 w-3 mr-2" />
