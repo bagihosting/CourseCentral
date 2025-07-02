@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
 import { getCourseById, isUserEnrolled, enrollUserInCourse } from '@/lib/data';
@@ -13,11 +13,12 @@ import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock } from 'l
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
+import YouTube from 'react-youtube';
 
-function getYouTubeEmbedUrl(url: string): string | null {
+
+function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
   let videoId = null;
-  
   try {
     const urlObject = new URL(url);
     if (urlObject.hostname.includes('youtu.be')) {
@@ -26,16 +27,60 @@ function getYouTubeEmbedUrl(url: string): string | null {
       videoId = urlObject.searchParams.get('v');
     }
   } catch (e) {
-      const youtuBeMatch = url.match(/youtu\.be\/([^?&]+)/);
-      if (youtuBeMatch && youtuBeMatch[1]) videoId = youtuBeMatch[1];
-      const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
-      if (embedMatch && embedMatch[1]) videoId = embedMatch[1];
+    const match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    videoId = match ? match[1] : null;
   }
-  
-  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  return videoId;
 }
 
+function calculateReadingTime(htmlContent: string): number {
+    if (!htmlContent) return 5000; // Default 5 seconds if empty
+    const text = htmlContent.replace(/<[^>]*>?/gm, '');
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const wpm = 200; // Words per minute
+    const time = Math.round((wordCount / wpm) * 60 * 1000);
+    return Math.max(time, 5000); // Minimum 5 seconds
+}
+
+
 function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; onComplete: () => void; isCompleted: boolean }) {
+  const [textProgress, setTextProgress] = useState(0);
+
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | undefined;
+    let completeTimeout: NodeJS.Timeout | undefined;
+
+    if (lesson.type === 'text' && !isCompleted) {
+        const totalDuration = calculateReadingTime(lesson.content || '');
+        const intervalDuration = 100; // Update progress every 100ms
+        let elapsedTime = 0;
+        
+        progressInterval = setInterval(() => {
+            elapsedTime += intervalDuration;
+            const currentProgress = (elapsedTime / totalDuration) * 100;
+            setTextProgress(Math.min(currentProgress, 100));
+        }, intervalDuration);
+
+        completeTimeout = setTimeout(() => {
+            clearInterval(progressInterval);
+            onComplete();
+        }, totalDuration);
+    }
+
+    // Cleanup function
+    return () => {
+        clearInterval(progressInterval);
+        clearTimeout(completeTimeout);
+    };
+  }, [lesson, isCompleted, onComplete]);
+
+
+  const handleVideoEnd = () => {
+    if (!isCompleted) {
+      onComplete();
+    }
+  }
+
   const getLessonContent = () => {
     switch (lesson.type) {
       case 'video':
@@ -47,13 +92,13 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
           );
         }
         return (
-          <video key={lesson.id} controls className="w-full aspect-video rounded-lg bg-black" src={lesson.contentUrl}>
+          <video key={lesson.id} controls className="w-full aspect-video rounded-lg bg-black" src={lesson.contentUrl} onEnded={handleVideoEnd}>
             Browser Anda tidak mendukung tag video.
           </video>
         );
       case 'youtube':
-        const embedUrl = getYouTubeEmbedUrl(lesson.contentUrl || '');
-        if (!embedUrl) {
+        const videoId = getYouTubeVideoId(lesson.contentUrl || '');
+        if (!videoId) {
            return (
             <div className="flex items-center justify-center w-full bg-black rounded-lg aspect-video">
               <p className="text-muted-foreground">URL YouTube tidak valid.</p>
@@ -61,23 +106,30 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
           );
         }
         return (
-          <div className="aspect-video w-full">
-            <iframe
-              className="w-full h-full rounded-lg"
-              src={embedUrl}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
+          <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
+            <YouTube
+              videoId={videoId}
+              className="w-full h-full"
+              iframeClassName="w-full h-full"
+              opts={{
+                playerVars: {
+                  autoplay: 1,
+                  rel: 0,
+                },
+              }}
+              onEnd={handleVideoEnd}
+            />
           </div>
         );
       case 'text':
         return (
-          <div
-            className="prose dark:prose-invert max-w-none p-6 bg-muted/30 rounded-lg border"
-            dangerouslySetInnerHTML={{ __html: lesson.content || '' }}
-          />
+            <>
+                <div
+                    className="prose dark:prose-invert max-w-none p-6 bg-muted/30 rounded-lg border"
+                    dangerouslySetInnerHTML={{ __html: lesson.content || '' }}
+                />
+                {!isCompleted && <Progress value={textProgress} className="w-full h-2 mt-4" />}
+            </>
         );
       case 'zip':
         return (
@@ -103,11 +155,8 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
       <CardHeader>
         <CardTitle>{lesson.title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent>
         {getLessonContent()}
-        <Button onClick={onComplete} disabled={isCompleted} className="w-full" size="lg">
-          {isCompleted ? <><CheckCircle className="mr-2" /> Selesai</> : 'Tandai sebagai Selesai'}
-        </Button>
       </CardContent>
     </Card>
   );
@@ -118,11 +167,13 @@ function CourseContentDisplay({
   activeLessonId,
   completedLessonIds,
   onLessonClick,
+  isLessonUnlocked,
 }: {
   modules: Module[];
   activeLessonId: string | null;
   completedLessonIds: Set<string>;
   onLessonClick: (lesson: Lesson) => void;
+  isLessonUnlocked: (lessonId: string) => boolean;
 }) {
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
@@ -142,22 +193,26 @@ function CourseContentDisplay({
           </AccordionTrigger>
           <AccordionContent>
             <ul className="space-y-1 pr-6 pb-2">
-              {module.lessons.map((lesson) => (
-                <li
-                  key={lesson.id}
-                  onClick={() => onLessonClick(lesson)}
-                  className={cn(
-                    'flex items-center justify-between cursor-pointer hover:bg-muted/50 ml-6 p-2 rounded-md transition-colors',
-                    lesson.id === activeLessonId && 'bg-primary/10'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {getLessonIcon(lesson.type)}
-                    <span className="text-sm">{lesson.title}</span>
-                  </div>
-                  <CheckCircle className={cn('h-5 w-5 text-primary transition-opacity', completedLessonIds.has(lesson.id) ? 'opacity-100' : 'opacity-20')} />
-                </li>
-              ))}
+              {module.lessons.map((lesson) => {
+                const unlocked = isLessonUnlocked(lesson.id);
+                return (
+                  <li
+                    key={lesson.id}
+                    onClick={() => unlocked && onLessonClick(lesson)}
+                    className={cn(
+                      'flex items-center justify-between ml-6 p-2 rounded-md transition-colors',
+                      unlocked ? 'cursor-pointer hover:bg-muted/50' : 'opacity-50 cursor-not-allowed',
+                      lesson.id === activeLessonId && 'bg-primary/10'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {unlocked ? getLessonIcon(lesson.type) : <Lock className="h-5 w-5 text-muted-foreground" />}
+                      <span className="text-sm">{lesson.title}</span>
+                    </div>
+                    <CheckCircle className={cn('h-5 w-5 text-primary transition-opacity', completedLessonIds.has(lesson.id) ? 'opacity-100' : 'opacity-20')} />
+                  </li>
+                );
+              })}
             </ul>
           </AccordionContent>
         </AccordionItem>
@@ -177,9 +232,9 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Consolidated effect to load all data and set initial state
+  // Load course, user, and progress data
   useEffect(() => {
-    if (userLoading) return; // Wait for user authentication to resolve
+    if (userLoading) return;
 
     if (!user) {
         toast({ title: 'Akses Ditolak', description: 'Anda harus masuk untuk melihat kursus.', variant: 'destructive'});
@@ -188,26 +243,26 @@ export default function CoursePage() {
     }
 
     const courseData = getCourseById(params.id);
-    setCourse(courseData);
-
     if (courseData) {
-      const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
-      setEnrolled(isEnrolled);
-
-      if (isEnrolled) {
-        const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
-        if (storedProgress) {
-          setCompletedLessons(new Set(JSON.parse(storedProgress)));
-        }
+        setCourse(courseData);
+        const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
+        setEnrolled(isEnrolled);
         
-        if (!activeLesson && courseData.modules?.[0]?.lessons?.[0]) {
-          setActiveLesson(courseData.modules[0].lessons[0]);
+        if (isEnrolled) {
+            const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
+            const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
+            setCompletedLessons(initialCompleted);
+
+            const allLessons = courseData.modules.flatMap(m => m.lessons);
+            const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
+            setActiveLesson(firstUncompleted);
         }
-      }
+    } else {
+        setCourse(null); // Course not found
     }
+
     setLoading(false);
-    
-  }, [params.id, user, userLoading, activeLesson, router, toast]);
+  }, [params.id, user, userLoading, router, toast]);
 
   // Save progress whenever it changes
   useEffect(() => {
@@ -216,22 +271,38 @@ export default function CoursePage() {
     }
   }, [completedLessons, course, user]);
 
-  const findNextLesson = (currentLessonId: string): Lesson | null => {
-    if (!course) return null;
-    const allLessons: Lesson[] = course.modules.flatMap(m => m.lessons);
+  const allLessons = useMemo(() => course?.modules.flatMap(m => m.lessons) ?? [], [course]);
+
+  const findNextLesson = useCallback((currentLessonId: string): Lesson | null => {
     const currentIndex = allLessons.findIndex(l => l.id === currentLessonId);
     if (currentIndex !== -1 && currentIndex < allLessons.length - 1) {
       return allLessons[currentIndex + 1];
     }
     return null;
-  };
+  }, [allLessons]);
+
+  const isLessonUnlocked = useCallback((lessonId: string): boolean => {
+    const lessonIndex = allLessons.findIndex(l => l.id === lessonId);
+    if (lessonIndex === -1) return false;
+    if (lessonIndex === 0) return true; // First lesson is always unlocked
+    const previousLesson = allLessons[lessonIndex - 1];
+    return completedLessons.has(previousLesson.id);
+  }, [allLessons, completedLessons]);
 
   const handleLessonClick = (lesson: Lesson) => {
-    setActiveLesson(lesson);
+    if (isLessonUnlocked(lesson.id)) {
+        setActiveLesson(lesson);
+    } else {
+        toast({
+            title: 'Terkunci',
+            description: 'Selesaikan pelajaran sebelumnya terlebih dahulu untuk membuka pelajaran ini.',
+            variant: 'default'
+        });
+    }
   };
 
-  const handleMarkAsComplete = () => {
-    if (!activeLesson) return;
+  const handleMarkAsComplete = useCallback(() => {
+    if (!activeLesson || completedLessons.has(activeLesson.id)) return;
 
     setCompletedLessons(prev => new Set(prev).add(activeLesson.id));
 
@@ -247,12 +318,14 @@ export default function CoursePage() {
         duration: 5000,
       });
     }
-  };
+  }, [activeLesson, completedLessons, findNextLesson, toast]);
 
   const handleEnroll = () => {
     if (user && course) {
         enrollUserInCourse(user.id, course.id);
         setEnrolled(true);
+        const firstLesson = course.modules?.[0]?.lessons?.[0] || null;
+        setActiveLesson(firstLesson);
         toast({
             title: "Pendaftaran Berhasil!",
             description: `Anda sekarang terdaftar di kursus "${course.title}".`,
@@ -348,6 +421,7 @@ export default function CoursePage() {
                     activeLessonId={activeLesson?.id || null}
                     completedLessonIds={completedLessons}
                     onLessonClick={handleLessonClick}
+                    isLessonUnlocked={isLessonUnlocked}
                     />
                 ) : (
                     <div className="p-6 text-center text-muted-foreground">
