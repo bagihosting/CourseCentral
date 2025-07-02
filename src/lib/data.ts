@@ -1,123 +1,206 @@
+import { db } from './firebase-admin';
 import type { Course, User, Module, Lesson } from '@/types';
 
-// --- DATA ---
-// This is a mock database. In a real application, you would use a database.
+// --- Firestore Collection References ---
+const usersCollection = db.collection('users');
+const coursesCollection = db.collection('courses');
 
-let users: User[] = [
-  { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
-  { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
-];
+// --- Helper to delete subcollections recursively ---
+async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number = 50) {
+    const query = collectionRef.limit(batchSize);
+    let snapshot = await query.get();
 
-let courses: Course[] = [];
+    // When there are no documents left, we are done
+    while(snapshot.size > 0) {
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        snapshot = await query.get();
+    }
+}
 
 
 // --- API FUNCTIONS ---
 
-// Simulate API latency
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export async function getAllUsers(): Promise<User[]> {
-  await delay(100);
-  return users;
+  try {
+    const snapshot = await usersCollection.get();
+    if (snapshot.empty) {
+      // Seed initial users if the collection is empty, so login works on a fresh database.
+      const initialUsers: User[] = [
+        { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
+        { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
+      ];
+      const batch = db.batch();
+      initialUsers.forEach(user => {
+        // Use the user's id field as the document ID in Firestore
+        const docRef = usersCollection.doc(user.id);
+        batch.set(docRef, user);
+      });
+      await batch.commit();
+      return initialUsers;
+    }
+    return snapshot.docs.map(doc => doc.data() as User);
+  } catch (error) {
+    console.error("Error getting users:", error);
+    // This can happen if credentials are not set up correctly.
+    // Return empty array to avoid crashing the app.
+    return [];
+  }
 }
 
 export async function getAllCourses(): Promise<Course[]> {
-  await delay(100);
-  return courses;
+  try {
+    const snapshot = await coursesCollection.get();
+    // Note: We don't fetch nested modules/lessons for the main course list
+    // to optimize performance and reduce Firestore read costs.
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            title: data.title,
+            description: data.description,
+            instructor: data.instructor,
+            price: data.price,
+            imageUrl: data.imageUrl,
+            modules: [], // Modules are fetched on demand in getCourseById
+        } as Course;
+    });
+  } catch (error) {
+    console.error("Error getting all courses:", error);
+    return [];
+  }
 }
 
 export async function getCourseById(id: string): Promise<Course | undefined> {
-  await delay(100);
-  const course = courses.find(c => c.id === id);
-  // Return a deep copy to prevent mutation issues in server components
-  return course ? JSON.parse(JSON.stringify(course)) : undefined;
+  try {
+    const courseDoc = await coursesCollection.doc(id).get();
+    if (!courseDoc.exists) {
+      return undefined;
+    }
+
+    const courseData = courseDoc.data() as Omit<Course, 'id' | 'modules'>;
+    
+    const modulesSnapshot = await coursesCollection.doc(id).collection('modules').orderBy('title').get();
+    const modules: Module[] = await Promise.all(
+        modulesSnapshot.docs.map(async (moduleDoc) => {
+            const moduleData = moduleDoc.data() as Omit<Module, 'id' | 'lessons'>;
+            const lessonsSnapshot = await moduleDoc.ref.collection('lessons').orderBy('title').get();
+            const lessons: Lesson[] = lessonsSnapshot.docs.map(lessonDoc => ({
+                id: lessonDoc.id,
+                ...lessonDoc.data()
+            } as Lesson));
+
+            return {
+                id: moduleDoc.id,
+                ...moduleData,
+                lessons
+            };
+        })
+    );
+
+    return {
+        id: courseDoc.id,
+        ...courseData,
+        modules
+    };
+  } catch (error) {
+    console.error(`Error getting course by ID (${id}):`, error);
+    return undefined;
+  }
 }
 
 export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promise<Course> {
-  await delay(500);
-  const newCourse: Course = {
-    ...data,
-    id: `c${Date.now()}`,
+  // Ensure modules is not part of the data being written to the main course document
+  const { modules, ...courseData } = data as Course;
+  const docRef = await coursesCollection.add(courseData);
+  return {
+    ...courseData,
+    id: docRef.id,
     modules: [],
   };
-  courses.push(newCourse);
-  return newCourse;
 }
 
 export async function updateCourse(id: string, data: Omit<Course, 'id' | 'modules'>): Promise<Course | null> {
-  await delay(500);
-  const courseIndex = courses.findIndex(c => c.id === id);
-  if (courseIndex === -1) {
-    return null;
-  }
-  courses[courseIndex] = { ...courses[courseIndex], ...data };
-  return courses[courseIndex];
+    const courseRef = coursesCollection.doc(id);
+    // Ensure modules is not part of the data being written to the main course document
+    const { modules, ...courseData } = data as Course;
+    await courseRef.update(courseData);
+    const updatedCourse = await getCourseById(id);
+    return updatedCourse || null;
 }
 
 export async function deleteCourse(id: string): Promise<void> {
-  await delay(500);
-  courses = courses.filter(c => c.id !== id);
+    const courseRef = coursesCollection.doc(id);
+    const modulesRef = courseRef.collection('modules');
+    
+    const modulesSnapshot = await modulesRef.get();
+    
+    // Concurrently delete all lessons within each module
+    const deleteLessonsPromises = modulesSnapshot.docs.map(moduleDoc => {
+        const lessonsRef = moduleDoc.ref.collection('lessons');
+        return deleteCollection(lessonsRef);
+    });
+    await Promise.all(deleteLessonsPromises);
+
+    // After all lessons are gone, delete all modules
+    await deleteCollection(modulesRef);
+
+    // Finally, delete the course document itself
+    await courseRef.delete();
 }
 
 // --- Curriculum API Functions ---
 
 export async function addModule(courseId: string, data: { title: string }): Promise<Module> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan");
-    const newModule: Module = { id: `m${Date.now()}`, title: data.title, lessons: [] };
-    course.modules.push(newModule);
-    return newModule;
+    const moduleRef = await coursesCollection.doc(courseId).collection('modules').add(data);
+    return { id: moduleRef.id, title: data.title, lessons: [] };
 }
 
 export async function updateModule(courseId: string, moduleId: string, data: { title: string }): Promise<Module> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    const module = course?.modules.find(m => m.id === moduleId);
-    if (!module) throw new Error("Modul tidak ditemukan");
-    module.title = data.title;
-    return module;
+    const moduleRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId);
+    await moduleRef.update(data);
+    const moduleSnapshot = await moduleRef.get();
+    const moduleData = moduleSnapshot.data() as { title: string };
+    return { id: moduleId, ...moduleData, lessons: [] }; // Lessons not needed for this response
 }
 
 export async function deleteModule(courseId: string, moduleId: string): Promise<void> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    if (course) {
-        course.modules = course.modules.filter(m => m.id !== moduleId);
-    }
+    const moduleRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId);
+    // First, delete the 'lessons' subcollection within the module
+    await deleteCollection(moduleRef.collection('lessons'));
+    // Then, delete the module document itself
+    await moduleRef.delete();
 }
 
 export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    const module = course?.modules.find(m => m.id === moduleId);
-    if (!module) throw new Error("Modul tidak ditemukan");
-    const newLesson: Lesson = { ...data, id: `l${Date.now()}` };
-    if (data.type === 'zip' || data.type === 'text') newLesson.downloadable = true;
-    module.lessons.push(newLesson);
-    return newLesson;
+    const lessonData = {...data};
+    if (data.type === 'zip' || data.type === 'text') {
+        lessonData.downloadable = true;
+    } else {
+        lessonData.downloadable = false;
+    }
+    
+    const lessonRef = await coursesCollection.doc(courseId).collection('modules').doc(moduleId).collection('lessons').add(lessonData);
+    return { ...lessonData, id: lessonRef.id };
 }
 
 export async function updateLesson(courseId: string, moduleId: string, lessonId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    const module = course?.modules.find(m => m.id === moduleId);
-    const lessonIndex = module?.lessons.findIndex(l => l.id === lessonId);
-    if (module && lessonIndex !== undefined && lessonIndex !== -1) {
-        const updatedLesson = { ...module.lessons[lessonIndex], ...data };
-        if (data.type === 'zip' || data.type === 'text') updatedLesson.downloadable = true;
-        else updatedLesson.downloadable = false;
-        module.lessons[lessonIndex] = updatedLesson;
-        return updatedLesson;
+    const lessonData = {...data};
+     if (data.type === 'zip' || data.type === 'text') {
+        lessonData.downloadable = true;
+    } else {
+        lessonData.downloadable = false;
     }
-    throw new Error("Pelajaran tidak ditemukan");
+    
+    const lessonRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId);
+    await lessonRef.update(lessonData);
+    return { ...lessonData, id: lessonId };
 }
 
 export async function deleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<void> {
-    await delay(300);
-    const course = courses.find(c => c.id === courseId);
-    const module = course?.modules.find(m => m.id === moduleId);
-    if (module) {
-        module.lessons = module.lessons.filter(l => l.id !== lessonId);
-    }
+    const lessonRef = coursesCollection.doc(courseId).collection('modules').doc(moduleId).collection('lessons').doc(lessonId);
+    await lessonRef.delete();
 }
