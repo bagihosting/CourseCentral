@@ -10,7 +10,7 @@ const CourseSchema = z.object({
   description: z.string().min(10, 'Deskripsi minimal 10 karakter'),
   instructor: z.string().min(3, 'Nama instruktur minimal 3 karakter'),
   price: z.coerce.number().min(0, 'Harga tidak boleh negatif'),
-  imageUrl: z.string().url('URL gambar tidak valid'),
+  imageUrl: z.string().min(1, 'Gambar thumbnail harus dibuat.'),
 });
 
 export type FormState = {
