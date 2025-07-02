@@ -13,6 +13,8 @@ import {
 import type { User } from '@/types';
 import { LogOut, Settings, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import { logout } from '@/actions/auth';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type UserNavProps = {
   user: User;
@@ -68,15 +70,15 @@ export function UserNav({ user }: UserNavProps) {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </Link>
-        </DropdownMenuItem>
+        <form action={logout}>
+          <DropdownMenuItem asChild>
+            <button type="submit" className="w-full">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </button>
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';

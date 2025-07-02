@@ -3,11 +3,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { USERS } from '@/lib/data';
+import { USERS, getUserById } from '@/lib/data';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const userId = cookies().get('userId')?.value;
+  if (!userId) {
+    redirect('/');
+  }
+
+  const user = await getUserById(userId);
+  if (!user || user.role !== 'admin') {
+    redirect('/dashboard');
+  }
+
   const getInitials = (name: string) => {
     return name
       .split(' ')

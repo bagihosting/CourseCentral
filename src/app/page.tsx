@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { BookOpenCheck } from 'lucide-react';
+import { login } from '@/actions/auth';
 
 export default function LoginPage() {
   return (
@@ -14,36 +13,26 @@ export default function LoginPage() {
                 <BookOpenCheck className="h-8 w-8 text-primary-foreground" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">CourseCentral</h1>
-            <p className="text-muted-foreground">Welcome back! Please sign in to continue.</p>
+            <p className="text-muted-foreground">Selamat datang! Silakan masuk untuk melanjutkan.</p>
         </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Login</CardTitle>
-            <CardDescription>Enter your email and password below to login.</CardDescription>
+            <CardDescription>Pilih peran untuk masuk.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline" prefetch={false}>
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input id="password" type="password" required />
-              </div>
-              <Button asChild type="submit" className="w-full">
-                <Link href="/dashboard">Login</Link>
+            <form action={login} className="grid gap-4">
+              <Button name="userId" value="user-2" type="submit">
+                Login sebagai Admin
               </Button>
-            </div>
+              <Button name="userId" value="user-1" type="submit" variant="secondary">
+                Login sebagai Member
+              </Button>
+            </form>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
+              Belum punya akun?{' '}
               <Link href="#" className="underline" prefetch={false}>
-                Sign up
+                Daftar
               </Link>
             </div>
           </CardContent>

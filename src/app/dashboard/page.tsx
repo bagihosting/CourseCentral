@@ -6,13 +6,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getCourseById, getUserById } from '@/lib/data';
 import { BookCheck, CheckCircle, Clock, Users } from 'lucide-react';
 import type { User } from '@/types';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
-  // In a real app, you would get the user from session/auth
-  const user: User | undefined = await getUserById('user-2');
+  const userId = cookies().get('userId')?.value;
+
+  if (!userId) {
+    redirect('/');
+  }
+  
+  const user: User | undefined = await getUserById(userId);
 
   if (!user) {
-    return <div>User not found</div>;
+    redirect('/');
   }
 
   const inProgressCourses = await Promise.all(

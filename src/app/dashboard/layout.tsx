@@ -25,13 +25,20 @@ import {
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // In a real app, you would get the user from session/auth
-  const user = await getUserById('user-2');
+  const userId = cookies().get('userId')?.value;
+
+  if (!userId) {
+    redirect('/');
+  }
+  
+  const user = await getUserById(userId);
 
   if (!user) {
-    return <div>User not found</div>;
+    redirect('/');
   }
 
   const navItems = [

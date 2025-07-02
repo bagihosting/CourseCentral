@@ -3,12 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getUserById } from '@/lib/data';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function SettingsPage() {
-  const user = await getUserById('user-2');
+  const userId = cookies().get('userId')?.value;
+
+  if (!userId) {
+    redirect('/');
+  }
+  const user = await getUserById(userId);
 
   if (!user) {
-    return <div>User not found.</div>;
+    redirect('/');
   }
 
   return (
