@@ -174,45 +174,41 @@ export default function CoursePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [enrolled, setEnrolled] = useState(false);
-  const [isCheckingEnrollment, setIsCheckingEnrollment] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Load course data
+  // Consolidated effect to load all data and set initial state
   useEffect(() => {
-    if (params.id) {
+    if (params.id && user) {
       const courseData = getCourseById(params.id);
       setCourse(courseData);
-    }
-  }, [params.id]);
 
-  // Check enrollment status when user and course are loaded
-  useEffect(() => {
-    if (user && course) {
-      if (user.role === 'admin') {
-        setEnrolled(true);
-      } else {
-        setEnrolled(isUserEnrolled(user.id, course.id));
-      }
-      setIsCheckingEnrollment(false);
-    }
-  }, [user, course]);
-  
-  // Load progress and set initial lesson IF enrolled
-  useEffect(() => {
-    if (course && enrolled) {
-      const storedProgress = localStorage.getItem(`progress_${course.id}`);
-      if (storedProgress) {
-        setCompletedLessons(new Set(JSON.parse(storedProgress)));
-      }
-      
-      if (!activeLesson && course.modules?.[0]?.lessons?.[0]) {
-        setActiveLesson(course.modules[0].lessons[0]);
-      }
-    }
-  }, [course, enrolled, activeLesson]);
+      if (courseData) {
+        const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
+        setEnrolled(isEnrolled);
 
-  // Save progress
+        if (isEnrolled) {
+          const storedProgress = localStorage.getItem(`progress_${courseData.id}`);
+          if (storedProgress) {
+            setCompletedLessons(new Set(JSON.parse(storedProgress)));
+          }
+          
+          if (!activeLesson && courseData.modules?.[0]?.lessons?.[0]) {
+            setActiveLesson(courseData.modules[0].lessons[0]);
+          }
+        }
+      }
+      setLoading(false);
+    } else if (user === null && params.id) {
+        // Handle case where user is not logged in
+        const courseData = getCourseById(params.id);
+        setCourse(courseData);
+        setLoading(false);
+    }
+  }, [params.id, user, activeLesson]);
+
+  // Save progress whenever it changes
   useEffect(() => {
-    if (course && completedLessons.size > 0) {
+    if (course) {
       localStorage.setItem(`progress_${course.id}`, JSON.stringify(Array.from(completedLessons)));
     }
   }, [completedLessons, course]);
@@ -261,7 +257,7 @@ export default function CoursePage() {
     }
   };
 
-  if (course === undefined || isCheckingEnrollment) {
+  if (loading) {
     return (
       <div className="grid lg:grid-cols-5 gap-8 p-4 md:p-6">
         <div className="lg:col-span-3 space-y-6">
