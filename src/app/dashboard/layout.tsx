@@ -74,7 +74,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ))}
             {user.role === 'admin' && (
               <Collapsible className="w-full">
-                <CollapsibleTrigger className="w-full">
+                <CollapsibleTrigger asChild className="w-full">
                   <SidebarMenuButton className="justify-between">
                     <div className="flex items-center gap-2">
                       <UserCog />
