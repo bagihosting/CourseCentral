@@ -1,11 +1,8 @@
 import { AdminCourseActions } from '@/components/admin-course-actions';
 import { AiSuggestions } from '@/components/ai-suggestions';
 import { CourseCard } from '@/components/course-card';
-import { Button } from '@/components/ui/button';
 import { getAllCourses } from '@/lib/data';
 import { getUser } from '@/actions/auth';
-import { PlusCircle } from 'lucide-react';
-import Link from 'next/link';
 
 export default async function CoursesPage() {
   const courses = await getAllCourses();
@@ -19,14 +16,6 @@ export default async function CoursesPage() {
             <h1 className="text-3xl font-bold">Katalog Kursus</h1>
             <p className="text-muted-foreground">Jelajahi dan temukan kursus yang tepat untuk Anda.</p>
           </div>
-          {user?.role === 'admin' && (
-            <Link href="/dashboard/courses/new">
-              <Button>
-                <PlusCircle className="mr-2" />
-                Tambah Kursus
-              </Button>
-            </Link>
-          )}
         </div>
       </div>
       

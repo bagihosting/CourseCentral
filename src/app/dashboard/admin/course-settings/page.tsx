@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CourseSettingsPage() {
   return (
@@ -77,6 +79,21 @@ export default function CourseSettingsPage() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Aksi Cepat</CardTitle>
+          <CardDescription>Lakukan tindakan umum terkait kursus dengan cepat dari sini.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/dashboard/courses/new">
+            <Button>
+              <PlusCircle className="mr-2" />
+              Tambah Kursus Baru
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 
