@@ -14,24 +14,24 @@ import { CourseCard } from '@/components/course-card';
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize data states to null to represent "not yet loaded"
+  const [courses, setCourses] = useState<Course[] | null>(null);
+  const [users, setUsers] = useState<UserType[] | null>(null);
 
   useEffect(() => {
-    // Data fetching and state updates are now more robust.
-    // We ensure all data is ready before we stop showing the loading skeleton.
+    // This effect runs on the client after the user is identified.
+    // It fetches all necessary data from localStorage.
     if (user) {
       setCourses(getAllCourses());
       if (user.role === 'admin') {
         setUsers(getAllUsers());
       }
-      setLoading(false);
     }
-  }, [user]);
+  }, [user]); // This will re-run whenever the user object changes.
 
-  // The loading skeleton is shown until the user is identified and their data is loaded.
-  if (!user || loading) {
+  // The loading skeleton is shown until the user is identified AND all their required data is loaded.
+  // This is a more robust check than a separate 'loading' state.
+  if (!user || courses === null || (user.role === 'admin' && users === null)) {
     return (
       <div className="space-y-8">
         <div className="space-y-2">
@@ -68,6 +68,7 @@ export default function DashboardPage() {
     );
   }
   
+  // At this point, `user` and `courses` (and `users` for admin) are guaranteed to be loaded.
   const userName = user.name || 'Pengguna';
   
   const totalLessons = courses.reduce((acc, course) => 
