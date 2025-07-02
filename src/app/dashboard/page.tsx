@@ -51,19 +51,18 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-7 w-48 mb-2" />
-                <Skeleton className="h-4 w-64" />
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-            </CardContent>
-        </Card>
+        <div className="space-y-4">
+            <Skeleton className="h-7 w-48 mb-2" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                        <Skeleton className="h-40 w-full rounded-lg" />
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </div>
+                ))}
+            </div>
+        </div>
       </div>
     );
   }
@@ -108,11 +107,11 @@ export default function DashboardPage() {
             </Card>
              <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kursus Tersedia</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Pelajaran</CardTitle>
                 <BookOpenCheck className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{courses.length}</div>
+                <div className="text-2xl font-bold">{totalLessons}</div>
                  <p className="text-xs text-muted-foreground">Di semua kursus yang tersedia</p>
               </CardContent>
             </Card>
@@ -131,22 +130,22 @@ export default function DashboardPage() {
             </Card>
              <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pelajaran</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Pelajaran Tersedia</CardTitle>
                 <GraduationCap className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalLessons}</div>
-                 <p className="text-xs text-muted-foreground">Di semua kursus yang tersedia</p>
+                 <p className="text-xs text-muted-foreground">Di semua kursus yang ada</p>
               </CardContent>
             </Card>
              <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kursus Tersedia</CardTitle>
+                <CardTitle className="text-sm font-medium">Katalog Kursus</CardTitle>
                 <BookOpenCheck className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{courses.length}</div>
-                 <p className="text-xs text-muted-foreground">Jelajahi katalog kursus</p>
+                 <p className="text-xs text-muted-foreground">Jelajahi semua kursus</p>
               </CardContent>
             </Card>
           </>
@@ -196,28 +195,37 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold tracking-tight">Kursus Saya</h2>
-              <Link href="/dashboard/my-courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
-                Lihat Semua
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-             {enrolledCourses.length > 0 ? (
+            {enrolledCourses.length > 0 ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold tracking-tight">Lanjutkan Belajar</h2>
+                  <Link href="/dashboard/my-courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                    Lihat Semua Kursus Saya
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {enrolledCourses.slice(0, 3).map(course => (
-                        <CourseCard key={course.id} course={course} />
-                    ))}
+                  {enrolledCourses.slice(0, 3).map(course => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
                 </div>
-             ) : (
-                <div className="py-20 text-center text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed">
-                    <h2 className="text-xl font-semibold">Anda Belum Mengikuti Kursus</h2>
-                    <p className="mt-2">Jelajahi katalog untuk menemukan kursus yang cocok untuk Anda.</p>
-                     <Button asChild className="mt-4">
-                        <Link href="/dashboard/courses">Jelajahi Katalog</Link>
-                    </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold tracking-tight">Mulai Perjalanan Belajar Anda</h2>
+                  <Link href="/dashboard/courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                    Lihat Semua Kursus
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
-             )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {courses.slice(0, 3).map(course => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
     </div>
