@@ -26,8 +26,10 @@ export function AiBloggerTemplateGenerator() {
   const previewCode = useMemo(() => {
     if (!templateCode) return '';
 
-    // 1. Strip XML declaration
-    let code = templateCode.replace(/<\?xml[^?]*\?>\s*/, '');
+    // 1. Strip XML declaration and DOCTYPE for cleaner HTML
+    let code = templateCode
+      .replace(/<\?xml[^?]*\?>\s*/, '')
+      .replace(/<!DOCTYPE[^>]*>\s*/, '');
 
     // 2. Extract variables and their default values
     const variables: Record<string, string> = {};
@@ -55,6 +57,44 @@ export function AiBloggerTemplateGenerator() {
         code = code.replace(skinRegex, styleTag);
     }
     
+    // 6. Replace Blogger-specific tags with standard HTML tags for better preview rendering
+    code = code
+      .replace(/<b:section/g, '<div')
+      .replace(/<\/b:section>/g, '</div>')
+      .replace(/<b:widget/g, '<div')
+      .replace(/<\/b:widget>/g, '</div>')
+      // Also remove template-skin which is not a standard tag
+      .replace(/<b:template-skin>[\s\S]*?<\/b:template-skin>/, '');
+
+    // 7. Add some placeholder content for common data tags to make the preview look more alive
+    code = code
+        .replace(/>data:blog.title</g, '>Nama Blog Saya<')
+        .replace(/>data:blog.pageTitle</g, '>Judul Halaman<')
+        .replace(/>data:widget.title</g, '>Judul Widget<');
+        
+    // A simple placeholder for a blog post loop
+    const blogWidgetRegex = /(<div[^>]*type='Blog'[^>]*>)([\s\S]*?)(<\/div>)/;
+    const blogWidgetMatch = code.match(blogWidgetRegex);
+    
+    if(blogWidgetMatch) {
+      const blogPostPlaceholder = `
+        <div class='post'>
+          <h3 class='post-title'>Ini Contoh Judul Postingan</h3>
+          <div class='post-body'>
+            <p>Ini adalah paragraf contoh untuk isi postingan blog. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.</p>
+            <p>Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+          </div>
+        </div>
+        <div class='post'>
+          <h3 class='post-title'>Postingan Blog Lainnya</h3>
+          <div class='post-body'>
+            <p>Ini adalah paragraf kedua untuk menunjukkan bagaimana beberapa postingan akan terlihat di halaman utama Anda.</p>
+          </div>
+        </div>
+      `;
+      code = code.replace(blogWidgetRegex, `$1${blogPostPlaceholder}$3`);
+    }
+
     return code;
   }, [templateCode]);
 
