@@ -7,20 +7,32 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { getCompletedCourseCount } from '@/lib/data';
+import { getRank } from '@/lib/ranks';
+import { RankBadge } from './rank-badge';
 
 export function UserNav() {
   const { user, logout } = useAuth();
+  const [completedCourses, setCompletedCourses] = useState(0);
+
+  useEffect(() => {
+    if (user && user.role === 'member') {
+      setCompletedCourses(getCompletedCourseCount(user.id));
+    }
+  }, [user]);
 
   if (!user) {
     return null;
   }
+
+  const rank = getRank(completedCourses, user.role);
 
   return (
     <DropdownMenu>
@@ -34,15 +46,22 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
+      <DropdownMenuContent className="w-64" align="end" forceMount>
+        <div className="flex flex-col items-center gap-2 p-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarFallback>
+              <UserIcon className="h-8 w-8" />
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-center">
             <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
+            <p className="text-xs leading-none text-muted-foreground mt-1">
               {user.username}
             </p>
           </div>
-        </DropdownMenuLabel>
+          <RankBadge rank={rank} />
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <Link href="/dashboard/settings">

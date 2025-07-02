@@ -12,6 +12,10 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import imageCompression from 'browser-image-compression';
 import type { UpdateUserInput } from '@/lib/data';
+import { getCompletedCourseCount } from '@/lib/data';
+import { getRank } from '@/lib/ranks';
+import { RankBadge } from '@/components/rank-badge';
+
 
 export default function SettingsPage() {
   const { user, loading, updateUser } = useAuth();
@@ -22,6 +26,8 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
+  const [completedCourses, setCompletedCourses] = useState(0);
+
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -32,6 +38,9 @@ export default function SettingsPage() {
       setName(user.name);
       setWhatsapp(user.whatsapp || '');
       setAvatarPreview(user.avatarUrl);
+      if (user.role === 'member') {
+        setCompletedCourses(getCompletedCourseCount(user.id));
+      }
     }
   }, [user]);
 
@@ -153,6 +162,8 @@ export default function SettingsPage() {
     );
   }
 
+  const rank = getRank(completedCourses, user.role);
+
   return (
     <div className="grid gap-6">
        <Card>
@@ -162,7 +173,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-                 <div className="space-y-2 flex flex-col items-center">
+                 <div className="space-y-4 flex flex-col items-center">
                     <div className="relative">
                         <Avatar className="h-24 w-24">
                             <AvatarImage src={avatarPreview} alt={name} />
@@ -173,6 +184,7 @@ export default function SettingsPage() {
                             <span className="sr-only">Ubah foto profil</span>
                         </Button>
                     </div>
+                    <RankBadge rank={rank} />
                     <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </div>
                 

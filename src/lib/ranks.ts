@@ -1,0 +1,25 @@
+import { Shield, Star, Award, Crown } from 'lucide-react';
+import type { ElementType } from 'react';
+
+export type Rank = {
+  title: string;
+  icon: ElementType;
+  color: string;
+};
+
+export function getRank(completedCourses: number, role: 'admin' | 'member'): Rank {
+  if (role === 'admin') {
+    return { title: 'Admin', icon: Shield, color: 'text-primary' };
+  }
+
+  if (completedCourses >= 50) {
+    return { title: 'Legenda', icon: Crown, color: 'text-amber-400' };
+  }
+  if (completedCourses >= 20) {
+    return { title: 'Mahir', icon: Award, color: 'text-violet-400' };
+  }
+  if (completedCourses >= 5) {
+    return { title: 'Master', icon: Star, color: 'text-cyan-400' };
+  }
+  return { title: 'Pemula', icon: Star, color: 'text-muted-foreground' };
+}

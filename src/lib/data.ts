@@ -419,3 +419,43 @@ export function getEnrolledCoursesForUser(userId: string): Course[] {
   
   return db.courses.filter(c => enrolledCourseIds.includes(c.id));
 }
+
+
+export function getCompletedCourseCount(userId: string): number {
+    if (typeof window === 'undefined' || !userId) {
+        return 0;
+    }
+
+    const db = getDB();
+    const enrolledCourses = db.enrollments
+        .filter(e => e.userId === userId)
+        .map(e => db.courses.find(c => c.id === e.courseId))
+        .filter((c): c is Course => !!c);
+    
+    let completedCount = 0;
+
+    for (const course of enrolledCourses) {
+        const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
+        if (totalLessons === 0) {
+            continue; // Cannot complete a course with no lessons
+        }
+        
+        const progressString = localStorage.getItem(`progress_${userId}_${course.id}`);
+        if (!progressString) {
+            continue;
+        }
+
+        try {
+            const completedLessons: string[] = JSON.parse(progressString);
+            const completedLessonCount = new Set(completedLessons).size;
+
+            if (completedLessonCount >= totalLessons) {
+                completedCount++;
+            }
+        } catch (e) {
+            console.error(`Error parsing progress for course ${course.id}`, e);
+        }
+    }
+
+    return completedCount;
+}
