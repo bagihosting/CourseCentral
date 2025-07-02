@@ -11,8 +11,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
-  sidebarMenuButtonVariants,
 } from '@/components/ui/sidebar';
+import { sidebarMenuButtonVariants } from '@/components/ui/sidebar-variants';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { getUserById } from '@/lib/data';
 import {
@@ -67,7 +67,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {navItems.map((item) => (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href} className="w-full">
-                  <SidebarMenuButton tooltip={item.label}>
+                  <SidebarMenuButton type="button" tooltip={item.label}>
                     <item.icon />
                     <span>{item.label}</span>
                   </SidebarMenuButton>
@@ -110,7 +110,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/dashboard/settings" className="w-full">
-                <SidebarMenuButton tooltip="Pengaturan">
+                <SidebarMenuButton type="button" tooltip="Pengaturan">
                   <Settings />
                   <span>Pengaturan</span>
                 </SidebarMenuButton>
