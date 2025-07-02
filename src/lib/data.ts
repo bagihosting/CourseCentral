@@ -1,4 +1,4 @@
-import type { Course, User } from '@/types';
+import type { Course, User, Module, Lesson } from '@/types';
 
 // --- DATA ---
 // This is a mock database. In a real application, you would use a database.
@@ -17,8 +17,8 @@ let courses: Course[] = [
     price: 550000,
     imageUrl: 'https://placehold.co/600x400.png',
     modules: [
-      { id: 'm1', title: 'Pendahuluan React', lessons: [{ id: 'l1', title: 'Setup Lingkungan', type: 'text', downloadable: true }, { id: 'l2', title: 'Dasar-dasar JSX', type: 'video' }] },
-      { id: 'm2', title: 'Manajemen State', lessons: [{ id: 'l3', title: 'useState & useEffect', type: 'video' }] },
+      { id: 'm1', title: 'Pendahuluan React', lessons: [{ id: 'l1', title: 'Setup Lingkungan', type: 'text', downloadable: true }, { id: 'l2', title: 'Dasar-dasar JSX', type: 'video', contentUrl: 'https://www.youtube.com/watch?v=SqcY0GlETPk' }] },
+      { id: 'm2', title: 'Manajemen State', lessons: [{ id: 'l3', title: 'useState & useEffect', type: 'video', contentUrl: 'https://www.youtube.com/watch?v=SqcY0GlETPk' }] },
     ],
   },
   {
@@ -40,7 +40,7 @@ let courses: Course[] = [
     price: 750000,
     imageUrl: 'https://placehold.co/600x400.png',
     modules: [
-      { id: 'm1', title: 'Pengenalan', lessons: [{ id: 'l1', title: 'Instalasi Python & Jupyter', type: 'zip', downloadable: true }] },
+      { id: 'm1', title: 'Pengenalan', lessons: [{ id: 'l1', title: 'Instalasi Python & Jupyter', type: 'zip', downloadable: true, contentUrl: 'https://example.com/file.zip' }] },
     ],
   },
   {
@@ -72,7 +72,9 @@ export async function getAllCourses(): Promise<Course[]> {
 
 export async function getCourseById(id: string): Promise<Course | undefined> {
   await delay(100);
-  return courses.find(c => c.id === id);
+  const course = courses.find(c => c.id === id);
+  // Return a deep copy to prevent mutation issues in server components
+  return course ? JSON.parse(JSON.stringify(course)) : undefined;
 }
 
 export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promise<Course> {
@@ -99,4 +101,67 @@ export async function updateCourse(id: string, data: Omit<Course, 'id' | 'module
 export async function deleteCourse(id: string): Promise<void> {
   await delay(500);
   courses = courses.filter(c => c.id !== id);
+}
+
+// --- Curriculum API Functions ---
+
+export async function addModule(courseId: string, data: { title: string }): Promise<Module> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    if (!course) throw new Error("Kursus tidak ditemukan");
+    const newModule: Module = { id: `m${Date.now()}`, title: data.title, lessons: [] };
+    course.modules.push(newModule);
+    return newModule;
+}
+
+export async function updateModule(courseId: string, moduleId: string, data: { title: string }): Promise<Module> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    const module = course?.modules.find(m => m.id === moduleId);
+    if (!module) throw new Error("Modul tidak ditemukan");
+    module.title = data.title;
+    return module;
+}
+
+export async function deleteModule(courseId: string, moduleId: string): Promise<void> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+        course.modules = course.modules.filter(m => m.id !== moduleId);
+    }
+}
+
+export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    const module = course?.modules.find(m => m.id === moduleId);
+    if (!module) throw new Error("Modul tidak ditemukan");
+    const newLesson: Lesson = { ...data, id: `l${Date.now()}` };
+    if (data.type === 'zip' || data.type === 'text') newLesson.downloadable = true;
+    module.lessons.push(newLesson);
+    return newLesson;
+}
+
+export async function updateLesson(courseId: string, moduleId: string, lessonId: string, data: Omit<Lesson, 'id'>): Promise<Lesson> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    const module = course?.modules.find(m => m.id === moduleId);
+    const lessonIndex = module?.lessons.findIndex(l => l.id === lessonId);
+    if (module && lessonIndex !== undefined && lessonIndex !== -1) {
+        const updatedLesson = { ...module.lessons[lessonIndex], ...data };
+        if (data.type === 'zip' || data.type === 'text') updatedLesson.downloadable = true;
+        else updatedLesson.downloadable = false;
+        module.lessons[lessonIndex] = updatedLesson;
+        return updatedLesson;
+    }
+    throw new Error("Pelajaran tidak ditemukan");
+}
+
+export async function deleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<void> {
+    await delay(300);
+    const course = courses.find(c => c.id === courseId);
+    const module = course?.modules.find(m => m.id === moduleId);
+    if (module) {
+        module.lessons = module.lessons.filter(l => l.id !== lessonId);
+    }
 }

@@ -63,7 +63,7 @@ export function AdminCourseActions({ courseId }: { courseId: string }) {
           <DropdownMenuItem asChild>
             <Link href={`/dashboard/courses/${courseId}/edit`} className="flex items-center gap-2 cursor-pointer">
               <Pencil className="h-4 w-4" />
-              <span>Ubah</span>
+              <span>Kelola</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
