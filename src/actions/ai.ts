@@ -12,6 +12,7 @@ import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDig
 import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInput, GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
 import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
 import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOutput } from '@/ai/flows/generate-image';
+import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeInput, GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
 
 
 export async function generateThumbnailAction(
@@ -199,5 +200,21 @@ export async function generateImageAction(
   } catch (error) {
     console.error('Error generating image:', error);
     return { error: 'Gagal membuat gambar. Silakan coba lagi.' };
+  }
+}
+
+export async function generateAppPrototypeAction(
+  input: GenerateAppPrototypeInput
+): Promise<GenerateAppPrototypeOutput | { error: string }> {
+  if (!input.appIdea) {
+    return { error: 'Ide aplikasi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateAppPrototypeFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating app prototype:', error);
+    return { error: 'Gagal membuat prototipe aplikasi. Silakan coba lagi.' };
   }
 }

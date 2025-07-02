@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, Image as ImageIcon, LayoutTemplate } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
 import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
@@ -14,12 +14,13 @@ import { AiDigitalInvitationGenerator } from '@/components/ai-digital-invitation
 import { AiUmkmProfileGenerator } from '@/components/ai-umkm-profile-generator';
 import { AiSpssAssistant } from '@/components/ai-spss-assistant';
 import { AiImageGenerator } from '@/components/ai-image-generator';
+import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator';
 
 
 function ProFeatures() {
-  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | null>(null);
+  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype' | null>(null);
 
-  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image') => {
+  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype') => {
     setActiveApp(app);
   };
 
@@ -71,6 +72,12 @@ function ProFeatures() {
       title: 'AI Image Generator',
       description: 'Buat gambar dari teks menggunakan Gemini Flash.',
       icon: <ImageIcon className="h-10 w-10 text-primary" />,
+    },
+    {
+      id: 'prototype',
+      title: 'AI App Prototyper',
+      description: 'Buat rencana MVP terstruktur dari ide aplikasi mentah Anda.',
+      icon: <LayoutTemplate className="h-10 w-10 text-primary" />,
     }
   ];
 
@@ -90,7 +97,7 @@ function ProFeatures() {
           {apps.map((app) => (
             <Card
               key={app.id}
-              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image')}
+              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype')}
               className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
             >
               <CardContent className="flex flex-col items-center text-center gap-4 p-6">
@@ -120,6 +127,7 @@ function ProFeatures() {
           {activeApp === 'umkm' && <AiUmkmProfileGenerator />}
           {activeApp === 'spss' && <AiSpssAssistant />}
           {activeApp === 'image' && <AiImageGenerator />}
+          {activeApp === 'prototype' && <AiAppPrototypeGenerator />}
         </div>
       )}
     </div>
