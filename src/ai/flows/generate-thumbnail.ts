@@ -41,13 +41,23 @@ const generateThumbnailFlow = ai.defineFlow(
   },
   async (input) => {
     const prompt = `
-      Generate a thumbnail image for an online course titled "${input.title}".
-      The image must be in a 3D animation style, focusing on a single character.
-      The main focus should be a friendly, engaging animated character with distinct Indonesian features (e.g., Southeast Asian skin tone, facial structure).
-      The character should be wearing a modern, stylish batik shirt or dress with vibrant, intricate patterns.
-      Include one subtle traditional accessory from a well-known Indonesian region (e.g., a blangkon from Java, an udeng from Bali, or a single element of Dayak ear ornamentation).
-      The background should be simple, clean, and professional, using soft, complementary colors that make the character stand out.
-      The overall style should be appealing, high-quality, and suitable for a course platform like Udemy.
+      Generate a high-impact thumbnail image for an online course titled "${input.title}".
+
+      The image must integrate two key elements seamlessly: a 3D character and compelling marketing text.
+
+      1.  **The Character**:
+          *   **Style**: Must be a friendly, engaging 3D animated character.
+          *   **Identity**: The character must have distinct Indonesian features (e.g., Southeast Asian skin tone, facial structure).
+          *   **Attire**: The character should wear a modern, stylish batik shirt or dress with vibrant, intricate patterns, and one subtle traditional Indonesian accessory (e.g., a blangkon, an udeng, or a Dayak ornament).
+      
+      2.  **The Text**:
+          *   **Content**: Based on the course title, create a short, catchy, clickbait-style headline. For example, if the title is "Belajar Animasi 3D", the headline could be "Master 3D dalam 30 Hari!" or "Animasi Profesional Terungkap!". The text must be in Bahasa Indonesia.
+          *   **Style**: The text must be rendered directly into the image using a bold, dynamic, and high-contrast font. The typography should be professional, eye-catching, and follow modern digital marketing design principles. It must be easily readable.
+      
+      3.  **Composition**:
+          *   The character and the text should be the main focus. The text should be integrated cleverly with the character, perhaps overlapping slightly or positioned to draw the eye.
+          *   The background must be simple, clean, and professional, using soft, complementary colors that make the character and text pop.
+          *   The overall style must be high-quality, polished, and suitable for a leading course platform like Udemy.
     `;
 
     const { media } = await ai.generate({
