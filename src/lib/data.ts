@@ -178,6 +178,7 @@ export function getUserById(id: string): User | undefined {
 }
 
 export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username'>>;
 
 export function registerUser(data: RegisterUserInput): User {
   const db = getDB();
@@ -195,6 +196,33 @@ export function registerUser(data: RegisterUserInput): User {
   db.users.push(newUser);
   saveDB(db);
   return newUser;
+}
+
+export function updateUser(userId: string, data: UpdateUserInput): User {
+    const db = getDB();
+    const userIndex = db.users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+        throw new Error("Pengguna tidak ditemukan.");
+    }
+
+    const currentUser = db.users[userIndex];
+    const updatedUser = { ...currentUser };
+
+    if (data.name) {
+        updatedUser.name = data.name;
+    }
+
+    if (data.password && data.password.trim() !== '') {
+        updatedUser.password = data.password;
+    }
+    
+    if (data.avatarUrl) {
+        updatedUser.avatarUrl = data.avatarUrl;
+    }
+
+    db.users[userIndex] = updatedUser;
+    saveDB(db);
+    return updatedUser;
 }
 
 export function validateUser(username: string, password: string): User | null {
