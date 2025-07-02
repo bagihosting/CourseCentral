@@ -74,7 +74,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ))}
             {user.role === 'admin' && (
               <Collapsible className="w-full">
-                <CollapsibleTrigger asChild className="w-full">
+                <CollapsibleTrigger asChild>
                   <SidebarMenuButton className="justify-between">
                     <div className="flex items-center gap-2">
                       <UserCog />
@@ -87,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                          <Link href={item.href} className="w-full">
+                          <Link href={item.href} asChild>
                             <SidebarMenuSubButton>{item.label}</SidebarMenuSubButton>
                           </Link>
                       </SidebarMenuSubItem>

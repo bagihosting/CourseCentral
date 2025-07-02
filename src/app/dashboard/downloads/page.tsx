@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getAllCourses } from '@/lib/data';
-import { Download, FileText, Film, FileZip } from 'lucide-react';
+import { Download, FileText, Film, Archive } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function DownloadsPage() {
@@ -13,7 +13,7 @@ export default async function DownloadsPage() {
       case 'pdf':
         return <FileText className="h-5 w-5 text-muted-foreground" />;
       case 'zip':
-        return <FileZip className="h-5 w-5 text-muted-foreground" />;
+        return <Archive className="h-5 w-5 text-muted-foreground" />;
       case 'video':
         return <Film className="h-5 w-5 text-muted-foreground" />;
     }
