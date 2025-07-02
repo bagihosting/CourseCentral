@@ -6,7 +6,7 @@ export type Course = {
   duration: string; // e.g., "8 hours"
   imageUrl: string;
   category: string;
-  materials: {
+  materials?: {
     name: string;
     url: string;
     type: 'pdf' | 'zip' | 'video';

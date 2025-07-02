@@ -5,25 +5,31 @@ import { Badge } from '@/components/ui/badge';
 import type { Course } from '@/types';
 import { Clock, User } from 'lucide-react';
 import Link from 'next/link';
+import { AdminCourseActions } from './admin-course-actions';
 
 type CourseCardProps = {
   course: Course;
+  isAdmin?: boolean;
 };
 
-export function CourseCard({ course }: CourseCardProps) {
+export function CourseCard({ course, isAdmin = false }: CourseCardProps) {
   return (
-    <Card className="flex h-full flex-col" id={course.id}>
-      <CardHeader className="p-0">
+    <Card className="flex h-full flex-col overflow-hidden" id={course.id}>
+      <CardHeader className="p-0 relative">
         <div className="relative h-48 w-full">
           <Image
             src={course.imageUrl}
             alt={course.title}
-            layout="fill"
-            objectFit="cover"
-            className="rounded-t-lg"
+            fill
+            className="object-cover"
             data-ai-hint="online course"
           />
         </div>
+        {isAdmin && (
+          <div className="absolute top-2 right-2 bg-card/75 backdrop-blur-sm rounded-full">
+            <AdminCourseActions courseId={course.id} />
+          </div>
+        )}
         <div className="p-6">
             <Badge variant="secondary" className="mb-2">{course.category}</Badge>
             <CardTitle className="text-xl">{course.title}</CardTitle>

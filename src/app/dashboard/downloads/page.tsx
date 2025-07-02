@@ -43,7 +43,7 @@ export default async function DownloadsPage() {
             </TableHeader>
             <TableBody>
               {courses.flatMap((course) =>
-                course.materials.map((material, index) => (
+                course.materials?.map((material, index) => (
                   <TableRow key={`${course.id}-${index}`}>
                     <TableCell className="font-medium">{course.title}</TableCell>
                     <TableCell>
@@ -60,7 +60,7 @@ export default async function DownloadsPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                )) ?? []
               )}
             </TableBody>
           </Table>

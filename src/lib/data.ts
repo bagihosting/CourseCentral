@@ -20,7 +20,7 @@ export const USERS: User[] = [
     email: 'maria.g@example.com',
     role: 'admin',
     avatarUrl: 'https://placehold.co/100x100.png',
-    skills: ['Project Management', 'System Design', 'CI/CD'],
+    skills: ['Manajemen Proyek', 'Desain Sistem', 'CI/CD'],
     courseProgress: {
       'course-1': 100,
       'course-2': 100,
@@ -34,7 +34,7 @@ export const USERS: User[] = [
     role: 'member',
     membershipDuration: 6,
     avatarUrl: 'https://placehold.co/100x100.png',
-    skills: ['Python', 'Data Science', 'Machine Learning'],
+    skills: ['Python', 'Ilmu Data', 'Machine Learning'],
     courseProgress: {
       'course-5': 50,
       'course-6': 10,
@@ -42,7 +42,7 @@ export const USERS: User[] = [
   },
 ];
 
-export const COURSES: Course[] = [
+export let COURSES: Course[] = [
   {
     id: 'course-1',
     title: 'TypeScript Lanjutan untuk Pengembangan Web Modern',
@@ -137,4 +137,29 @@ export async function getCourseById(id: string): Promise<Course | undefined> {
 
 export async function getCoursesByIds(ids: string[]): Promise<Course[]> {
   return COURSES.filter((course) => ids.includes(course.id));
+}
+
+export async function addCourse(courseData: Omit<Course, 'id' | 'materials'>): Promise<Course> {
+  const newCourse: Course = {
+    ...courseData,
+    id: `course-${Date.now()}`,
+    materials: [],
+  };
+  COURSES.unshift(newCourse);
+  return newCourse;
+}
+
+export async function updateCourse(updatedCourse: Partial<Course> & { id: string }): Promise<Course | undefined> {
+  const courseIndex = COURSES.findIndex((c) => c.id === updatedCourse.id);
+  if (courseIndex > -1) {
+    COURSES[courseIndex] = { ...COURSES[courseIndex], ...updatedCourse };
+    return COURSES[courseIndex];
+  }
+  return undefined;
+}
+
+export async function deleteCourse(id: string): Promise<boolean> {
+  const initialLength = COURSES.length;
+  COURSES = COURSES.filter((course) => course.id !== id);
+  return COURSES.length < initialLength;
 }
