@@ -5,6 +5,7 @@ export type User = {
   password: string;
   role: 'admin' | 'member';
   avatarUrl: string;
+  whatsapp?: string;
 };
 
 export type Course = {

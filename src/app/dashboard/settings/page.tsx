@@ -1,15 +1,116 @@
 'use client';
 
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Loader2 } from 'lucide-react';
+import { User, Loader2, Camera } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import imageCompression from 'browser-image-compression';
+import type { UpdateUserInput } from '@/lib/data';
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUser } = useAuth();
+  const { toast } = useToast();
+
+  const [name, setName] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setWhatsapp(user.whatsapp || '');
+      setAvatarPreview(user.avatarUrl);
+    }
+  }, [user]);
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+        const options = {
+            maxSizeMB: 0.1,
+            maxWidthOrHeight: 256,
+            useWebWorker: true,
+            fileType: 'image/webp',
+        };
+        const compressedFile = await imageCompression(file, options);
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+
+    } catch (error) {
+        toast({
+            title: 'Gagal Mengompres Gambar',
+            description: 'Terjadi kesalahan saat mengompres gambar.',
+            variant: 'destructive',
+        });
+        console.error(error);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Gagal Menyimpan',
+        description: 'Konfirmasi kata sandi tidak cocok.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+        const updateData: UpdateUserInput = {
+            name,
+            whatsapp,
+            avatarUrl: avatarPreview,
+        };
+
+        if (password.trim() !== '') {
+            if (password.length < 6) {
+                throw new Error("Kata sandi minimal 6 karakter.");
+            }
+            updateData.password = password;
+        }
+
+        await updateUser(updateData);
+        
+        toast({
+            title: 'Sukses',
+            description: 'Profil Anda telah berhasil diperbarui.',
+        });
+        setPassword('');
+        setConfirmPassword('');
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({
+        title: 'Gagal Menyimpan',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,29 +158,64 @@ export default function SettingsPage() {
        <Card>
         <CardHeader>
           <CardTitle>Pengaturan Akun</CardTitle>
-          <CardDescription>Kelola informasi profil dan pengaturan Anda.</CardDescription>
+          <CardDescription>Kelola informasi profil dan pengaturan Anda. Perubahan akan disimpan saat Anda menekan tombol simpan.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback>
-                        <User className="h-8 w-8" />
-                    </AvatarFallback>
-                </Avatar>
-                <div>
-                    <h3 className="text-lg font-semibold">{user.name}</h3>
-                    <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
+        <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                 <div className="space-y-2 flex flex-col items-center">
+                    <div className="relative">
+                        <Avatar className="h-24 w-24">
+                            <AvatarImage src={avatarPreview} alt={name} />
+                            <AvatarFallback><User className="h-12 w-12" /></AvatarFallback>
+                        </Avatar>
+                        <Button type="button" size="icon" className="absolute bottom-0 right-0 rounded-full h-8 w-8" onClick={() => fileInputRef.current?.click()}>
+                            <Camera className="h-4 w-4" />
+                            <span className="sr-only">Ubah foto profil</span>
+                        </Button>
+                    </div>
+                    <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </div>
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="name">Nama</Label>
-                <Input id="name" defaultValue={user.name} readOnly />
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="username">Nama Pengguna</Label>
-                <Input id="username" defaultValue={user.username} readOnly />
-            </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nama Lengkap</Label>
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="username">Nama Pengguna</Label>
+                        <Input id="username" defaultValue={user.username} readOnly disabled />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="whatsapp">Nomor WhatsApp</Label>
+                    <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 08123456789" />
+                </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Ubah Kata Sandi</CardTitle>
+                        <CardDescription>Biarkan kosong jika tidak ingin mengubah kata sandi.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Kata Sandi Baru</Label>
+                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi Baru</Label>
+                            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end">
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Simpan Perubahan
+                    </Button>
+                </div>
+            </form>
         </CardContent>
       </Card>
     </div>

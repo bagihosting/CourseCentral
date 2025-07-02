@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
-import { validateUser, registerUser as registerUserData, getUserById, RegisterUserInput } from '@/lib/data';
+import { validateUser, registerUser as registerUserData, getUserById, RegisterUserInput, updateUser as updateUserData, UpdateUserInput } from '@/lib/data';
 
 const SESSION_KEY = 'user_session_id';
 
@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   register: (data: RegisterUserInput) => Promise<void>;
   logout: () => void;
+  updateUser: (data: UpdateUserInput) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,7 +70,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.refresh();
   }, [router]);
 
-  const value = { user, loading, login, register, logout };
+  const updateUser = useCallback(async (data: UpdateUserInput) => {
+    if (!user) {
+        throw new Error("Pengguna tidak diautentikasi.");
+    }
+    try {
+        const updatedUser = updateUserData(user.id, data);
+        setUser(updatedUser); // Update the user state in the context
+    } catch (error) {
+        console.error("Gagal memperbarui pengguna:", error);
+        throw error;
+    }
+  }, [user]);
+
+  const value = { user, loading, login, register, logout, updateUser };
 
   return (
     <AuthContext.Provider value={value}>

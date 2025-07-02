@@ -17,8 +17,8 @@ interface Database {
 function getInitialData(): Database {
     return {
         users: [
-            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' },
-            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' },
+            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '081234567890' },
+            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '' },
         ],
         courses: [
           {
@@ -143,6 +143,7 @@ function getDB(): Database {
             password: 'password',
             role: 'admin',
             avatarUrl: 'https://placehold.co/100x100.png',
+            whatsapp: '081234567890',
         };
         
         // Rebuild the users array with the single correct admin user at the start.
@@ -177,7 +178,7 @@ export function getUserById(id: string): User | undefined {
     return db.users.find(user => user.id === id);
 }
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'whatsapp'>;
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username'>>;
 
 export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): User {
@@ -192,6 +193,7 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
     password: data.password, // In a real app, this should be hashed.
     role: 'member',
     avatarUrl: data.avatarUrl || 'https://placehold.co/100x100.png',
+    whatsapp: '',
   };
   db.users.push(newUser);
   saveDB(db);
@@ -218,6 +220,10 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
     
     if (data.avatarUrl) {
         updatedUser.avatarUrl = data.avatarUrl;
+    }
+
+    if (data.whatsapp !== undefined) {
+      updatedUser.whatsapp = data.whatsapp;
     }
 
     db.users[userIndex] = updatedUser;
