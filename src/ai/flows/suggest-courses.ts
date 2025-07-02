@@ -33,6 +33,12 @@ const suggestCoursesFlow = ai.defineFlow(
   },
   async (input) => {
     const courses = await getAllCourses();
+
+    // If there are no courses, don't call the AI.
+    if (courses.length === 0) {
+      return { suggestions: [] };
+    }
+
     const courseList = courses.map(c => `ID: ${c.id}, Judul: ${c.title}, Deskripsi: ${c.description}`).join('\n');
 
     const prompt = `
@@ -60,7 +66,7 @@ const suggestCoursesFlow = ai.defineFlow(
       return { suggestions: [] };
     }
     
-    // Filter suggestions to ensure they exist in our database
+    // Filter suggestions to ensure they exist in our database and are not hallucinations
     const validSuggestions = output.suggestions.filter(suggestion => 
       courses.some(course => course.id === suggestion.id)
     );

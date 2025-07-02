@@ -51,6 +51,8 @@ const prompt = ai.definePrompt({
         7.  The entire description should be at least 3-4 sentences long.
 
         Course Title: "{{{title}}}"
+        
+        IMPORTANT: Your final output must be a valid JSON object containing a single key "description" which holds the generated text.
     `,
 });
 
