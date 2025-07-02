@@ -17,6 +17,13 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
   const getLessonContent = () => {
     switch (lesson.type) {
       case 'video':
+        if (!lesson.contentUrl) {
+          return (
+            <div className="flex items-center justify-center w-full bg-black rounded-lg aspect-video">
+              <p className="text-muted-foreground">URL video tidak tersedia.</p>
+            </div>
+          );
+        }
         return (
           <video key={lesson.id} controls className="w-full aspect-video rounded-lg bg-black" src={lesson.contentUrl}>
             Browser Anda tidak mendukung tag video.
@@ -33,11 +40,14 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
         return (
           <div className="p-6 bg-muted/30 rounded-lg border text-center">
             <h3 className="text-lg font-semibold mb-4">Materi Unduhan</h3>
-            <Button asChild>
-              <a href={lesson.contentUrl} download>
+            <Button asChild disabled={!lesson.contentUrl}>
+              <a href={lesson.contentUrl || undefined} download>
                 <Download className="mr-2" /> Unduh File ZIP
               </a>
             </Button>
+            {!lesson.contentUrl && (
+              <p className="mt-2 text-sm text-muted-foreground">URL untuk mengunduh tidak tersedia.</p>
+            )}
           </div>
         );
       default:
