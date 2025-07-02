@@ -104,33 +104,66 @@ function getInitialData(): Database {
 
 // --- Helper Functions ---
 
+function saveDB(db: Database) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+}
+
 function getDB(): Database {
     if (typeof window === 'undefined') {
         return getInitialData();
     }
     const dbString = localStorage.getItem(DB_KEY);
+    
     if (!dbString) {
         const initialData = getInitialData();
-        localStorage.setItem(DB_KEY, JSON.stringify(initialData));
+        saveDB(initialData);
         return initialData;
     }
+
     try {
         const data = JSON.parse(dbString) as Database;
-        if (!data.enrollments) {
-            data.enrollments = [];
+        
+        // Ensure data structure integrity
+        if (!data.users) data.users = [];
+        if (!data.courses) data.courses = [];
+        if (!data.enrollments) data.enrollments = [];
+
+        // Self-healing mechanism for admin user
+        let wasModified = false;
+        let adminUser = data.users.find(u => u.username === 'admin');
+
+        if (adminUser) {
+            // If admin exists, ensure password and role are correct
+            if (adminUser.password !== 'password' || adminUser.role !== 'admin') {
+                adminUser.password = 'password';
+                adminUser.role = 'admin';
+                wasModified = true;
+            }
+        } else {
+            // If admin doesn't exist at all, add it
+            data.users.unshift({
+                id: 'admin',
+                name: 'Admin Utama',
+                username: 'admin',
+                password: 'password',
+                role: 'admin',
+                avatarUrl: 'https://placehold.co/100x100.png',
+            });
+            wasModified = true;
         }
+
+        if (wasModified) {
+            saveDB(data);
+        }
+
         return data;
     } catch (e) {
         console.error("Failed to parse DB from localStorage, resetting.", e);
         const initialData = getInitialData();
-        localStorage.setItem(DB_KEY, JSON.stringify(initialData));
+        saveDB(initialData);
         return initialData;
     }
-}
-
-function saveDB(db: Database) {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
 // --- User API Functions ---
