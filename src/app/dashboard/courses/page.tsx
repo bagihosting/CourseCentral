@@ -2,7 +2,8 @@ import { AdminCourseActions } from '@/components/admin-course-actions';
 import { AiSuggestions } from '@/components/ai-suggestions';
 import { CourseCard } from '@/components/course-card';
 import { Button } from '@/components/ui/button';
-import { getAllCourses, getUser } from '@/lib/data';
+import { getAllCourses } from '@/lib/data';
+import { getUser } from '@/actions/auth';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 

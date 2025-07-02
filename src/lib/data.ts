@@ -1,5 +1,4 @@
 import type { Course, User } from '@/types';
-import { cookies } from 'next/headers';
 
 // --- DATA ---
 // This is a mock database. In a real application, you would use a database.
@@ -60,14 +59,6 @@ let courses: Course[] = [
 
 // Simulate API latency
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-export async function getUser(): Promise<{ id: string, name: string, role: 'admin' | 'member', avatarUrl: string } | null> {
-    await delay(100);
-    const userCookie = cookies().get('user_session')?.value;
-    if (!userCookie) return null;
-    const user = users.find(u => u.role === userCookie);
-    return user || null;
-}
 
 export async function getAllUsers(): Promise<User[]> {
   await delay(100);

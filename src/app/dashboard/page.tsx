@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUser } from '@/lib/data';
+import { getUser } from '@/actions/auth';
 
 export default async function DashboardPage() {
   const user = await getUser();

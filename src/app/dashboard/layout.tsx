@@ -9,7 +9,6 @@ import {
   SidebarInset,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
 import {
@@ -21,7 +20,7 @@ import {
   Settings,
 } from 'lucide-react';
 import Link from 'next/link';
-import { getUser } from '@/lib/data';
+import { getUser } from '@/actions/auth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { sidebarMenuButtonVariants } from '@/components/ui/sidebar-variants';
@@ -55,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.label}>
-                <Link href={item.href} className="w-full">
+                <Link href={item.href} asChild>
                   <SidebarMenuButton type="button" tooltip={item.label}>
                     <item.icon />
                     <span>{item.label}</span>
@@ -84,10 +83,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                        <Link href={item.href} className="w-full">
-                          <div className={cn(sidebarMenuButtonVariants({size: 'sm'}), 'w-full')}>
+                        <Link href={item.href} asChild>
+                          <SidebarMenuButton size="sm" type="button" className="w-full">
                             {item.label}
-                          </div>
+                          </SidebarMenuButton>
                         </Link>
                       </SidebarMenuSubItem>
                     ))}
