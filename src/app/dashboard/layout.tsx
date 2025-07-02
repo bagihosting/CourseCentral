@@ -54,12 +54,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.label}>
-                <Link href={item.href} asChild>
-                  <SidebarMenuButton type="button" tooltip={item.label}>
+                <SidebarMenuButton asChild type="button" tooltip={item.label}>
+                  <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
             {user?.role === 'admin' && (
@@ -83,11 +83,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                        <Link href={item.href} asChild>
-                          <SidebarMenuButton size="sm" type="button" className="w-full">
+                        <SidebarMenuButton asChild size="sm" type="button" className="w-full">
+                          <Link href={item.href}>
                             {item.label}
-                          </SidebarMenuButton>
-                        </Link>
+                          </Link>
+                        </SidebarMenuButton>
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
