@@ -28,7 +28,7 @@ export function CourseForm({ course }: CourseFormProps) {
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
   useEffect(() => {
-    if (state.message && state.errors) {
+    if (state.message) {
       toast({
         title: 'Gagal',
         description: state.message,
