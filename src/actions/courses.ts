@@ -33,8 +33,9 @@ export async function createCourse(prevState: FormState, formData: FormData): Pr
   try {
     await dbCreateCourse(validatedFields.data);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Kesalahan database tidak diketahui.';
     return {
-      message: 'Kesalahan database: Gagal membuat kursus.',
+      message: `Gagal membuat kursus: ${errorMessage}`,
     };
   }
 
@@ -56,8 +57,9 @@ export async function updateCourse(id: string, prevState: FormState, formData: F
   try {
     await dbUpdateCourse(id, validatedFields.data);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Kesalahan database tidak diketahui.';
     return {
-      message: 'Kesalahan database: Gagal memperbarui kursus.',
+      message: `Gagal memperbarui kursus: ${errorMessage}`,
     };
   }
 

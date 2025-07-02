@@ -3,6 +3,7 @@ import type { ServiceAccount } from 'firebase-admin';
 
 let db: admin.firestore.Firestore | null = null;
 let auth: admin.auth.Auth | null = null;
+let storage: admin.storage.Storage | null = null;
 
 try {
   // Check if the environment variables are set and are not empty strings
@@ -18,12 +19,14 @@ try {
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
       });
       console.log('Firebase Admin initialized successfully.');
     }
     
     db = admin.firestore();
     auth = admin.auth();
+    storage = admin.storage();
   } else {
     // This warning will be shown in development if .env is not set up
     if (process.env.NODE_ENV !== 'production') {
@@ -37,4 +40,4 @@ try {
   console.error('Firebase admin initialization error. This can happen if your service account credentials in .env are incorrect or malformed.', error.message);
 }
 
-export { db, auth };
+export { db, auth, storage };
