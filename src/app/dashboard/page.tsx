@@ -14,23 +14,24 @@ import { CourseCard } from '@/components/course-card';
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [courses, setCourses] = useState<Course[] | null>(null);
-  const [users, setUsers] = useState<UserType[] | null>(null);
-  const [enrolledCourses, setEnrolledCourses] = useState<Course[] | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      setCourses(getAllCourses());
+      const allCourses = getAllCourses();
+      setCourses(allCourses);
       if (user.role === 'admin') {
         setUsers(getAllUsers());
       } else {
         setEnrolledCourses(getEnrolledCoursesForUser(user.id));
       }
+      setLoading(false);
     }
   }, [user]);
 
-  const loading = !user || courses === null || (user.role === 'admin' && users === null) || (user.role === 'member' && enrolledCourses === null);
-  
   if (loading) {
     return (
       <div className="space-y-8">
@@ -53,21 +54,17 @@ export default function DashboardPage() {
         </div>
         <div className="space-y-4">
             <Skeleton className="h-7 w-48 mb-2" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                        <Skeleton className="h-40 w-full rounded-lg" />
-                        <Skeleton className="h-6 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                    </div>
-                ))}
-            </div>
+            <Card>
+                <CardContent className="p-6">
+                    <Skeleton className="h-40 w-full" />
+                </CardContent>
+            </Card>
         </div>
       </div>
     );
   }
   
-  const userName = user.name || 'Pengguna';
+  const userName = user?.name || 'Pengguna';
   const totalLessons = courses.reduce((acc, course) => 
     acc + course.modules.reduce((modAcc, mod) => modAcc + mod.lessons.length, 0), 0);
 
@@ -78,14 +75,14 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Selamat datang kembali, {userName}!</h1>
         <p className="text-muted-foreground">
-          {user.role === 'admin' 
+          {user?.role === 'admin' 
             ? 'Ini adalah ringkasan platform kursus Anda.' 
             : 'Siap untuk melanjutkan pembelajaran Anda?'}
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {user.role === 'admin' ? (
+        {user?.role === 'admin' ? (
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -152,7 +149,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {user.role === 'admin' ? (
+      {user?.role === 'admin' ? (
           <Card>
             <CardHeader>
               <CardTitle>Kursus Terbaru</CardTitle>
@@ -214,12 +211,12 @@ export default function DashboardPage() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold tracking-tight">Mulai Perjalanan Belajar Anda</h2>
-                  <Link href="/dashboard/courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+                   <Link href="/dashboard/courses" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
                     Lihat Semua Kursus
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {courses.slice(0, 3).map(course => (
                     <CourseCard key={course.id} course={course} />
                   ))}
