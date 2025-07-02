@@ -45,6 +45,12 @@ function getInitialData(): Database {
                     type: 'video',
                     contentUrl: 'https://storage.googleapis.com/web-dev-assets/video-and-source-tags/chrome.mp4',
                   },
+                   { 
+                    id: 'lesson_1_1_3', 
+                    title: 'Video YouTube: Pengenalan Framework', 
+                    type: 'youtube',
+                    contentUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                  },
                 ]
               },
               {

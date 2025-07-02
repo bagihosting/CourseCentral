@@ -31,12 +31,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, FileText, Package, Pencil, PlusCircle, Trash2 } from 'lucide-react';
-import { useState, useOptimistic, FormEvent } from 'react';
+import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud } from 'lucide-react';
+import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
+import { uploadVideoAction } from '@/actions/files';
 
 type FormErrors = {
     title?: string;
@@ -93,25 +94,55 @@ function ModuleForm({ courseId, module, onFinished }: { courseId: string, module
 // --- Lesson Form ---
 function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: string, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
     const [title, setTitle] = useState(lesson?.title || '');
-    const [type, setType] = useState<Lesson['type']>(lesson?.type || 'video');
+    const [type, setType] = useState<Lesson['type']>(lesson?.type || 'text');
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
     const [content, setContent] = useState(lesson?.content || '');
     const [errors, setErrors] = useState<FormErrors>({});
+    const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const validate = () => {
         const newErrors: FormErrors = {};
         if(title.length < 3) newErrors.title = 'Judul pelajaran minimal 3 karakter.';
-        if ((type === 'video' || type === 'zip') && contentUrl && !contentUrl.startsWith('http')) {
-            newErrors.contentUrl = 'URL konten tidak valid.';
+        if ((type === 'video' || type === 'youtube' || type === 'zip') && !contentUrl) {
+            newErrors.contentUrl = 'URL konten atau hasil unggahan tidak boleh kosong.';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     }
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('video', file);
+
+        const result = await uploadVideoAction(formData);
+
+        setIsUploading(false);
+        if (result.error) {
+            toast({ title: 'Gagal Mengunggah', description: result.error, variant: 'destructive' });
+        } else if (result.videoUrl) {
+            setContentUrl(result.videoUrl);
+            setType('video');
+            toast({ title: 'Sukses', description: 'Video berhasil diunggah.' });
+        }
+        
+        // Reset file input
+        if(fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
   
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if(!validate()) return;
+        if(!validate()) {
+            toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive' });
+            return
+        };
         
         try {
             const lessonData: Omit<Lesson, 'id' | 'downloadable'> = {
@@ -149,12 +180,12 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
                     <SelectValue placeholder="Pilih tipe" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="video">Video</SelectItem>
                     <SelectItem value="text">Teks</SelectItem>
+                    <SelectItem value="video">Video (URL Langsung)</SelectItem>
+                    <SelectItem value="youtube">Video (YouTube)</SelectItem>
                     <SelectItem value="zip">ZIP (Unduhan)</SelectItem>
                 </SelectContent>
             </Select>
-            {errors.type && <p className="text-sm text-destructive">{errors.type}</p>}
         </div>
 
         {type === 'text' ? (
@@ -171,15 +202,35 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="contentUrl">URL Konten (untuk Video/ZIP)</Label>
-            <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..." />
+            <Label htmlFor="contentUrl">URL Konten</Label>
+            <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder={type === 'youtube' ? "https://www.youtube.com/watch?v=..." : "https://..."} />
             {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
           </div>
         )}
+        
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Atau</span>
+            </div>
+        </div>
+
+        <div className="space-y-2">
+            <Label htmlFor="video-upload">Unggah Video (Maks 100MB)</Label>
+            <div className="flex gap-2">
+                <Input id="video-upload" type="file" accept="video/*" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading} className="flex-grow" />
+                {isUploading && <Button disabled variant="outline" size="icon"><Loader2 className="animate-spin" /></Button>}
+            </div>
+            <p className="text-xs text-muted-foreground">Mengunggah video akan otomatis mengatur tipe pelajaran ke "Video (URL Langsung)" dan mengisi URL-nya.</p>
+        </div>
+
+
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit">{lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran'}</Button>
+        <Button type="submit" disabled={isUploading}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
       </DialogFooter>
     </form>
   );
@@ -258,6 +309,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
         case 'video': return <Film className="h-4 w-4 text-muted-foreground" />;
+        case 'youtube': return <Youtube className="h-4 w-4 text-red-500" />;
         case 'text': return <FileText className="h-4 w-4 text-muted-foreground" />;
         case 'zip': return <Package className="h-4 w-4 text-muted-foreground" />;
     }
@@ -363,7 +415,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
       
       {/* Lesson Dialog */}
       <Dialog open={isLessonDialogOpen} onOpenChange={setLessonDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{editingLesson ? 'Ubah Pelajaran' : 'Tambah Pelajaran Baru'}</DialogTitle>
           </DialogHeader>

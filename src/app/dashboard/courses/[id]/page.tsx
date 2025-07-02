@@ -9,9 +9,33 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Film, FileText, Package, Download } from 'lucide-react';
+import { CheckCircle, Film, FileText, Package, Download, Youtube } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  let videoId = null;
+  
+  // Regular watch URL
+  const urlParams = new URLSearchParams(new URL(url).search);
+  videoId = urlParams.get('v');
+  if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+  
+  // Short youtu.be URL
+  const youtuBeMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (youtuBeMatch && youtuBeMatch[1]) {
+    return `https://www.youtube.com/embed/${youtuBeMatch[1]}`;
+  }
+
+  // Embed URL (already correct)
+  const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+  if (embedMatch && embedMatch[1]) {
+    return url;
+  }
+  
+  return null;
+}
 
 function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; onComplete: () => void; isCompleted: boolean }) {
   const getLessonContent = () => {
@@ -28,6 +52,27 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
           <video key={lesson.id} controls className="w-full aspect-video rounded-lg bg-black" src={lesson.contentUrl}>
             Browser Anda tidak mendukung tag video.
           </video>
+        );
+      case 'youtube':
+        const embedUrl = getYouTubeEmbedUrl(lesson.contentUrl || '');
+        if (!embedUrl) {
+           return (
+            <div className="flex items-center justify-center w-full bg-black rounded-lg aspect-video">
+              <p className="text-muted-foreground">URL YouTube tidak valid.</p>
+            </div>
+          );
+        }
+        return (
+          <div className="aspect-video w-full">
+            <iframe
+              className="w-full h-full rounded-lg"
+              src={embedUrl}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
         );
       case 'text':
         return (
@@ -84,6 +129,7 @@ function CourseContentDisplay({
   const getLessonIcon = (type: Lesson['type']) => {
     switch (type) {
       case 'video': return <Film className="h-5 w-5 text-muted-foreground" />;
+      case 'youtube': return <Youtube className="h-5 w-5 text-red-500" />;
       case 'text': return <FileText className="h-5 w-5 text-muted-foreground" />;
       case 'zip': return <Package className="h-5 w-5 text-muted-foreground" />;
     }
@@ -128,6 +174,8 @@ export default function CoursePage() {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+
 
   // Load course data
   useEffect(() => {

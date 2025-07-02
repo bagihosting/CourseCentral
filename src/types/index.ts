@@ -24,7 +24,7 @@ export type Module = {
 export type Lesson = {
   id: string;
   title: string;
-  type: 'video' | 'text' | 'zip';
+  type: 'video' | 'youtube' | 'text' | 'zip';
   contentUrl?: string;
   content?: string;
   downloadable?: boolean;
