@@ -45,8 +45,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-    { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Kursus' },
-    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   ];
 
   const adminNavItems = [{ href: '/dashboard/admin', icon: UserCog, label: 'Admin' }];
