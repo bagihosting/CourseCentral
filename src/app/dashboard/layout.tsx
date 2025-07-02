@@ -23,11 +23,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
-import { Skeleton } from '@/components/ui/skeleton';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const router = useRouter();
 
   const memberNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
@@ -44,7 +45,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -52,11 +59,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
   
-  if (!user) {
-    redirect('/');
-    return null;
-  }
-
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
 
   return (
