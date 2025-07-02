@@ -10,7 +10,7 @@ import type { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Loader2, Wand2 } from 'lucide-react';
-import { generateThumbnailAction } from '@/actions/ai';
+import { generateThumbnailAction, generateDescriptionAction } from '@/actions/ai';
 
 interface CourseFormProps {
   course?: Course;
@@ -22,8 +22,10 @@ export function CourseForm({ course }: CourseFormProps) {
   const { toast } = useToast();
 
   const [title, setTitle] = useState(course?.title || '');
+  const [description, setDescription] = useState(course?.description || '');
   const [imageUrl, setImageUrl] = useState(course?.imageUrl || '');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
   useEffect(() => {
     if (state.message && state.errors) {
@@ -36,15 +38,36 @@ export function CourseForm({ course }: CourseFormProps) {
   }, [state, toast]);
 
   const handleGenerateThumbnail = async () => {
-    setIsGenerating(true);
+    setIsGeneratingThumbnail(true);
     const result = await generateThumbnailAction(title);
-    setIsGenerating(false);
+    setIsGeneratingThumbnail(false);
 
     if ('imageUrl' in result && result.imageUrl) {
       setImageUrl(result.imageUrl);
       toast({
         title: 'Sukses',
         description: 'Thumbnail berhasil dibuat dengan AI.',
+      });
+    } else {
+      const errorMessage = 'error' in result ? result.error : 'Terjadi kesalahan tidak diketahui.';
+      toast({
+        title: 'Gagal',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    setIsGeneratingDesc(true);
+    const result = await generateDescriptionAction(title);
+    setIsGeneratingDesc(false);
+
+    if ('description' in result && result.description) {
+      setDescription(result.description);
+      toast({
+        title: 'Sukses',
+        description: 'Deskripsi berhasil dibuat dengan AI.',
       });
     } else {
       const errorMessage = 'error' in result ? result.error : 'Terjadi kesalahan tidak diketahui.';
@@ -75,10 +98,10 @@ export function CourseForm({ course }: CourseFormProps) {
             type="button"
             variant="outline"
             onClick={handleGenerateThumbnail}
-            disabled={isGenerating || !title}
+            disabled={isGeneratingThumbnail || !title}
             className="shrink-0"
           >
-            {isGenerating ? <Loader2 className="animate-spin" /> : <Wand2 />}
+            {isGeneratingThumbnail ? <Loader2 className="animate-spin" /> : <Wand2 />}
             <span className="ml-2 hidden sm:inline">Buat AI</span>
           </Button>
         </div>
@@ -86,8 +109,31 @@ export function CourseForm({ course }: CourseFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Deskripsi</Label>
-        <Textarea id="description" name="description" defaultValue={course?.description} aria-describedby="description-error" />
+        <div className="flex justify-between items-center">
+            <Label htmlFor="description">Deskripsi</Label>
+            <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0 text-sm"
+                onClick={handleGenerateDescription}
+                disabled={isGeneratingDesc || !title}
+            >
+                {isGeneratingDesc ? (
+                    <Loader2 className="animate-spin mr-2" />
+                ) : (
+                    <Wand2 className="mr-2" />
+                )}
+                Buat dengan AI
+            </Button>
+        </div>
+        <Textarea
+          id="description"
+          name="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          aria-describedby="description-error"
+          rows={5}
+        />
         {state.errors?.description && <p id="description-error" className="text-sm text-destructive">{state.errors.description}</p>}
       </div>
 
