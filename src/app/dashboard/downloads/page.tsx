@@ -1,11 +1,20 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getAllCourses } from '@/lib/data';
 import { Download, FileText, Film, Archive } from 'lucide-react';
 import Link from 'next/link';
+import type { Course } from '@/types';
 
-export default async function DownloadsPage() {
-  const courses = await getAllCourses();
+export default function DownloadsPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+
+  useEffect(() => {
+    setCourses(getAllCourses());
+  }, []);
+
   const allDownloads = courses.flatMap(course => 
     course.modules.flatMap(module => 
       module.lessons

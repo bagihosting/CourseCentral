@@ -32,42 +32,57 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Film, FileText, Package, Pencil, PlusCircle, Trash2 } from 'lucide-react';
-import { useState, useEffect, useOptimistic, useActionState } from 'react';
+import { useState, useOptimistic, FormEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/actions/curriculum';
+import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
-// --- Form State & Action Response ---
-type ActionResponse = {
-  message: string;
-  errors?: { [key: string]: string[] | undefined };
-  resetKey?: string;
-};
+type FormErrors = {
+    title?: string;
+    type?: string;
+    contentUrl?: string;
+}
 
 // --- Module Form ---
 function ModuleForm({ courseId, module, onFinished }: { courseId: string, module?: Module, onFinished: () => void }) {
-  const action = module ? updateModule.bind(null, courseId, module.id) : addModule.bind(null, courseId);
-  const [state, formAction] = useActionState<ActionResponse, FormData>(action, { message: '' });
+  const [title, setTitle] = useState(module?.title || '');
+  const [error, setError] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (state.message) {
-      toast({ title: state.errors ? "Gagal" : "Sukses", description: state.message, variant: state.errors ? "destructive" : "default" });
-      if (!state.errors) onFinished();
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (title.length < 3) {
+      setError('Judul modul minimal 3 karakter.');
+      return;
     }
-  }, [state, toast, onFinished]);
+    setError('');
+
+    try {
+      if (module) {
+        updateModule(courseId, module.id, { title });
+        toast({ title: 'Sukses', description: 'Modul berhasil diperbarui.'});
+      } else {
+        addModule(courseId, { title });
+        toast({ title: 'Sukses', description: 'Modul berhasil ditambahkan.'});
+      }
+      onFinished();
+    } catch(e) {
+      const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
+      toast({ title: 'Gagal', description: errorMessage, variant: 'destructive'});
+    }
+  }
 
   return (
-    <form action={formAction} key={state.resetKey}>
+    <form onSubmit={handleSubmit}>
       <div className="space-y-4 p-1">
         <div className="space-y-2">
           <Label htmlFor="title">Judul Modul</Label>
-          <Input id="title" name="title" defaultValue={module?.title} />
-          {state.errors?.title && <p className="text-sm text-destructive">{state.errors.title}</p>}
+          <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} />
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
       <DialogFooter className="mt-4">
-        <DialogClose asChild><Button variant="ghost">Batal</Button></DialogClose>
+        <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
         <Button type="submit">{module ? 'Simpan Perubahan' : 'Tambah Modul'}</Button>
       </DialogFooter>
     </form>
@@ -76,28 +91,54 @@ function ModuleForm({ courseId, module, onFinished }: { courseId: string, module
 
 // --- Lesson Form ---
 function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: string, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
-    const action = lesson ? updateLesson.bind(null, courseId, moduleId, lesson.id) : addLesson.bind(null, courseId, moduleId);
-    const [state, formAction] = useActionState<ActionResponse, FormData>(action, { message: '' });
+    const [title, setTitle] = useState(lesson?.title || '');
+    const [type, setType] = useState<Lesson['type']>(lesson?.type || 'video');
+    const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
+    const [errors, setErrors] = useState<FormErrors>({});
     const { toast } = useToast();
+
+    const validate = () => {
+        const newErrors: FormErrors = {};
+        if(title.length < 3) newErrors.title = 'Judul pelajaran minimal 3 karakter.';
+        // Basic URL validation for video/zip
+        if ((type === 'video' || type === 'zip') && contentUrl && !contentUrl.startsWith('http')) {
+            newErrors.contentUrl = 'URL konten tidak valid.';
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }
   
-    useEffect(() => {
-      if (state.message) {
-        toast({ title: state.errors ? "Gagal" : "Sukses", description: state.message, variant: state.errors ? "destructive" : "default" });
-        if (!state.errors) onFinished();
-      }
-    }, [state, toast, onFinished]);
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if(!validate()) return;
+        
+        try {
+            const lessonData = { title, type, contentUrl };
+            if(lesson) {
+                updateLesson(courseId, moduleId, lesson.id, lessonData);
+                toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
+            } else {
+                addLesson(courseId, moduleId, lessonData);
+                toast({ title: 'Sukses', description: 'Pelajaran berhasil ditambahkan.'});
+            }
+            onFinished();
+        } catch(e) {
+            const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
+            toast({ title: 'Gagal', description: errorMessage, variant: 'destructive'});
+        }
+    }
 
   return (
-    <form action={formAction} key={state.resetKey}>
+    <form onSubmit={handleSubmit}>
       <div className="space-y-4 p-1">
         <div className="space-y-2">
           <Label htmlFor="title">Judul Pelajaran</Label>
-          <Input id="title" name="title" defaultValue={lesson?.title} />
-          {state.errors?.title && <p className="text-sm text-destructive">{state.errors.title}</p>}
+          <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} />
+          {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
         </div>
         <div className="space-y-2">
             <Label htmlFor="type">Tipe Pelajaran</Label>
-            <Select name="type" defaultValue={lesson?.type ?? "video"}>
+            <Select name="type" value={type} onValueChange={(v: Lesson['type']) => setType(v)}>
                 <SelectTrigger id="type">
                     <SelectValue placeholder="Pilih tipe" />
                 </SelectTrigger>
@@ -107,28 +148,26 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
                     <SelectItem value="zip">ZIP (Unduhan)</SelectItem>
                 </SelectContent>
             </Select>
-            {state.errors?.type && <p className="text-sm text-destructive">{state.errors.type}</p>}
+            {errors.type && <p className="text-sm text-destructive">{errors.type}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="contentUrl">URL Konten (untuk Video/ZIP)</Label>
-          <Input id="contentUrl" name="contentUrl" defaultValue={lesson?.contentUrl} placeholder="https://..." />
-          {state.errors?.contentUrl && <p className="text-sm text-destructive">{state.errors.contentUrl}</p>}
+          <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..." />
+          {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
         </div>
       </div>
       <DialogFooter className="mt-4">
-        <DialogClose asChild><Button variant="ghost">Batal</Button></DialogClose>
+        <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
         <Button type="submit">{lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran'}</Button>
       </DialogFooter>
     </form>
   );
 }
 
-
 // --- Main Curriculum Manager ---
-export function CurriculumManager({ course: initialCourse }: { course: Course }) {
-  const [course, setCourse] = useState(initialCourse);
+export function CurriculumManager({ course, onUpdate }: { course: Course; onUpdate: () => void; }) {
   const [optimisticModules, setOptimisticModules] = useOptimistic(course.modules, 
-    (state, {action, module, lesson, moduleId, lessonId}: {action: string, module?: Module, lesson?: Lesson, moduleId?: string, lessonId?: string}) => {
+    (state, {action, moduleId, lessonId}: {action: string, moduleId?: string, lessonId?: string}) => {
         switch(action) {
             case 'delete_module':
                 return state.filter(m => m.id !== moduleId);
@@ -147,6 +186,12 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
   const [addingLessonToModule, setAddingLessonToModule] = useState<string | undefined>(undefined);
   const { toast } = useToast();
 
+  const handleFinished = () => {
+    setModuleDialogOpen(false);
+    setLessonDialogOpen(false);
+    onUpdate(); // Trigger parent component to re-fetch course data
+  }
+
   const openModuleDialog = (module?: Module) => {
     setEditingModule(module);
     setModuleDialogOpen(true);
@@ -163,23 +208,29 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
     setLessonDialogOpen(true);
   };
 
-  const handleDeleteModule = async (moduleId: string) => {
+  const handleDeleteModule = (moduleId: string) => {
     setOptimisticModules({action: 'delete_module', moduleId});
-    const result = await deleteModule(course.id, moduleId);
-    if (result?.error) {
-        toast({ title: "Gagal", description: result.error, variant: "destructive" });
-    } else {
+    try {
+        deleteModule(course.id, moduleId);
         toast({ title: "Sukses", description: "Modul berhasil dihapus." });
+        onUpdate();
+    } catch(e) {
+        const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
+        toast({ title: "Gagal", description: errorMessage, variant: "destructive" });
+        onUpdate(); // Re-fetch to revert optimistic update
     }
   };
 
-  const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
+  const handleDeleteLesson = (moduleId: string, lessonId: string) => {
     setOptimisticModules({action: 'delete_lesson', moduleId, lessonId});
-    const result = await deleteLesson(course.id, moduleId, lessonId);
-    if (result?.error) {
-        toast({ title: "Gagal", description: result.error, variant: "destructive" });
-    } else {
+     try {
+        deleteLesson(course.id, moduleId, lessonId);
         toast({ title: "Sukses", description: "Pelajaran berhasil dihapus." });
+        onUpdate();
+    } catch(e) {
+        const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
+        toast({ title: "Gagal", description: errorMessage, variant: "destructive" });
+        onUpdate();
     }
   };
 
@@ -190,12 +241,6 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
         case 'zip': return <Package className="h-4 w-4 text-muted-foreground" />;
     }
   }
-
-  useEffect(() => setCourse(initialCourse), [initialCourse]);
-  useEffect(() => {
-    setOptimisticModules({ action: 'noop' });
-  }, [course.modules, setOptimisticModules]);
-
 
   return (
     <Card>
@@ -215,7 +260,7 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
             Belum ada modul. Mulai dengan menambahkan modul pertama Anda.
           </div>
         ) : (
-          <Accordion type="multiple" className="w-full">
+          <Accordion type="multiple" className="w-full" defaultValue={optimisticModules.map(m => m.id)}>
             {optimisticModules.map((module) => (
               <AccordionItem value={module.id} key={module.id} className="border rounded-md mb-2 px-4">
                 <AccordionTrigger className="hover:no-underline font-semibold text-base py-4">
@@ -291,7 +336,7 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
             <DialogTitle>{editingModule ? 'Ubah Modul' : 'Tambah Modul Baru'}</DialogTitle>
             <DialogDescription>Isi detail modul di bawah ini.</DialogDescription>
           </DialogHeader>
-          <ModuleForm courseId={course.id} module={editingModule} onFinished={() => setModuleDialogOpen(false)} />
+          <ModuleForm courseId={course.id} module={editingModule} onFinished={handleFinished} />
         </DialogContent>
       </Dialog>
       
@@ -305,7 +350,7 @@ export function CurriculumManager({ course: initialCourse }: { course: Course })
             courseId={course.id} 
             moduleId={editingLesson?.moduleId ?? addingLessonToModule!}
             lesson={editingLesson?.lesson}
-            onFinished={() => setLessonDialogOpen(false)}
+            onFinished={handleFinished}
           />
         </DialogContent>
       </Dialog>

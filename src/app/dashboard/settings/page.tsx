@@ -1,12 +1,14 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUser } from '@/actions/auth';
+import { useUser } from '@/hooks/use-user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-export default async function SettingsPage() {
-  const user = await getUser();
+export default function SettingsPage() {
+  const { user } = useUser();
 
   if (!user) {
     return (

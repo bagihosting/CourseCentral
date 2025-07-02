@@ -2,6 +2,7 @@
 
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
 import { generateDescription as generateDescriptionFlow } from '@/ai/flows/generate-description';
+import { suggestCourses as suggestCoursesFlow, CourseSuggestionInput, CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
 
 export async function generateThumbnailAction(
   title: string
@@ -32,5 +33,17 @@ export async function generateDescriptionAction(
   } catch (error) {
     console.error('Error generating description:', error);
     return { error: 'Gagal membuat deskripsi. Silakan coba lagi.' };
+  }
+}
+
+
+export async function suggestCoursesAction(
+  input: CourseSuggestionInput
+): Promise<CourseSuggestionOutput> {
+  try {
+    return await suggestCoursesFlow(input);
+  } catch (error) {
+    console.error('Error suggesting courses:', error);
+    return { suggestions: [] };
   }
 }

@@ -1,10 +1,19 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getAllUsers } from '@/lib/data';
 import { User } from 'lucide-react';
+import type { User as UserType } from '@/types';
 
-export default async function AdminPage() {
-  const users = await getAllUsers();
+export default function AdminPage() {
+  const [users, setUsers] = useState<UserType[]>([]);
+
+  useEffect(() => {
+    setUsers(getAllUsers());
+  }, []);
+
   return (
     <div className="grid gap-6">
       <Card>

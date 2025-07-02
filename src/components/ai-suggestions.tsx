@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Wand2, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { suggestCourses, CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
+import { CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
 import Link from 'next/link';
+import { getAllCourses } from '@/lib/data';
+import { suggestCoursesAction } from '@/actions/ai';
 
 export function AiSuggestions() {
   const [interest, setInterest] = useState('');
@@ -23,7 +25,8 @@ export function AiSuggestions() {
     setSuggestions([]);
 
     try {
-      const result = await suggestCourses({ interest });
+      const availableCourses = getAllCourses().map(c => ({ id: c.id, title: c.title, description: c.description }));
+      const result = await suggestCoursesAction({ interest, courses: availableCourses });
       setSuggestions(result.suggestions);
     } catch (err) {
       setError('Gagal mendapatkan rekomendasi. Coba lagi nanti.');

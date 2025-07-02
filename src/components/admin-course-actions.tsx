@@ -22,28 +22,30 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
-import { deleteCourse } from '@/actions/courses';
+import { deleteCourse } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
-export function AdminCourseActions({ courseId }: { courseId: string }) {
+export function AdminCourseActions({ courseId, onCourseDeleted }: { courseId: string; onCourseDeleted: () => void; }) {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isPending, setPending] = useState(false);
   const { toast } = useToast();
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setPending(true);
     try {
-      await deleteCourse(courseId);
+      deleteCourse(courseId);
       toast({
         title: "Sukses",
         description: "Kursus berhasil dihapus.",
         variant: "default",
       });
+      onCourseDeleted(); // Notify parent to refresh
       setDeleteDialogOpen(false);
     } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({
         title: "Gagal",
-        description: "Terjadi kesalahan saat menghapus kursus.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -83,7 +85,7 @@ export function AdminCourseActions({ courseId }: { courseId: string }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus kursus secara permanen dari server.
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus kursus secara permanen.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

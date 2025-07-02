@@ -1,11 +1,17 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { getAllCourses } from '@/lib/data';
 import { z } from 'zod';
+
+const SimpleCourseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+});
 
 const CourseSuggestionInputSchema = z.object({
   interest: z.string().describe('Minat atau topik yang dicari pengguna.'),
+  courses: z.array(SimpleCourseSchema).describe("Daftar kursus yang tersedia untuk dipertimbangkan."),
 });
 
 const CourseSuggestionOutputSchema = z.object({
@@ -32,14 +38,12 @@ const suggestCoursesFlow = ai.defineFlow(
     outputSchema: CourseSuggestionOutputSchema,
   },
   async (input) => {
-    const courses = await getAllCourses();
-
     // If there are no courses, don't call the AI.
-    if (courses.length === 0) {
+    if (input.courses.length === 0) {
       return { suggestions: [] };
     }
 
-    const courseList = courses.map(c => `ID: ${c.id}, Judul: ${c.title}, Deskripsi: ${c.description}`).join('\n');
+    const courseList = input.courses.map(c => `ID: ${c.id}, Judul: ${c.title}, Deskripsi: ${c.description}`).join('\n');
 
     const prompt = `
       Anda adalah seorang penasihat karir ahli. Berdasarkan minat pengguna dan daftar kursus yang tersedia, rekomendasikan hingga 3 kursus yang paling cocok.
@@ -51,6 +55,7 @@ const suggestCoursesFlow = ai.defineFlow(
       ${courseList}
 
       Format output Anda harus dalam bentuk JSON yang valid sesuai dengan skema yang diberikan.
+      Pastikan ID kursus yang Anda rekomendasikan ada di daftar yang disediakan.
     `;
 
     const llmResponse = await ai.generate({
@@ -68,7 +73,7 @@ const suggestCoursesFlow = ai.defineFlow(
     
     // Filter suggestions to ensure they exist in our database and are not hallucinations
     const validSuggestions = output.suggestions.filter(suggestion => 
-      courses.some(course => course.id === suggestion.id)
+      input.courses.some(course => course.id === suggestion.id)
     );
 
     return { suggestions: validSuggestions };

@@ -2,7 +2,6 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAllUsers } from '@/lib/data';
 import type { User } from '@/types';
 
 const USER_COOKIE_KEY = 'user_session';
@@ -31,10 +30,15 @@ export async function getUser(): Promise<User | null> {
   if (!userCookie) return null;
 
   const role = userCookie.value;
-  if (role === 'admin' || role === 'member') {
-    const users = await getAllUsers();
-    const user = users.find(u => u.role === role);
-    return user || null;
+  
+  // Since we are moving to localStorage, we can't query the DB from the server.
+  // We'll return a static user object based on the role from the cookie.
+  // The full user data will be managed on the client side.
+  if (role === 'admin') {
+    return { id: 'admin', name: 'Admin Utama', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png' };
+  }
+  if (role === 'member') {
+    return { id: 'member', name: 'Siswa Rajin', role: 'member', avatarUrl: 'https://placehold.co/100x100.png' };
   }
   
   return null;
