@@ -31,27 +31,27 @@ export default async function AdminPage() {
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">View and manage all users in the system.</p>
+          <h1 className="text-3xl font-bold">Manajemen Pengguna</h1>
+          <p className="text-muted-foreground">Lihat dan kelola semua pengguna di sistem.</p>
         </div>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add User
+          Tambah Pengguna
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>A list of all registered users.</CardDescription>
+          <CardTitle>Semua Pengguna</CardTitle>
+          <CardDescription>Daftar semua pengguna terdaftar.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden md:table-cell">Membership</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Pengguna</TableHead>
+                <TableHead>Peran</TableHead>
+                <TableHead className="hidden md:table-cell">Keanggotaan</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -76,7 +76,7 @@ export default async function AdminPage() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {user.role === 'member' && user.membershipDuration
-                      ? `${user.membershipDuration} months`
+                      ? `${user.membershipDuration} bulan`
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
@@ -87,9 +87,9 @@ export default async function AdminPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                        <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                        <DropdownMenuItem>Ubah</DropdownMenuItem>
+                        <DropdownMenuItem>Hapus</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -22,23 +22,23 @@ export default async function DownloadsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold">Downloads</h1>
-        <p className="text-muted-foreground">Access all your downloadable course materials here.</p>
+        <h1 className="text-3xl font-bold">Unduhan</h1>
+        <p className="text-muted-foreground">Akses semua materi kursus yang dapat diunduh di sini.</p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Course Materials</CardTitle>
+          <CardTitle>Materi Kursus</CardTitle>
           <CardDescription>
-            A comprehensive list of all materials from your enrolled courses.
+            Daftar lengkap semua materi dari kursus yang Anda ikuti.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Course Title</TableHead>
-                <TableHead>File Name</TableHead>
-                <TableHead className="w-[100px] text-right">Download</TableHead>
+                <TableHead>Judul Kursus</TableHead>
+                <TableHead>Nama File</TableHead>
+                <TableHead className="w-[100px] text-right">Unduh</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -17,16 +17,16 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Login</CardTitle>
+            <CardTitle className="text-2xl">Masuk</CardTitle>
             <CardDescription>Pilih peran untuk masuk.</CardDescription>
           </CardHeader>
           <CardContent>
             <form action={login} className="grid gap-4">
               <Button name="userId" value="user-2" type="submit">
-                Login sebagai Admin
+                Masuk sebagai Admin
               </Button>
               <Button name="userId" value="user-1" type="submit" variant="secondary">
-                Login sebagai Member
+                Masuk sebagai Member
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">

@@ -40,20 +40,20 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back, {user.name}!</CardTitle>
+            <CardTitle>Selamat datang kembali, {user.name}!</CardTitle>
             <CardDescription>
               {user.role === 'admin'
-                ? "Here's an overview of your platform."
-                : "Here's what's happening with your courses."}
+                ? "Berikut adalah ikhtisar platform Anda."
+                : "Inilah yang terjadi dengan kursus Anda."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {user.role === 'member' && user.membershipDuration && (
               <div className="space-y-1">
-                <p className="text-sm font-medium">Membership Status</p>
-                <Badge variant="default">Premium Member</Badge>
+                <p className="text-sm font-medium">Status Keanggotaan</p>
+                <Badge variant="default">Anggota Premium</Badge>
                 <p className="text-xs text-muted-foreground">
-                  Your membership is active for the next {user.membershipDuration} months.
+                  Keanggotaan Anda aktif untuk {user.membershipDuration} bulan ke depan.
                 </p>
               </div>
             )}
@@ -63,14 +63,14 @@ export default async function DashboardPage() {
                         <Users className="h-8 w-8 text-muted-foreground" />
                         <div>
                             <p className="text-2xl font-bold">1,234</p>
-                            <p className="text-sm text-muted-foreground">Total Users</p>
+                            <p className="text-sm text-muted-foreground">Total Pengguna</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 rounded-lg bg-secondary p-4">
                         <BookCheck className="h-8 w-8 text-muted-foreground" />
                         <div>
                             <p className="text-2xl font-bold">42</p>
-                            <p className="text-sm text-muted-foreground">Total Courses</p>
+                            <p className="text-sm text-muted-foreground">Total Kursus</p>
                         </div>
                     </div>
                 </div>
@@ -83,8 +83,8 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My Courses</CardTitle>
-          <CardDescription>An overview of your current and completed courses.</CardDescription>
+          <CardTitle>Kursus Saya</CardTitle>
+          <CardDescription>Gambaran umum tentang kursus Anda saat ini dan yang telah selesai.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -92,25 +92,25 @@ export default async function DashboardPage() {
                 <Clock className="h-8 w-8 text-muted-foreground" />
                 <div>
                     <p className="text-2xl font-bold">{inProgressCourses.length}</p>
-                    <p className="text-sm text-muted-foreground">Courses in Progress</p>
+                    <p className="text-sm text-muted-foreground">Kursus Sedang Berjalan</p>
                 </div>
             </div>
             <div className="flex items-center gap-4 rounded-lg border p-4">
                 <CheckCircle className="h-8 w-8 text-muted-foreground" />
                 <div>
                     <p className="text-2xl font-bold">{completedCoursesCount}</p>
-                    <p className="text-sm text-muted-foreground">Completed Courses</p>
+                    <p className="text-sm text-muted-foreground">Kursus Selesai</p>
                 </div>
             </div>
           </div>
         
-          <h3 className="mb-4 mt-6 text-lg font-semibold">In Progress</h3>
+          <h3 className="mb-4 mt-6 text-lg font-semibold">Sedang Berjalan</h3>
           {inProgressCourses.length > 0 ? (
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Course</TableHead>
-                        <TableHead className="w-[150px] text-center">Progress</TableHead>
+                        <TableHead>Kursus</TableHead>
+                        <TableHead className="w-[150px] text-center">Kemajuan</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -131,7 +131,7 @@ export default async function DashboardPage() {
             </Table>
           ) : (
             <div className="text-center text-muted-foreground">
-              You have no courses in progress. Explore the course catalog to get started!
+              Anda tidak memiliki kursus yang sedang berjalan. Jelajahi katalog kursus untuk memulai!
             </div>
           )}
         </CardContent>

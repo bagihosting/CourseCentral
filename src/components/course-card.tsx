@@ -42,7 +42,7 @@ export function CourseCard({ course }: CourseCardProps) {
       </CardContent>
       <CardFooter className="p-6 pt-0">
         <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-            <Link href="#">View Course</Link>
+            <Link href="#">Lihat Kursus</Link>
         </Button>
       </CardFooter>
     </Card>

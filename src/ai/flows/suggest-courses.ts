@@ -14,11 +14,11 @@ import {z} from 'genkit';
 const SuggestCoursesInputSchema = z.object({
   userSkills: z
     .array(z.string())
-    .describe('A list of the user\u2019s current skills.'),
+    .describe('A list of the user’s current skills.'),
   courseProgress: z
     .record(z.number())
     .describe(
-      'A map of course IDs to the user\u2019s progress in that course (0-100).' + 
+      'A map of course IDs to the user’s progress in that course (0-100).' + 
       'If the user has not started the course, it will not be in the map.'
     ),
 });
@@ -35,20 +35,20 @@ const prompt = ai.definePrompt({
   name: 'suggestCoursesPrompt',
   input: {schema: SuggestCoursesInputSchema},
   output: {schema: SuggestCoursesOutputSchema},
-  prompt: `You are a course recommendation expert. Based on the user's skills and course progress,
-  suggest a list of course IDs that would be most relevant and interesting to them.
+  prompt: `Anda adalah seorang ahli rekomendasi kursus. Berdasarkan keahlian dan kemajuan kursus pengguna, 
+  sarankan daftar ID kursus yang paling relevan dan menarik bagi mereka.
 
-  User Skills:
+  Keahlian Pengguna:
   {{#if userSkills}}
   {{#each userSkills}} - {{{this}}}\n  {{/each}}
   {{else}}
-  No skills listed.
+  Tidak ada keahlian yang terdaftar.
   {{/if}}
 
-  Course Progress:
-  {{#each courseProgress}} - Course ID: {{{@key}}}, Progress: {{{this}}}%\n  {{/each}}
+  Kemajuan Kursus:
+  {{#each courseProgress}} - ID Kursus: {{{@key}}}, Kemajuan: {{{this}}}%\n  {{/each}}
 
-  Suggested Course IDs (as a JSON array of strings):`,
+  ID Kursus yang Disarankan (sebagai array JSON string):`,
 });
 
 const suggestCoursesFlow = ai.defineFlow(
@@ -62,4 +62,3 @@ const suggestCoursesFlow = ai.defineFlow(
     return output!;
   }
 );
-

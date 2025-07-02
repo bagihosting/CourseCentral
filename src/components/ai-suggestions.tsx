@@ -31,14 +31,14 @@ export function AiSuggestions({ user }: AiSuggestionsProps) {
       setSuggestions(result.courses ?? []);
       if((result.courses ?? []).length === 0) {
         toast({
-            title: "No new suggestions",
-            description: "You're all caught up! Check back later for more course recommendations.",
+            title: "Tidak ada saran baru",
+            description: "Anda sudah update! Periksa kembali nanti untuk rekomendasi kursus lainnya.",
         });
       }
     } else {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Galat',
         description: result.error,
       });
     }
@@ -49,10 +49,10 @@ export function AiSuggestions({ user }: AiSuggestionsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-6 w-6 text-primary" />
-          <span>AI Course Suggestions</span>
+          <span>Saran Kursus AI</span>
         </CardTitle>
         <CardDescription>
-          Get personalized course recommendations based on your skills and progress.
+          Dapatkan rekomendasi kursus yang dipersonalisasi berdasarkan keahlian dan kemajuan Anda.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -63,11 +63,11 @@ export function AiSuggestions({ user }: AiSuggestionsProps) {
             ) : (
               <Wand2 className="mr-2 h-4 w-4" />
             )}
-            {loading ? 'Generating...' : 'Suggest Courses'}
+            {loading ? 'Menghasilkan...' : 'Sarankan Kursus'}
           </Button>
           {suggestions.length > 0 && (
             <div className="mt-4 space-y-2">
-              <h4 className="font-semibold">Recommended for you:</h4>
+              <h4 className="font-semibold">Direkomendasikan untuk Anda:</h4>
               <ul className="list-disc space-y-1 pl-5">
                 {suggestions.map((course) => (
                   <li key={course.id}>

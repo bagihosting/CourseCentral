@@ -43,7 +43,7 @@ export function UserNav({ user }: UserNavProps) {
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p>Profile</p>
+            <p>Profil</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -59,13 +59,13 @@ export function UserNav({ user }: UserNavProps) {
           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings">
               <UserIcon className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>Profil</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings">
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>Pengaturan</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -74,7 +74,7 @@ export function UserNav({ user }: UserNavProps) {
           <DropdownMenuItem asChild>
             <button type="submit" className="w-full">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>Keluar</span>
             </button>
           </DropdownMenuItem>
         </form>

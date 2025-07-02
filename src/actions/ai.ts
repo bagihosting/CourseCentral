@@ -13,6 +13,6 @@ export async function getCourseSuggestions(input: SuggestCoursesInput) {
     return { success: true, courses };
   } catch (error) {
     console.error('Error getting course suggestions:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again later.' };
+    return { success: false, error: 'Terjadi kesalahan tak terduga. Silakan coba lagi nanti.' };
   }
 }

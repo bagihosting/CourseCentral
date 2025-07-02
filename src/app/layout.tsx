@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'CourseCentral',
-  description: 'The future of online learning.',
+  description: 'Masa depan pembelajaran online.',
 };
 
 export default function RootLayout({

@@ -42,9 +42,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Courses' },
-    { href: '/dashboard/downloads', icon: Download, label: 'Downloads' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+    { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Kursus' },
+    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   ];
 
   const adminNavItems = [{ href: '/dashboard/admin', icon: UserCog, label: 'Admin' }];
@@ -102,9 +102,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/dashboard/settings" className="w-full">
-                <SidebarMenuButton tooltip="Settings">
+                <SidebarMenuButton tooltip="Pengaturan">
                   <Settings />
-                  <span>Settings</span>
+                  <span>Pengaturan</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
