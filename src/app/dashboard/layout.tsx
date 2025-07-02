@@ -27,6 +27,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { SheetTitle } from '@/components/ui/sheet';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const userId = cookies().get('userId')?.value;
@@ -52,6 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <SidebarProvider>
       <Sidebar>
+        <SheetTitle className="sr-only">Sidebar Menu</SheetTitle>
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -87,7 +89,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <SidebarMenuSub>
                     {adminNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
-                          <Link href={item.href} asChild>
+                          <Link href={item.href}>
                             <SidebarMenuSubButton>{item.label}</SidebarMenuSubButton>
                           </Link>
                       </SidebarMenuSubItem>
