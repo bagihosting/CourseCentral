@@ -129,33 +129,32 @@ function getDB(): Database {
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
 
-        // Self-healing mechanism for admin user
-        let wasModified = false;
-        let adminUser = data.users.find(u => u.username === 'admin');
+        // --- Start of robust self-healing logic for admin user ---
+        const initialUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
 
-        if (adminUser) {
-            // If admin exists, ensure password and role are correct
-            if (adminUser.password !== 'password' || adminUser.role !== 'admin') {
-                adminUser.password = 'password';
-                adminUser.role = 'admin';
-                wasModified = true;
-            }
-        } else {
-            // If admin doesn't exist at all, add it
-            data.users.unshift({
-                id: 'admin',
-                name: 'Admin Utama',
-                username: 'admin',
-                password: 'password',
-                role: 'admin',
-                avatarUrl: 'https://placehold.co/100x100.png',
-            });
-            wasModified = true;
-        }
+        // Filter out any object that could be an admin user to avoid duplicates.
+        const otherUsers = data.users.filter(u => u.id !== 'admin' && u.username !== 'admin');
 
-        if (wasModified) {
-            saveDB(data);
+        // Define the single, correct admin user.
+        const correctAdminUser = {
+            id: 'admin',
+            name: 'Admin Utama',
+            username: 'admin',
+            password: 'password',
+            role: 'admin',
+            avatarUrl: 'https://placehold.co/100x100.png',
+        };
+        
+        // Rebuild the users array with the single correct admin user at the start.
+        data.users = [correctAdminUser, ...otherUsers];
+
+        const finalUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
+
+        // Only write back to localStorage if a change was actually made.
+        if (initialUsersString !== finalUsersString) {
+             saveDB(data);
         }
+        // --- End of self-healing logic ---
 
         return data;
     } catch (e) {
