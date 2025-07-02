@@ -26,12 +26,11 @@ export function AiBloggerTemplateGenerator() {
   const previewCode = useMemo(() => {
     if (!templateCode) return '';
 
-    // 1. Strip XML declaration and DOCTYPE for cleaner HTML
-    let code = templateCode
-      .replace(/<\?xml[^?]*\?>\s*/, '')
-      .replace(/<!DOCTYPE[^>]*>\s*/, '');
+    // Step 1: Initialize variables
+    let code = templateCode;
+    let styleTag = '';
 
-    // 2. Extract variables and their default values
+    // Step 2: Extract variables and their default values from the original template
     const variables: Record<string, string> = {};
     const varRegex = /<b:variable\s+name='([^']*)'[^>]*default='([^']*)'[^>]*\/>/g;
     let match;
@@ -39,63 +38,81 @@ export function AiBloggerTemplateGenerator() {
         variables[match[1]] = match[2];
     }
 
-    // 3. Find and process the CSS inside b:skin
+    // Step 3: Find, process, and extract the CSS as a <style> tag
     const skinRegex = /<b:skin\s*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/b:skin>/;
     const skinMatch = code.match(skinRegex);
     
     if (skinMatch && skinMatch[1]) {
         let cssContent = skinMatch[1];
         
-        // 4. Replace Blogger variables with their default values
+        // Replace Blogger variables ($var.name) with their default values
         for (const [name, defaultValue] of Object.entries(variables)) {
             const varAsRegex = new RegExp(`\\$${name.replace('.', '\\.')}`, 'g');
             cssContent = cssContent.replace(varAsRegex, defaultValue);
         }
         
-        // 5. Replace the entire <b:skin> block with a <style> block for preview
-        const styleTag = `<style type="text/css">${cssContent}</style>`;
-        code = code.replace(skinRegex, styleTag);
+        // Create the final style tag
+        styleTag = `<style type="text/css">${cssContent}</style>`;
     }
     
-    // 6. Replace Blogger-specific tags with standard HTML tags for better preview rendering
-    code = code
+    // Step 4: Extract the content within the <body> tag. If no body tag, use the whole code.
+    const bodyMatch = code.match(/<body[^>]*>([\s\S]*)<\/body>/);
+    let bodyContent = bodyMatch ? bodyMatch[1] : code;
+
+    // Step 5: Clean up Blogger-specific tags from the body content
+    bodyContent = bodyContent
       .replace(/<b:section/g, '<div')
       .replace(/<\/b:section>/g, '</div>')
       .replace(/<b:widget/g, '<div')
       .replace(/<\/b:widget>/g, '</div>')
-      // Also remove template-skin which is not a standard tag
+      // Remove other non-renderable blocks
+      .replace(/<b:skin\s*>[\s\S]*?<\/b:skin>/, '')
       .replace(/<b:template-skin>[\s\S]*?<\/b:template-skin>/, '');
 
-    // 7. Add some placeholder content for common data tags to make the preview look more alive
-    code = code
-        .replace(/>data:blog.title</g, '>Nama Blog Saya<')
-        .replace(/>data:blog.pageTitle</g, '>Judul Halaman<')
-        .replace(/>data:widget.title</g, '>Judul Widget<');
+    // Step 6: Inject placeholder content for a more realistic preview
+    bodyContent = bodyContent
+        .replace(/>data:blog.title</g, '>My Blog Title<')
+        .replace(/>data:blog.pageTitle</g, '>Page Title<')
+        .replace(/>data:widget.title</g, '>Widget Title<');
         
-    // A simple placeholder for a blog post loop
-    const blogWidgetRegex = /(<div[^>]*type='Blog'[^>]*>)([\s\S]*?)(<\/div>)/;
-    const blogWidgetMatch = code.match(blogWidgetRegex);
+    // A more robust way to inject a blog post placeholder
+    const blogWidgetRegex = /(<div[^>]*type='Blog'[^>]*>)/;
     
-    if(blogWidgetMatch) {
-      const blogPostPlaceholder = `
-        <div class='post'>
-          <h3 class='post-title'>Ini Contoh Judul Postingan</h3>
-          <div class='post-body'>
-            <p>Ini adalah paragraf contoh untuk isi postingan blog. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.</p>
-            <p>Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+    const blogPostPlaceholder = `
+        <div class='post-outer' style='margin-bottom: 20px; padding: 15px; border: 1px solid #eee;'>
+          <div class='post'>
+            <h3 class='post-title entry-title' style='font-size: 1.5em; margin-bottom: 10px;'>This is a Sample Post Title</h3>
+            <div class='post-body entry-content'>
+              <p>This is a sample paragraph for the blog post content. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.</p>
+              <p>Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+            </div>
           </div>
         </div>
-        <div class='post'>
-          <h3 class='post-title'>Postingan Blog Lainnya</h3>
-          <div class='post-body'>
-            <p>Ini adalah paragraf kedua untuk menunjukkan bagaimana beberapa postingan akan terlihat di halaman utama Anda.</p>
+        <div class='post-outer' style='margin-bottom: 20px; padding: 15px; border: 1px solid #eee;'>
+          <div class='post'>
+            <h3 class='post-title entry-title' style='font-size: 1.5em; margin-bottom: 10px;'>Another Blog Post</h3>
+            <div class='post-body entry-content'>
+              <p>This is a second paragraph to show how multiple posts will look on your main page.</p>
+            </div>
           </div>
         </div>
       `;
-      code = code.replace(blogWidgetRegex, `$1${blogPostPlaceholder}$3`);
-    }
+    // We inject the placeholder *inside* the blog widget container
+    bodyContent = bodyContent.replace(blogWidgetRegex, `$1${blogPostPlaceholder}`);
 
-    return code;
+    // Step 7: Construct the final, complete HTML document for the iframe
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          ${styleTag}
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+        </head>
+        <body style="background-color: #fff; padding: 1rem;">
+          ${bodyContent}
+        </body>
+      </html>
+    `;
   }, [templateCode]);
 
   const handleGenerate = async () => {
