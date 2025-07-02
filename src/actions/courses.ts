@@ -30,8 +30,9 @@ export async function createCourse(prevState: FormState, formData: FormData): Pr
     };
   }
 
+  let newCourse;
   try {
-    await dbCreateCourse(validatedFields.data);
+    newCourse = await dbCreateCourse(validatedFields.data);
   } catch (error) {
     return {
       message: 'Kesalahan database: Gagal membuat kursus.',
@@ -39,7 +40,7 @@ export async function createCourse(prevState: FormState, formData: FormData): Pr
   }
 
   revalidatePath('/dashboard/courses');
-  redirect('/dashboard/courses');
+  redirect(`/dashboard/courses/${newCourse.id}/edit`);
 }
 
 export async function updateCourse(id: string, prevState: FormState, formData: FormData): Promise<FormState> {
