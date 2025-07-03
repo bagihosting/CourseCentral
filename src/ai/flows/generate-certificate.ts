@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 
 const GenerateCertificateInputSchema = z.object({
   participantName: z.string().describe('The full name of the course participant.'),
@@ -27,47 +26,6 @@ const GenerateCertificateOutputSchema = z.object({
 });
 export type GenerateCertificateOutput = z.infer<typeof GenerateCertificateOutputSchema>;
 
-const certificateHtmlPrompt = ai.definePrompt({
-    name: 'certificateHtmlPrompt',
-    input: { schema: z.object({
-        participantName: z.string(),
-        courseName: z.string(),
-        completionDate: z.string(),
-        organizerName: z.string(),
-        logoUrl: z.string(),
-        serialNumber: z.string(),
-        barcodeDataUri: z.string().describe("A data URI for the barcode image."),
-        signatureDataUri: z.string().describe("A data URI for the signature image."),
-        nip: z.string(),
-    }) },
-    output: { schema: z.object({ certificateHtml: z.string() }) },
-    prompt: `
-      You are a professional graphic designer tasked with creating a certificate.
-      Generate a complete, self-contained HTML document for a Certificate of Completion.
-      The design must be MODERN, ELEGANT, and PROFESSIONAL, suitable for printing on A4 landscape paper.
-
-      **Data to Use:**
-      - Participant: {{{participantName}}}
-      - Course: {{{courseName}}}
-      - Date: {{{completionDate}}}
-      - Organizer: {{{organizerName}}}
-      - NIP: {{{nip}}}
-      - Logo: <img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />
-      - Barcode: <img src="{{{barcodeDataUri}}}" alt="Barcode" style="height: 40px;" />
-      - Signature: <img src="{{{signatureDataUri}}}" alt="Signature" style="height: 50px; mix-blend-mode: darken;" />
-
-      **CRITICAL DESIGN INSTRUCTIONS:**
-      1.  **Full HTML Document**: The output MUST be a complete HTML document from <!DOCTYPE html> to </html>.
-      2.  **Layout**: Design for A4 landscape (approx. 1123px by 794px). The layout must be balanced, formal, and visually appealing with good use of whitespace.
-      3.  **Decorative Frame**: Create a beautiful, modern, and intricate certificate border or frame. **You MUST use inline SVG for the frame** to create elegant patterns, guilloche, or geometric designs in the corners and/or along the edges. Do not use a simple CSS border. The frame should look sophisticated and premium. Use a color palette based on a deep, professional blue (#0A2240) and gold accents (#D4AF37) for the frame.
-      4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
-      5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "[Participant Name]", "has successfully completed the course", "[Course Name]", "on [Date]".
-      6.  **Signature Area**: Below the main content, create a centered signature block. It should contain the signature image, the organizer's name below it, and the NIP below that.
-      7.  **Barcode & Serial**: Place the barcode image and the text "Serial No: [Serial Number]" in a corner (e.g., bottom-left). It should be discreet but readable.
-      8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in <style> tags or as inline SVG. No external files.
-      9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center.
-    `,
-});
 
 const generateCertificateFlow = ai.defineFlow(
   {
@@ -76,8 +34,51 @@ const generateCertificateFlow = ai.defineFlow(
     outputSchema: GenerateCertificateOutputSchema,
   },
   async (input) => {
+    // Define prompt inside the flow to avoid module-level object exports.
+    const certificateHtmlPrompt = ai.definePrompt({
+        name: 'certificateHtmlPrompt',
+        input: { schema: z.object({
+            participantName: z.string(),
+            courseName: z.string(),
+            completionDate: z.string(),
+            organizerName: z.string(),
+            logoUrl: z.string(),
+            serialNumber: z.string(),
+            barcodeDataUri: z.string().describe("A data URI for the barcode image."),
+            signatureDataUri: z.string().describe("A data URI for the signature image."),
+            nip: z.string(),
+        }) },
+        output: { schema: z.object({ certificateHtml: z.string() }) },
+        prompt: `
+          You are a professional graphic designer tasked with creating a certificate.
+          Generate a complete, self-contained HTML document for a Certificate of Completion.
+          The design must be MODERN, ELEGANT, and PROFESSIONAL, suitable for printing on A4 landscape paper.
+
+          **Data to Use:**
+          - Participant: {{{participantName}}}
+          - Course: {{{courseName}}}
+          - Date: {{{completionDate}}}
+          - Organizer: {{{organizerName}}}
+          - NIP: {{{nip}}}
+          - Logo: <img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />
+          - Barcode: <img src="{{{barcodeDataUri}}}" alt="Barcode" style="height: 40px;" />
+          - Signature: <img src="{{{signatureDataUri}}}" alt="Signature" style="height: 50px; mix-blend-mode: darken;" />
+
+          **CRITICAL DESIGN INSTRUCTIONS:**
+          1.  **Full HTML Document**: The output MUST be a complete HTML document from <!DOCTYPE html> to </html>.
+          2.  **Layout**: Design for A4 landscape (approx. 1123px by 794px). The layout must be balanced, formal, and visually appealing with good use of whitespace.
+          3.  **Decorative Frame**: Create a beautiful, modern, and intricate certificate border or frame. **You MUST use inline SVG for the frame** to create elegant patterns, guilloche, or geometric designs in the corners and/or along the edges. Do not use a simple CSS border. The frame should look sophisticated and premium. Use a color palette based on a deep, professional blue (#0A2240) and gold accents (#D4AF37) for the frame.
+          4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
+          5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "[Participant Name]", "has successfully completed the course", "[Course Name]", "on [Date]".
+          6.  **Signature Area**: Below the main content, create a centered signature block. It should contain the signature image, the organizer's name below it, and the NIP below that.
+          7.  **Barcode & Serial**: Place the barcode image and the text "Serial No: [Serial Number]" in a corner (e.g., bottom-left). It should be discreet but readable.
+          8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in <style> tags or as inline SVG. No external files.
+          9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center.
+        `,
+    });
+
     // 1. Generate unique/consistent data
-    const serialNumber = `CERT-${Date.now()}-${uuidv4().substring(0, 4).toUpperCase()}`;
+    const serialNumber = `CERT-${Date.now()}-${crypto.randomUUID().substring(0, 4).toUpperCase()}`;
     // Use a consistent, plausible NIP for Scriptify. This ensures it doesn't change on every generation.
     const nip = '31.7405.527108.1001'; 
 
