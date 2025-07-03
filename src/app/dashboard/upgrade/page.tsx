@@ -73,8 +73,11 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
       
       toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
       
-      // 3. Notify parent component to refresh state
-      onSubmitted();
+      // 3. Notify parent component to refresh state, with a small delay
+      // This allows the new tab to open properly before the component unmounts.
+      setTimeout(() => {
+        onSubmitted();
+      }, 300);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
