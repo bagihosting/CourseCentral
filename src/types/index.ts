@@ -83,6 +83,7 @@ export type SeoSettings = {
   titleSuffix: string;
   metaDescription: string;
   metaKeywords: string;
+  enableAiSuggestions?: boolean;
 };
 
 export type Testimonial = {

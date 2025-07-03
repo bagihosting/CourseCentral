@@ -146,6 +146,7 @@ export default function CourseSettingsPage() {
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
   
   const [platformName, setPlatformName] = useState('');
+  const [enableAiSuggestions, setEnableAiSuggestions] = useState(true);
   const { toast } = useToast();
 
   const refreshPaymentAccounts = () => {
@@ -162,6 +163,7 @@ export default function CourseSettingsPage() {
     const settings = getSeoSettings();
     setSeoSettings(settings);
     setPlatformName(settings.platformName);
+    setEnableAiSuggestions(settings.enableAiSuggestions ?? true);
     setLoading(false);
   }, []);
 
@@ -288,7 +290,7 @@ export default function CourseSettingsPage() {
     }
     setIsSavingGeneral(true);
     try {
-      updateSeoSettings({ platformName });
+      updateSeoSettings({ platformName, enableAiSuggestions });
       toast({ title: 'Sukses', description: 'Pengaturan umum berhasil disimpan.' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
@@ -593,9 +595,22 @@ export default function CourseSettingsPage() {
               <Label htmlFor="platform-name">Nama Platform</Label>
               <Input id="platform-name" value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
             </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="ai-suggestions" className="font-semibold">Rekomendasi Kursus AI</Label>
+                <p className="text-sm text-muted-foreground">
+                  Tampilkan fitur rekomendasi kursus berbasis AI di halaman katalog.
+                </p>
+              </div>
+              <Switch
+                id="ai-suggestions"
+                checked={enableAiSuggestions}
+                onCheckedChange={setEnableAiSuggestions}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="language">Bahasa Default</Label>
-              <Select defaultValue="id">
+              <Select defaultValue="id" disabled>
                 <SelectTrigger id="language">
                   <SelectValue placeholder="Pilih bahasa" />
                 </SelectTrigger>

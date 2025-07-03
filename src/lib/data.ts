@@ -134,6 +134,7 @@ function getInitialData(): Database {
             titleSuffix: '| Platform Kursus Online',
             metaDescription: 'Platform kursus online terbaik untuk meningkatkan skill Anda dalam berbagai bidang. Belajar dari para ahli dengan kurikulum terstruktur.',
             metaKeywords: 'kursus online, belajar online, skill development, e-learning, platform edukasi',
+            enableAiSuggestions: true,
         },
         landingPageSettings: {
             heroHeadline: '<h1>Kursus Online Bersertifikat untuk <span class="text-primary">Meningkatkan Karir Anda</span></h1>',
@@ -236,6 +237,9 @@ function getDB(): Database {
         }
         if (typeof data.seoSettings.platformName === 'undefined') {
             data.seoSettings.platformName = getInitialData().seoSettings.platformName;
+        }
+        if (typeof data.seoSettings.enableAiSuggestions === 'undefined') {
+            data.seoSettings.enableAiSuggestions = true;
         }
         if (!data.landingPageSettings) {
             data.landingPageSettings = getInitialData().landingPageSettings;

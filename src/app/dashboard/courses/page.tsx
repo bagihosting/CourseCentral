@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { AdminCourseActions } from '@/components/admin-course-actions';
 import { AiSuggestions } from '@/components/ai-suggestions';
 import { CourseCard } from '@/components/course-card';
-import { getAllCourses } from '@/lib/data';
+import { getAllCourses, getSeoSettings } from '@/lib/data';
 import { useAuth } from '@/contexts/auth-context';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,10 +12,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
     setCourses(getAllCourses());
+    const settings = getSeoSettings();
+    setShowAiSuggestions(settings.enableAiSuggestions ?? true);
     setLoading(false);
   }, []);
 
@@ -55,7 +58,7 @@ export default function CoursesPage() {
         </div>
       </div>
       
-      <AiSuggestions />
+      {showAiSuggestions && <AiSuggestions />}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {courses.map((course) => (
