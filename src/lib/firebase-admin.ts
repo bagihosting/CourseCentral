@@ -3,6 +3,7 @@ import type { ServiceAccount } from 'firebase-admin';
 
 let db: admin.firestore.Firestore | null = null;
 let auth: admin.auth.Auth | null = null;
+// Storage is no longer initialized as file uploads are now handled entirely on the client-side.
 let storage: admin.storage.Storage | null = null;
 
 try {
@@ -19,14 +20,15 @@ try {
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        // storageBucket is not needed for client-side uploads.
+        // storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
       });
       console.log('Firebase Admin initialized successfully.');
     }
     
     db = admin.firestore();
     auth = admin.auth();
-    storage = admin.storage();
+    // storage = admin.storage(); // No longer initialized.
   } else {
     // This warning will be shown in development if .env is not set up
     if (process.env.NODE_ENV !== 'production') {
