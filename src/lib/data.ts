@@ -281,7 +281,7 @@ export function getUserById(id: string): User | undefined {
     return db.users.find(user => user.id === id);
 }
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'whatsapp'>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username'>>;
 
 export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): User {
@@ -302,7 +302,7 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
     // The main admin account is protected and cannot be created this way.
     role: 'member',
     avatarUrl: data.avatarUrl || 'https://placehold.co/100x100.png',
-    whatsapp: '',
+    whatsapp: data.whatsapp ? data.whatsapp.replace(/[^0-9]/g, '') : '',
   };
   db.users.push(newUser);
   saveDB(db);

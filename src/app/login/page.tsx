@@ -62,6 +62,7 @@ function RegisterForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [loading, setLoading] = useState(false);
 
   const validatePassword = (password: string): boolean => {
@@ -92,7 +93,7 @@ function RegisterForm() {
     
     setLoading(true);
     try {
-      await register({ name, username, password });
+      await register({ name, username, password, whatsapp });
       toast({ title: 'Pendaftaran Berhasil!', description: 'Anda sekarang dapat masuk dengan akun baru Anda.' });
        // The context will handle redirection
     } catch (error) {
@@ -111,6 +112,10 @@ function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="register-username">Nama Pengguna</Label>
         <Input id="register-username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="johndoe" required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="register-whatsapp">Nomor WhatsApp</Label>
+        <Input id="register-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" />
       </div>
       <div className="space-y-2">
         <Label htmlFor="register-password">Kata Sandi</Label>
