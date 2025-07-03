@@ -10,16 +10,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Download, Pencil } from 'lucide-react';
 import { generateBloggerTemplateAction, editBloggerTemplateAction } from '@/actions/ai';
 import DOMPurify from 'isomorphic-dompurify';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiBloggerTemplateGenerator() {
-  const [niche, setNiche] = useState('');
-  const [style, setStyle] = useState('');
-  const [creatorName, setCreatorName] = useState('');
+  const [niche, setNiche] = useLocalStorage('ai_blogger_niche', '');
+  const [style, setStyle] = useLocalStorage('ai_blogger_style', '');
+  const [creatorName, setCreatorName] = useLocalStorage('ai_blogger_creator', '');
   const [isLoading, setIsLoading] = useState(false);
-  const [templateCode, setTemplateCode] = useState('');
+  const [templateCode, setTemplateCode] = useLocalStorage('ai_blogger_templateCode', '');
   
   // State for the new edit feature
-  const [editRequest, setEditRequest] = useState('');
+  const [editRequest, setEditRequest] = useLocalStorage('ai_blogger_editRequest', '');
   const [isEditing, setIsEditing] = useState(false);
 
   const { toast } = useToast();

@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Briefcase } from 'lucide-react';
 import { generateUmkmProfileAction } from '@/actions/ai';
 import type { GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 function OutputField({ label, value, onCopy }: { label: string; value: string; onCopy: () => void; }) {
   return (
@@ -28,9 +29,9 @@ function OutputField({ label, value, onCopy }: { label: string; value: string; o
 }
 
 export function AiUmkmProfileGenerator() {
-  const [businessType, setBusinessType] = useState('');
-  const [targetMarket, setTargetMarket] = useState('');
-  const [uniqueSellingPoint, setUniqueSellingPoint] = useState('');
+  const [businessType, setBusinessType] = useLocalStorage('ai_umkm_businessType', '');
+  const [targetMarket, setTargetMarket] = useLocalStorage('ai_umkm_targetMarket', '');
+  const [uniqueSellingPoint, setUniqueSellingPoint] = useLocalStorage('ai_umkm_usp', '');
   
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateUmkmProfileOutput | null>(null);

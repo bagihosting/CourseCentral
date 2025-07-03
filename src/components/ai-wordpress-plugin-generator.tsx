@@ -9,13 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Download, Plug } from 'lucide-react';
 import { generateWordpressPluginBoilerplateAction } from '@/actions/ai';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiWordpressPluginGenerator() {
-  const [pluginName, setPluginName] = useState('');
-  const [description, setDescription] = useState('');
-  const [authorName, setAuthorName] = useState('');
-  const [pluginUri, setPluginUri] = useState('');
-  const [authorUri, setAuthorUri] = useState('');
+  const [pluginName, setPluginName] = useLocalStorage('ai_wp_pluginName', '');
+  const [description, setDescription] = useLocalStorage('ai_wp_description', '');
+  const [authorName, setAuthorName] = useLocalStorage('ai_wp_authorName', '');
+  const [pluginUri, setPluginUri] = useLocalStorage('ai_wp_pluginUri', '');
+  const [authorUri, setAuthorUri] = useLocalStorage('ai_wp_authorUri', '');
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<{ readmeTxtContent: string, phpFileContent: string } | null>(null);
 

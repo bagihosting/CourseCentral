@@ -11,9 +11,10 @@ import type { GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiSoapFormulaGenerator() {
-  const [productType, setProductType] = useState<GenerateSoapFormulaInput['productType']>('dish-soap');
+  const [productType, setProductType] = useLocalStorage<GenerateSoapFormulaInput['productType']>('ai_soap_productType', 'dish-soap');
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateSoapFormulaOutput | null>(null);
 

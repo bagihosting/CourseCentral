@@ -11,11 +11,12 @@ import { Sparkles, Loader2, Copy, Megaphone } from 'lucide-react';
 import { generateGoogleAdsAction } from '@/actions/ai';
 import type { GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
 import { Badge } from '@/components/ui/badge';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiGoogleAdsGenerator() {
-  const [productName, setProductName] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [keyFeatures, setKeyFeatures] = useState('');
+  const [productName, setProductName] = useLocalStorage('ai_ads_productName', '');
+  const [targetAudience, setTargetAudience] = useLocalStorage('ai_ads_targetAudience', '');
+  const [keyFeatures, setKeyFeatures] = useLocalStorage('ai_ads_keyFeatures', '');
   
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateGoogleAdsOutput | null>(null);

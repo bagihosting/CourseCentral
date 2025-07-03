@@ -9,12 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Download } from 'lucide-react';
 import { generateSkripsiChapterAction } from '@/actions/ai';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiSkripsiGenerator() {
-  const [topic, setTopic] = useState('');
-  const [chapterTitle, setChapterTitle] = useState('');
+  const [topic, setTopic] = useLocalStorage('ai_skripsi_topic', '');
+  const [chapterTitle, setChapterTitle] = useLocalStorage('ai_skripsi_chapterTitle', '');
   const [isLoading, setIsLoading] = useState(false);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useLocalStorage('ai_skripsi_content', '');
 
   const { toast } = useToast();
 

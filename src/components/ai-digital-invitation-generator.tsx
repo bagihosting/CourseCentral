@@ -11,6 +11,7 @@ import { Sparkles, Loader2, Copy, Mail } from 'lucide-react';
 import { generateDigitalInvitationAction } from '@/actions/ai';
 import type { GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 function OutputField({ label, value, onCopy }: { label: string; value: string; onCopy: () => void; }) {
   return (
@@ -29,13 +30,13 @@ function OutputField({ label, value, onCopy }: { label: string; value: string; o
 }
 
 export function AiDigitalInvitationGenerator() {
-  const [eventType, setEventType] = useState('Pernikahan');
-  const [personOneName, setPersonOneName] = useState('');
-  const [personTwoName, setPersonTwoName] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [eventTime, setEventTime] = useState('');
-  const [eventVenue, setEventVenue] = useState('');
-  const [theme, setTheme] = useState('');
+  const [eventType, setEventType] = useLocalStorage('ai_invite_eventType', 'Pernikahan');
+  const [personOneName, setPersonOneName] = useLocalStorage('ai_invite_personOne', '');
+  const [personTwoName, setPersonTwoName] = useLocalStorage('ai_invite_personTwo', '');
+  const [eventDate, setEventDate] = useLocalStorage('ai_invite_eventDate', '');
+  const [eventTime, setEventTime] = useLocalStorage('ai_invite_eventTime', '');
+  const [eventVenue, setEventVenue] = useLocalStorage('ai_invite_eventVenue', '');
+  const [theme, setTheme] = useLocalStorage('ai_invite_theme', '');
   
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateDigitalInvitationOutput | null>(null);
@@ -116,7 +117,7 @@ export function AiDigitalInvitationGenerator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="event-type">Jenis Acara</Label>
-                    <Select value={eventType} onValueChange={setEventType} disabled={isLoading}>
+                    <Select value={eventType} onValueChange={(v) => setEventType(v)} disabled={isLoading}>
                         <SelectTrigger id="event-type"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Pernikahan">Pernikahan</SelectItem>

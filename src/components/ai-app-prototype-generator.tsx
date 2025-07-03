@@ -10,9 +10,10 @@ import { Sparkles, Loader2, LayoutTemplate, Lightbulb, Tag, CheckSquare, Users, 
 import { generateAppPrototypeAction } from '@/actions/ai';
 import type { GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
 import { Badge } from '@/components/ui/badge';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiAppPrototypeGenerator() {
-  const [appIdea, setAppIdea] = useState('');
+  const [appIdea, setAppIdea] = useLocalStorage('ai_prototype_appIdea', '');
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateAppPrototypeOutput | null>(null);
 

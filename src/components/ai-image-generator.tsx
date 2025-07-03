@@ -9,11 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Download, Image as ImageIcon } from 'lucide-react';
 import { generateImageAction } from '@/actions/ai';
 import Image from 'next/image';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 export function AiImageGenerator() {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useLocalStorage('ai_image_prompt', '');
   const [isLoading, setIsLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useLocalStorage<string | null>('ai_image_imageUrl', null);
 
   const { toast } = useToast();
 

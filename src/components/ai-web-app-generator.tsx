@@ -13,6 +13,7 @@ import type { GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DOMPurify from 'isomorphic-dompurify';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 type FileItem = GenerateWebAppOutput['files'][0];
 
@@ -40,15 +41,15 @@ function groupFilesByDirectory(files: FileItem[]) {
 }
 
 export function AiWebAppGenerator() {
-  const [appName, setAppName] = useState('');
-  const [appDescription, setAppDescription] = useState('');
-  const [cloneUrl, setCloneUrl] = useState('');
-  const [activeTab, setActiveTab] = useState('describe');
+  const [appName, setAppName] = useLocalStorage('ai_webapp_appName', '');
+  const [appDescription, setAppDescription] = useLocalStorage('ai_webapp_appDesc', '');
+  const [cloneUrl, setCloneUrl] = useLocalStorage('ai_webapp_cloneUrl', '');
+  const [activeTab, setActiveTab] = useLocalStorage('ai_webapp_activeTab', 'describe');
 
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateWebAppOutput | null>(null);
 
-  const [editRequest, setEditRequest] = useState('');
+  const [editRequest, setEditRequest] = useLocalStorage('ai_webapp_editRequest', '');
   const [isEditing, setIsEditing] = useState(false);
 
   const { toast } = useToast();

@@ -17,12 +17,14 @@ import { cn } from '@/lib/utils';
 import { getAllCourses, getSeoSettings, getAllUsers, getLandingPageSettings } from '@/lib/data';
 import type { Course, User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import DOMPurify from 'isomorphic-dompurify';
 
 export function AiCertificateGenerator() {
   const [participantName, setParticipantName] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useLocalStorage('ai_cert_selectedUserId', '');
   const [courseName, setCourseName] = useState('');
-  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useLocalStorage('ai_cert_selectedCourseId', '');
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date());
   const [organizerName, setOrganizerName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -31,19 +33,30 @@ export function AiCertificateGenerator() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [outputHtml, setOutputHtml] = useState<string | null>(null);
+  const [outputHtml, setOutputHtml] = useLocalStorage<string | null>('ai_cert_outputHtml', null);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
   
   useEffect(() => {
-    setAllCourses(getAllCourses());
-    setAllUsers(getAllUsers().filter(u => u.role !== 'admin'));
+    const courses = getAllCourses();
+    const users = getAllUsers().filter(u => u.role !== 'admin');
     const seoSettings = getSeoSettings();
     const landingPageSettings = getLandingPageSettings();
+
+    setAllCourses(courses);
+    setAllUsers(users);
     setOrganizerName(seoSettings.platformName || 'Scriptify');
     setLogoUrl(landingPageSettings.logoUrl || 'https://placehold.co/200x80.png');
-  }, []);
+
+    // Sync state with stored IDs
+    const initialUser = users.find(u => u.id === selectedUserId);
+    if(initialUser) setParticipantName(initialUser.name);
+
+    const initialCourse = courses.find(c => c.id === selectedCourseId);
+    if(initialCourse) setCourseName(initialCourse.title);
+
+  }, [selectedUserId, selectedCourseId]);
 
   const handleGenerate = async () => {
     if (!participantName || !courseName || !completionDate || !organizerName) {
@@ -270,7 +283,7 @@ export function AiCertificateGenerator() {
           ) : outputHtml ? (
              <iframe
                 ref={iframeRef}
-                srcDoc={outputHtml}
+                srcDoc={DOMPurify.sanitize(outputHtml, { WHOLE_DOCUMENT: true })}
                 title="Pratinjau Sertifikat"
                 className="w-full h-full border-0"
                 sandbox="allow-scripts"

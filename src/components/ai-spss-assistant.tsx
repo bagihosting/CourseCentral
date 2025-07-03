@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, BarChart } from 'lucide-react';
 import { generateSpssSyntaxAction } from '@/actions/ai';
 import type { GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 function OutputField({ label, value, onCopy }: { label: string; value: string; onCopy: () => void; }) {
   return (
@@ -31,7 +32,7 @@ function OutputField({ label, value, onCopy }: { label: string; value: string; o
 
 
 export function AiSpssAssistant() {
-  const [analysisDescription, setAnalysisDescription] = useState('');
+  const [analysisDescription, setAnalysisDescription] = useLocalStorage('ai_spss_analysisDesc', '');
   
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateSpssSyntaxOutput | null>(null);
