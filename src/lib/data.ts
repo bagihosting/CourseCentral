@@ -383,15 +383,23 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
         throw new Error("Pengguna tidak ditemukan.");
     }
 
-    const updatePayload = { ...data };
-    if (typeof updatePayload.whatsapp === 'string') {
-        updatePayload.whatsapp = updatePayload.whatsapp.replace(/[^0-9]/g, '');
+    // Get the current user
+    const currentUser = db.users[userIndex];
+    
+    // Create the updated user object by merging current data with new data
+    const updatedUser = {
+        ...currentUser,
+        ...data,
+    };
+    
+    // Sanitize WhatsApp number if it was part of the update
+    if (data.whatsapp !== undefined) {
+        updatedUser.whatsapp = data.whatsapp.replace(/[^0-9]/g, '');
     }
 
-    const currentUser = db.users[userIndex];
-    const updatedUser = { ...currentUser, ...updatePayload };
-
+    // Place the updated user back into the array
     db.users[userIndex] = updatedUser;
+    
     saveDB(db);
     return updatedUser;
 }

@@ -2,25 +2,25 @@
 
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
 import { generateDescription as generateDescriptionFlow } from '@/ai/flows/generate-description';
-import { suggestCourses as suggestCoursesFlow, CourseSuggestionInput, CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
-import { generateBloggerTemplate as generateBloggerTemplateFlow, GenerateBloggerTemplateInput, GenerateBloggerTemplateOutput } from '@/ai/flows/generate-blogger-template';
-import { editBloggerTemplate as editBloggerTemplateFlow, EditBloggerTemplateInput, EditBloggerTemplateOutput } from '@/ai/flows/edit-blogger-template';
-import { generateSkripsiChapter as generateSkripsiChapterFlow, GenerateSkripsiChapterInput, GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
-import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, GenerateWordpressPluginBoilerplateInput, GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
-import { generateGoogleAds as generateGoogleAdsFlow, GenerateGoogleAdsInput, GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
-import { generateDigitalInvitation as generateDigitalInvitationFlow, GenerateDigitalInvitationInput, GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
-import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInput, GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
-import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
-import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOutput } from '@/ai/flows/generate-image';
-import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeInput, GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
-import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
-import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
-import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from '@/ai/flows/edit-web-app';
-import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
-import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInput, GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
-import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
-import { generateMetaKeywords as generateMetaKeywordsFlow, GenerateMetaKeywordsInput, GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
-import { generateCertificate as generateCertificateFlow, GenerateCertificateInput, GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
+import { suggestCourses as suggestCoursesFlow, type CourseSuggestionInput, type CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
+import { generateBloggerTemplate as generateBloggerTemplateFlow, type GenerateBloggerTemplateInput, type GenerateBloggerTemplateOutput } from '@/ai/flows/generate-blogger-template';
+import { editBloggerTemplate as editBloggerTemplateFlow, type EditBloggerTemplateInput, type EditBloggerTemplateOutput } from '@/ai/flows/edit-blogger-template';
+import { generateSkripsiChapter as generateSkripsiChapterFlow, type GenerateSkripsiChapterInput, type GenerateSkripsiChapterOutput } from '@/ai/flows/generate-skripsi-chapter';
+import { generateWordpressPluginBoilerplate as generateWordpressPluginBoilerplateFlow, type GenerateWordpressPluginBoilerplateInput, type GenerateWordpressPluginBoilerplateOutput } from '@/ai/flows/generate-wordpress-plugin-boilerplate';
+import { generateGoogleAds as generateGoogleAdsFlow, type GenerateGoogleAdsInput, type GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
+import { generateDigitalInvitation as generateDigitalInvitationFlow, type GenerateDigitalInvitationInput, type GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
+import { generateUmkmProfile as generateUmkmProfileFlow, type GenerateUmkmProfileInput, type GenerateUmkmProfileOutput } from '@/ai/flows/generate-umkm-profile';
+import { generateSpssSyntax as generateSpssSyntaxFlow, type GenerateSpssSyntaxInput, type GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
+import { generateImage as generateImageFlow, type GenerateImageInput, type GenerateImageOutput } from '@/ai/flows/generate-image';
+import { generateAppPrototype as generateAppPrototypeFlow, type GenerateAppPrototypeInput, type GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
+import { generateSoapFormula as generateSoapFormulaFlow, type GenerateSoapFormulaInput, type GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
+import { generateWebApp as generateWebAppFlow, type GenerateWebAppInput, type GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
+import { editWebApp as editWebAppFlow, type EditWebAppInput, type EditWebAppOutput } from '@/ai/flows/edit-web-app';
+import { generateCourseSeo as generateCourseSeoFlow, type GenerateCourseSeoInput, type GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
+import { generateTitleSuffix as generateTitleSuffixFlow, type GenerateTitleSuffixInput, type GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
+import { generateMetaDescription as generateMetaDescriptionFlow, type GenerateMetaDescriptionInput, type GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
+import { generateMetaKeywords as generateMetaKeywordsFlow, type GenerateMetaKeywordsInput, type GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
+import { generateCertificate as generateCertificateFlow, type GenerateCertificateInput, type GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
 import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser, getSeoSettings, getLandingPageSettings } from '@/lib/data';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -374,7 +374,7 @@ export async function generateAndApproveCertificateAction(
     const seoSettings = getSeoSettings();
     const landingSettings = getLandingPageSettings();
 
-    const generationInput = {
+    const generationInput: GenerateCertificateInput = {
         participantName: request.userName,
         courseName: request.courseTitle,
         completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
