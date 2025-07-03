@@ -21,6 +21,7 @@ import {
   GraduationCap,
   Loader2,
   AppWindow,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+    { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
   ];

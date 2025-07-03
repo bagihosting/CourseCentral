@@ -17,6 +17,7 @@ import { AiImageGenerator } from '@/components/ai-image-generator';
 import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator';
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
+import Link from 'next/link';
 
 
 function ProFeatures() {
@@ -165,11 +166,13 @@ function UpgradePrompt() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button size="lg">
-            <Sparkles className="mr-2" />
-            Upgrade ke Pro Sekarang
+        <Button size="lg" asChild>
+            <Link href="/dashboard/upgrade">
+                <Sparkles className="mr-2" />
+                Upgrade ke Pro Sekarang
+            </Link>
         </Button>
-         <p className="mt-2 text-xs text-muted-foreground">(Tombol ini adalah placeholder)</p>
+         <p className="mt-2 text-xs text-muted-foreground">(Anda akan diarahkan untuk konfirmasi manual)</p>
       </CardContent>
     </Card>
   );
