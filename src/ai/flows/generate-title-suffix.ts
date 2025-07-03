@@ -31,26 +31,34 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateTitleSuffixInputSchema },
   output: { schema: GenerateTitleSuffixOutputSchema },
   prompt: `
-    You are an SEO expert specializing in branding for online platforms.
-    Your task is to create a short, powerful, and unique SEO-optimized title suffix.
-    This suffix will be appended to the page title across an entire website.
+    You are a world-class SEO strategist and copywriter, renowned for crafting titles that achieve top search engine rankings by identifying high-volume, low-competition keywords.
+    Your task is to generate a short, powerful, and unique SEO-optimized title suffix for a platform. This suffix will be appended to every page title.
 
     **Platform Information:**
     - Platform Name: "{{{platformName}}}"
     - Platform Description: "{{{platformDescription}}}"
 
-    **CRITICAL INSTRUCTIONS:**
-    1.  **High-Volume, Low-Competition**: Analyze the platform's context to find a niche. Brainstorm keywords that have high search interest but are not overly saturated by competitors. Think about long-tail keywords or unique value propositions.
-    2.  **Format**: The suffix MUST start with a separator character, like " | " or " - ", followed by the brand name and a very short, impactful keyword-rich phrase.
-    3.  **Character Limit**: The entire output string (including the separator) MUST be under 60 characters. Shorter is often better.
-    4.  **Goal**: The suffix should clearly communicate the platform's core identity and value in a way that is attractive to both users and search engines.
-    5.  **Language**: All output must be in Bahasa Indonesia.
+    **CRITICAL INSTRUCTIONS - Follow this process:**
 
-    **Example:**
-    - Input Name: "CourseCentral"
-    - Input Description: "Platform kursus online untuk belajar skill digital."
-    - Bad Output: "| CourseCentral" (too generic)
-    - Good Output: "| CourseCentral: Skill Digital Terapan" (specific, includes keywords)
+    1.  **Analyze Core Identity**: First, deeply analyze the platform's name and description to understand its primary topic, target audience, and unique value proposition.
+    2.  **Keyword Brainstorming**: Based on the core identity, brainstorm a list of potential keywords. Include:
+        -   **Broad Keywords**: General terms (e.g., "kursus online").
+        -   **Long-Tail Keywords**: Specific phrases that users are likely to search for (e.g., "kursus online sertifikat untuk profesional").
+        -   **LSI Keywords**: Related terms that provide context (e.g., "e-learning", "skill digital", "webinar").
+    3.  **Strategic Selection**: From your brainstormed list, identify the keyword phrase that has the best balance of high search volume and low competition. This is the key to ranking success. Think like a user trying to solve a problem that the platform addresses.
+    4.  **Craft the Suffix**: Construct the final suffix using the selected keyword phrase.
+        -   It MUST start with a separator character, like " | " or " - ".
+        -   It MUST include the platform name \`{{{platformName}}}\`.
+        -   It MUST incorporate the high-potential keyword phrase you identified.
+    5.  **Strict Constraints**:
+        -   The entire output string (including the separator) MUST be under 60 characters.
+        -   The language MUST be Bahasa Indonesia.
+
+    **Example Thinking Process:**
+    -   *Platform*: "SkillUp" - "Platform belajar skill IT."
+    -   *Keywords*: "belajar IT", "kursus IT online", "sertifikasi IT", "pelatihan IT untuk karir".
+    -   *Analysis*: "sertifikasi IT" is competitive. "pelatihan IT untuk karir" is specific and implies a result, likely lower competition. It's a good target.
+    -   *Crafting*: "| SkillUp - Pelatihan IT untuk Karir" (Length: 39, good.)
   `,
 });
 
