@@ -63,3 +63,13 @@ export type SeoSettings = {
   metaDescription: string;
   metaKeywords: string;
 };
+
+export type LandingPageSettings = {
+  heroHeadline: string;
+  heroSubheadline: string;
+  features: {
+    icon: string;
+    title: string;
+    description: string;
+  }[];
+};

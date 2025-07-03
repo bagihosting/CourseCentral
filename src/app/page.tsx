@@ -1,48 +1,88 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/course-card';
-import { getAllCourses, getSeoSettings } from '@/lib/data';
-import type { Course } from '@/types';
+import { getLandingPageSettings, getAllCourses, getSeoSettings } from '@/lib/data';
+import type { Course, LandingPageSettings } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const featureIcons: { [key: string]: React.ElementType } = {
+  ShieldCheck,
+  Clock,
+  Users,
+};
+
+function LandingPageSkeleton() {
+  return (
+    <div className="bg-background text-foreground">
+      <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
+        <div className="container mx-auto flex justify-between items-center">
+            <Skeleton className="h-7 w-36" />
+            <Skeleton className="h-10 w-28" />
+        </div>
+      </header>
+      <main>
+        <section className="py-20 md:py-32 bg-muted/30">
+          <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center px-4">
+            <div className="space-y-6">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-5/6" />
+              <div className="flex gap-4">
+                <Skeleton className="h-12 w-36" />
+                <Skeleton className="h-12 w-36" />
+              </div>
+            </div>
+            <Skeleton className="aspect-video rounded-2xl w-full max-w-lg mx-auto" />
+          </div>
+        </section>
+        <section id="courses" className="py-20 md:py-28 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <Skeleton className="h-10 w-1/2 mx-auto mb-12" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-40 w-full" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
 function LandingPage() {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [platformName, setPlatformName] = useState('CourseCentral');
+  const [platformName, setPlatformName] = useState('Aplikasi Kursus');
+  const [settings, setSettings] = useState<LandingPageSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const settings = getSeoSettings();
-    if (settings && settings.platformName) {
-      setPlatformName(settings.platformName);
-      document.title = `${settings.platformName} - ${settings.titleSuffix || ''}`;
+    const seoData = getSeoSettings();
+    if (seoData && seoData.platformName) {
+      setPlatformName(seoData.platformName);
+      document.title = `${seoData.platformName} - ${seoData.titleSuffix || ''}`;
     }
-    setCourses(getAllCourses().slice(0, 4)); // Show first 4 courses
+    const landingData = getLandingPageSettings();
+    setSettings(landingData);
+    setCourses(getAllCourses().slice(0, 4));
     setLoading(false);
   }, []);
 
-  const features = [
-    {
-      icon: <ShieldCheck className="h-10 w-10 text-primary" />,
-      title: 'Kurikulum Relevan Industri',
-      description: 'Materi kursus online kami disusun secara sistematis agar sesuai dengan kebutuhan industri terkini.',
-    },
-    {
-      icon: <Clock className="h-10 w-10 text-primary" />,
-      title: 'Akses Belajar Fleksibel',
-      description: 'Dapatkan akses seumur hidup ke semua materi kursus. Belajar kapan saja sesuai kecepatan Anda.',
-    },
-    {
-      icon: <Users className="h-10 w-10 text-primary" />,
-      title: 'Instruktur Ahli & Berpengalaman',
-      description: 'Belajar langsung dari para praktisi dan ahli di bidangnya yang memiliki pengalaman nyata di industri.',
-    },
-  ];
+  const features = settings ? settings.features.map(f => ({
+      ...f,
+      icon: React.createElement(featureIcons[f.icon] || ShieldCheck, { className: "h-10 w-10 text-primary" })
+  })) : [];
 
   const testimonials = [
     {
@@ -77,6 +117,10 @@ function LandingPage() {
     </header>
   );
 
+  if (loading || !settings) {
+    return <LandingPageSkeleton />;
+  }
+
   return (
     <div className="bg-background text-foreground">
       <Header />
@@ -85,11 +129,9 @@ function LandingPage() {
         <section className="py-20 md:py-32 bg-muted/30">
           <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center px-4">
             <div className="space-y-6 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-                Kursus Online Bersertifikat untuk <span className="text-primary">Meningkatkan Karir Anda.</span>
-              </h1>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight" dangerouslySetInnerHTML={{ __html: settings.heroHeadline }}></h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto md:mx-0">
-                Temukan kursus online terbaik untuk meningkatkan skill Anda. Belajar dari nol menjadi ahli dengan materi terstruktur dari instruktur profesional dan dapatkan sertifikasi online terpercaya.
+                {settings.heroSubheadline}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Button size="lg" asChild>
@@ -137,21 +179,9 @@ function LandingPage() {
         <section id="courses" className="py-20 md:py-28 bg-muted/30">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Pilihan Kursus Online Populer</h2>
-            {loading ? (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="space-y-2">
-                            <Skeleton className="h-40 w-full" />
-                            <Skeleton className="h-6 w-3/4" />
-                            <Skeleton className="h-4 w-1/2" />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {courses.map(course => <CourseCard key={course.id} course={course} />)}
-                </div>
-            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {courses.map(course => <CourseCard key={course.id} course={course} />)}
+            </div>
             <div className="text-center mt-12">
                  <Button size="lg" variant="outline" asChild>
                     <Link href="/dashboard/courses">Lihat Semua Kursus</Link>

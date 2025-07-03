@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -13,6 +13,7 @@ interface Database {
   upgradeRequests: UpgradeRequest[];
   paymentSettings: PaymentAccount[];
   seoSettings: SeoSettings;
+  landingPageSettings: LandingPageSettings;
 }
 
 // --- Seed Data ---
@@ -117,6 +118,27 @@ function getInitialData(): Database {
             metaDescription: 'Platform kursus online terbaik untuk meningkatkan skill Anda dalam berbagai bidang. Belajar dari para ahli dengan kurikulum terstruktur.',
             metaKeywords: 'kursus online, belajar online, skill development, e-learning, platform edukasi',
         },
+        landingPageSettings: {
+            heroHeadline: 'Kursus Online Bersertifikat untuk <span class="text-primary">Meningkatkan Karir Anda.</span>',
+            heroSubheadline: 'Temukan kursus online terbaik untuk meningkatkan skill Anda. Belajar dari nol menjadi ahli dengan materi terstruktur dari instruktur profesional dan dapatkan sertifikasi online terpercaya.',
+            features: [
+              {
+                icon: 'ShieldCheck',
+                title: 'Kurikulum Relevan Industri',
+                description: 'Materi kursus online kami disusun secara sistematis agar sesuai dengan kebutuhan industri terkini.',
+              },
+              {
+                icon: 'Clock',
+                title: 'Akses Belajar Fleksibel',
+                description: 'Dapatkan akses seumur hidup ke semua materi kursus. Belajar kapan saja sesuai kecepatan Anda.',
+              },
+              {
+                icon: 'Users',
+                title: 'Instruktur Ahli & Berpengalaman',
+                description: 'Belajar langsung dari para praktisi dan ahli di bidangnya yang memiliki pengalaman nyata di industri.',
+              },
+            ],
+        },
     };
 }
 
@@ -168,6 +190,9 @@ function getDB(): Database {
         }
         if (typeof data.seoSettings.platformName === 'undefined') {
             data.seoSettings.platformName = getInitialData().seoSettings.platformName;
+        }
+        if (!data.landingPageSettings) {
+            data.landingPageSettings = getInitialData().landingPageSettings;
         }
 
 
@@ -627,4 +652,18 @@ export function updateSeoSettings(data: Partial<SeoSettings>): SeoSettings {
   db.seoSettings = { ...db.seoSettings, ...data };
   saveDB(db);
   return db.seoSettings;
+}
+
+// --- Landing Page Settings API ---
+
+export function getLandingPageSettings(): LandingPageSettings {
+  const db = getDB();
+  return db.landingPageSettings;
+}
+
+export function updateLandingPageSettings(data: Partial<LandingPageSettings>): LandingPageSettings {
+  const db = getDB();
+  db.landingPageSettings = { ...db.landingPageSettings, ...data };
+  saveDB(db);
+  return db.landingPageSettings;
 }
