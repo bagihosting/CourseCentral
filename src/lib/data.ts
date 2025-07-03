@@ -15,6 +15,7 @@ interface Database {
   seoSettings: SeoSettings;
   landingPageSettings: LandingPageSettings;
   testimonials: Testimonial[];
+  registeredDeviceIds: string[];
 }
 
 // --- Seed Data ---
@@ -169,6 +170,7 @@ function getInitialData(): Database {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
           }
         ],
+        registeredDeviceIds: [],
     };
 }
 
@@ -224,6 +226,9 @@ function getDB(): Database {
         }
         if (!data.landingPageSettings) {
             data.landingPageSettings = getInitialData().landingPageSettings;
+        }
+        if (!data.registeredDeviceIds) {
+            data.registeredDeviceIds = [];
         }
 
 
@@ -293,6 +298,19 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
   if (data.username.toLowerCase() === 'admin') {
       throw new Error("Nama pengguna 'admin' tidak diizinkan untuk pendaftaran baru.");
   }
+
+  // Device registration check
+  const DEVICE_ID_KEY = 'device_fingerprint_id';
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+
+  if (db.registeredDeviceIds.includes(deviceId)) {
+      throw new Error('Pendaftaran dari perangkat ini telah mencapai batas maksimum (1 akun).');
+  }
+
   const newUser: User = {
     id: `user_${Date.now()}`,
     name: data.name,
@@ -305,6 +323,7 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
     whatsapp: data.whatsapp ? data.whatsapp.replace(/[^0-9]/g, '') : '',
   };
   db.users.push(newUser);
+  db.registeredDeviceIds.push(deviceId); // Register the device ID
   saveDB(db);
   return newUser;
 }
