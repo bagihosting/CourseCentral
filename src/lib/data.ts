@@ -467,7 +467,7 @@ export function createUpgradeRequest(userId: string, bankName: string, accountHo
     id: `req_${Date.now()}`,
     userId: user.id,
     userName: user.name,
-    userAvatar: user.avatarUrl,
+    userAvatar: user.avatarUrl || 'https://placehold.co/100x100.png',
     bankName,
     accountHolder,
     requestDate: new Date().toISOString(),
