@@ -19,6 +19,7 @@ import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from 
 import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
 import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInput, GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
 import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
+import { generateMetaKeywords as generateMetaKeywordsFlow, GenerateMetaKeywordsInput, GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 
 
 export async function generateThumbnailAction(
@@ -318,5 +319,21 @@ export async function generateMetaDescriptionAction(
   } catch (error) {
     console.error('Error generating meta description:', error);
     return { error: 'Gagal membuat deskripsi meta. Silakan coba lagi.' };
+  }
+}
+
+export async function generateMetaKeywordsAction(
+  input: GenerateMetaKeywordsInput
+): Promise<GenerateMetaKeywordsOutput | { error: string }> {
+  if (!input.platformName || !input.platformDescription) {
+    return { error: 'Nama platform dan deskripsi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateMetaKeywordsFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating meta keywords:', error);
+    return { error: 'Gagal membuat kata kunci meta. Silakan coba lagi.' };
   }
 }

@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { generateTitleSuffixAction, generateMetaDescriptionAction } from '@/actions/ai';
+import { generateTitleSuffixAction, generateMetaDescriptionAction, generateMetaKeywordsAction } from '@/actions/ai';
 
 
 function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount, onFinished: () => void }) {
@@ -85,6 +85,7 @@ export default function CourseSettingsPage() {
   const [isSavingSeo, setIsSavingSeo] = useState(false);
   const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
   
   const [platformName, setPlatformName] = useState('');
@@ -175,6 +176,26 @@ export default function CourseSettingsPage() {
     } else {
         setSeoSettings(prev => ({...prev!, metaDescription: result.metaDescription}));
         toast({ title: 'Sukses', description: 'Deskripsi meta global berhasil dibuat oleh AI.'});
+    }
+  };
+
+  const handleGenerateMetaKeywords = async () => {
+    if (!platformName || !seoSettings?.metaDescription) {
+        toast({ title: 'Input Diperlukan', description: 'Nama platform dan deskripsi meta harus diisi.', variant: 'destructive' });
+        return;
+    }
+    setIsGeneratingKeywords(true);
+    const result = await generateMetaKeywordsAction({
+        platformName: platformName,
+        platformDescription: seoSettings.metaDescription
+    });
+    setIsGeneratingKeywords(false);
+
+    if('error' in result) {
+        toast({ title: 'Gagal Membuat Kata Kunci', description: result.error, variant: 'destructive'});
+    } else {
+        setSeoSettings(prev => ({...prev!, metaKeywords: result.metaKeywords}));
+        toast({ title: 'Sukses', description: 'Saran kata kunci berhasil dibuat oleh AI.'});
     }
   };
 
@@ -421,19 +442,32 @@ export default function CourseSettingsPage() {
                   <p className="text-xs text-muted-foreground">Deskripsi default untuk halaman yang tidak memiliki deskripsi khusus (150-160 karakter).</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="metaKeywords">Kata Kunci Meta Global</Label>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="metaKeywords">Kata Kunci Meta Global</Label>
+                         <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto p-0 text-sm"
+                            onClick={handleGenerateMetaKeywords}
+                            disabled={isGeneratingKeywords || !platformName || !seoSettings.metaDescription}
+                        >
+                            {isGeneratingKeywords ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            Buat dengan AI
+                        </Button>
+                    </div>
                   <Input
                     id="metaKeywords"
                     name="metaKeywords"
                     value={seoSettings.metaKeywords}
                     onChange={(e) => setSeoSettings(prev => ({...prev!, metaKeywords: e.target.value}))}
                     placeholder="kursus online, belajar, skill"
+                    disabled={isGeneratingKeywords}
                   />
                   <p className="text-xs text-muted-foreground">Pisahkan kata kunci dengan koma.</p>
                 </div>
               </CardContent>
               <CardFooter className="border-t px-6 py-4">
-                <Button onClick={handleSaveSeo} disabled={isSavingSeo || isGeneratingSuffix || isGeneratingDesc}>
+                <Button onClick={handleSaveSeo} disabled={isSavingSeo || isGeneratingSuffix || isGeneratingDesc || isGeneratingKeywords}>
                   {isSavingSeo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Simpan Pengaturan SEO
                 </Button>
