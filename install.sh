@@ -10,7 +10,7 @@
 # 2. Install Node.js (LTS version) and PM2.
 # 3. Configure Nginx as a reverse proxy for the Next.js app.
 # 4. Set up the firewall with UFW.
-# 5. Build and start the application using PM2.
+# 5. Build and start the application using PM2 to run in the background.
 #
 # Usage:
 # 1. Place this script in the root of your Next.js project.
@@ -75,9 +75,10 @@ npm run build
 
 # --- 5. Start the App with PM2 ---
 echo_info "Starting the application with PM2..."
+# PM2 is a process manager that will keep the app running in the background.
 # Check if the app is already running and delete it to ensure a fresh start
 pm2 delete "$APP_NAME" || true
-# Start the app. `next start` will use the port from the PORT env var, or 3000 by default.
+# The `pm2 start` command automatically runs the app in the background.
 pm2 start npm --name "$APP_NAME" -- start -p $APP_PORT
 
 # --- 6. Configure Nginx ---
@@ -136,7 +137,8 @@ pm2 save
 
 echo_success "Installation complete!"
 echo "--------------------------------------------------"
-echo "Your Next.js application is now running."
+echo "Your Next.js application is now running in the background."
+echo "You can safely close your terminal connection."
 echo ""
 echo "It is managed by PM2 under the name: $APP_NAME"
 echo "You can monitor it with: pm2 monit"
