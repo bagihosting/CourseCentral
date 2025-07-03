@@ -109,7 +109,12 @@ function getInitialData(): Database {
 
 function saveDB(db: Database) {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    try {
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+    } catch (e) {
+        console.error("Failed to save data to localStorage.", e);
+        throw new Error("Gagal menyimpan data ke penyimpanan lokal. Mungkin penyimpanan Anda penuh.");
+    }
 }
 
 function getDB(): Database {
