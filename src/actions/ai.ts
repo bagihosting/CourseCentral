@@ -255,6 +255,7 @@ export async function generateWebAppAction(
 
   try {
     const result = await generateWebAppFlow(input);
+    result.previewHtml = DOMPurify.sanitize(result.previewHtml);
     return result;
   } catch (error) {
     console.error('Error generating web app:', error);
@@ -271,6 +272,7 @@ export async function editWebAppAction(
 
   try {
     const result = await editWebAppFlow(input);
+    result.previewHtml = DOMPurify.sanitize(result.previewHtml);
     return result;
   } catch (error) {
     console.error('Error editing web app:', error);
@@ -413,3 +415,5 @@ export async function awardCertificateAction(
         return { error: `Gagal menyimpan sertifikat: ${errorMessage}` };
     }
 }
+
+    
