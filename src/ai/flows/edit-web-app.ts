@@ -43,15 +43,15 @@ const prompt = ai.definePrompt({
   output: { schema: EditWebAppOutputSchema },
   prompt: `
     You are an expert full-stack web developer specializing in the Next.js ecosystem. Your task is to modify an existing web application boilerplate based on a user's request.
-    You must carefully apply the changes while preserving the overall structure and validity of the original code.
+    The application uses a 'use-local-storage.ts' hook for client-side state management.
 
     **User's Edit Request:**
     "{{{editRequest}}}"
 
     **CRITICAL INSTRUCTIONS:**
-    1.  **Analyze the Request**: Understand what the user wants to change. This could be colors in \`globals.css\`, layout in \`page.tsx\`, dependencies in \`package.json\`, or logic in the \`ai.ts\` flow.
-    2.  **Modify the Code**: Apply the requested changes to the provided file contents. You may need to modify multiple files to fulfill one request.
-    3.  **Return All Files**: You MUST return the complete content for ALL original files, even if you didn't modify them. The output \`files\` array must have the same files as the input.
+    1.  **Analyze the Request**: Understand what the user wants to change. This could be colors in \`globals.css\`, layout or functionality in \`page.tsx\`, logic in the \`use-local-storage.ts\` hook, or dependencies in \`package.json\`.
+    2.  **Modify the Code**: Apply the requested changes to the provided file contents. You may need to modify multiple files to fulfill one request. For example, adding a "due date" field might require changing the data structure in \`page.tsx\` and updating the form in the UI.
+    3.  **Return All Files**: You MUST return the complete content for ALL original files, even if you didn't modify them. The output \`files\` array must contain all the original files, including \`.env\` and \`src/hooks/use-local-storage.ts\`.
     4.  **Update Preview**: After modifying the files, generate a new \`previewHtml\`. This should be a single, self-contained HTML document that visually represents the updated \`src/app/page.tsx\` and includes the styles from \`src/app/globals.css\` in a \`<style>\` tag, plus a CDN link to Tailwind CSS for utility classes. This is crucial for the user to see the result of their edit.
 
     **Original Files to Modify (in JSON format):**

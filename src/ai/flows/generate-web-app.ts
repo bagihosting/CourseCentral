@@ -36,8 +36,8 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateWebAppInputSchema },
   output: { schema: GenerateWebAppOutputSchema },
   prompt: `
-    You are an expert full-stack web developer specializing in the Next.js ecosystem. Your task is to generate a complete, production-ready boilerplate for a web application based on a user's description.
-    The stack is strictly defined: Next.js (App Router), React, TypeScript, Tailwind CSS, ShadCN UI, and Genkit for AI features.
+    You are an expert full-stack web developer specializing in the Next.js ecosystem. Your task is to generate a complete, production-ready, and interactive boilerplate for a web application based on a user's description.
+    The stack is strictly defined: Next.js (App Router), React, TypeScript, Tailwind CSS, ShadCN UI, and Genkit for AI features. The application must use a custom hook for client-side persistence with localStorage.
 
     **User's Request:**
     - App Name: {{{appName}}}
@@ -45,56 +45,81 @@ const prompt = ai.definePrompt({
 
     **CRITICAL INSTRUCTIONS:**
 
-    Generate the file content for a standard file structure. The generated code must be high-quality, clean, and follow modern best practices.
+    Generate the file content for the full application structure below. The generated code must be high-quality, clean, and follow modern best practices.
 
-    **FILE STRUCTURE TO GENERATE:**
+    **FILE STRUCTURE TO GENERATE (8 FILES):**
 
-    1.  **package.json**:
-        -   Use the provided \`{{{appName}}}\` for the "name" field.
-        -   Include these exact dependencies: "next", "react", "react-dom", "tailwindcss", "@genkit-ai/googleai", "genkit", "zod", "lucide-react", "clsx", "tailwind-merge", "tailwindcss-animate", and ShadCN UI component packages like "@radix-ui/react-slot".
-        -   Include dev dependencies: "typescript", "@types/react", "@types/node", "postcss".
-        -   Include standard scripts for "dev", "build", "start", "lint".
+    1.  **\\\`.env\\\`**:
+        -   Generate an empty \\\`.env\\\` file. This is a placeholder for future environment variables.
 
-    2.  **tailwind.config.ts**:
-        -   Generate a standard Tailwind CSS configuration file for a Next.js project.
-        -   Ensure it includes the content path for \`src/**/*.{ts,tsx}\`.
-        -   Include the \`tailwindcss-animate\` plugin.
-        -   Define basic theme extensions for colors and border-radius using CSS variables (e.g., \`background: 'hsl(var(--background))'\`).
+    2.  **\\\`package.json\\\`**:
+        -   Use the provided \\\`{{{appName}}}\\\` for the "name" field.
+        -   Include these exact dependencies: "next", "react", "react-dom", "tailwindcss", "@genkit-ai/googleai", "genkit", "zod", "lucide-react", "clsx", "tailwind-merge", "tailwindcss-animate", "uuid", and ShadCN UI component packages like "@radix-ui/react-slot", "@radix-ui/react-dialog".
+        -   Include dev dependencies: "typescript", "@types/react", "@types/node", "postcss", "@types/uuid".
 
-    3.  **src/app/globals.css**:
+    3.  **\\\`tailwind.config.ts\\\`**:
+        -   Generate a standard Tailwind CSS configuration file for a Next.js project. Ensure it includes the content path for \\\`src/**/*.{ts,tsx}\\\` and the \\\`tailwindcss-animate\\\` plugin.
+
+    4.  **\\\`src/app/globals.css\\\`**:
         -   Generate the standard CSS file used by ShadCN UI.
-        -   It MUST include \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\`.
-        -   It MUST define the HSL color variables for both light (\`:root\`) and dark (\`.dark\`) themes for: background, foreground, primary, secondary, destructive, muted, accent, card, popover, border, input, and ring. Choose a modern and professional color palette.
+        -   It MUST define a professional, vibrant, and colorful palette for the HSL CSS variables for both light (\\\`:root\\\`) and dark (\\\`.dark\\\`) themes. Make it look good.
 
-    4.  **src/app/layout.tsx**:
-        -   Create the root layout component using TypeScript.
-        -   It must include the \`<html>\` and \`<body>\` tags.
-        -   Import and apply a standard font like 'Inter' from \`next/font/google\`.
-        -   The body should have basic Tailwind classes for background and text color.
+    5.  **\\\`src/app/layout.tsx\\\`**:
+        -   Create the root layout component using TypeScript. Import and apply a standard font like 'Inter' from \\\`next/font/google\\\`.
 
-    5.  **src/app/page.tsx**:
-        -   This is the main landing page.
-        -   Generate a React Server Component that implements a visually appealing landing page based on the user's \`{{{appDescription}}}\`.
-        -   Use ShadCN UI components (like \`<Card>\`, \`<Button>\`, \`<Input>\`) and Tailwind CSS for styling.
-        -   Make the design professional, clean, and modern. Include a header, a hero section with a call-to-action, and a features section that reflects the app's purpose.
+    6.  **\\\`src/hooks/use-local-storage.ts\\\`**:
+        -   Create a custom React hook named \\\`useLocalStorage\\\`. The file path MUST be \\\`src/hooks/use-local-storage.ts\\\`.
+        -   It MUST be a client component ('use client').
+        -   It must handle reading from and writing to localStorage, including JSON serialization/deserialization.
+        -   It must be robust and handle the server-side rendering case where \\\`window\\\` is not available.
+        -   Use this exact implementation:
+            \\\`\\\`\\\`typescript
+            'use client';
+            import { useState, useEffect } from 'react';
+            export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+              const [storedValue, setStoredValue] = useState<T>(() => {
+                if (typeof window === 'undefined') {
+                  return initialValue;
+                }
+                try {
+                  const item = window.localStorage.getItem(key);
+                  return item ? JSON.parse(item) : initialValue;
+                } catch (error) {
+                  console.error(error);
+                  return initialValue;
+                }
+              });
+              useEffect(() => {
+                if (typeof window === 'undefined') return;
+                try {
+                  const valueToStore = value instanceof Function ? value(storedValue) : storedValue;
+                  window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                } catch (error) {
+                  console.log(error);
+                }
+              }, [key, storedValue]);
+              return [storedValue, setStoredValue];
+            }
+            \\\`\\\`\\\`
 
-    6.  **src/ai.ts**:
-        -   Create a Genkit flow file.
-        -   Define a simple Genkit flow related to the \`{{{appDescription}}}\`.
-        -   For example, if the app is a "recipe generator", the flow should take ingredients as input and return a recipe.
-        -   Use Zod for input and output schemas.
-        -   Include the Genkit initialization code: \`import { genkit } from 'genkit'; import { googleAI } from '@genkit-ai/googleai'; ...\`
+    7.  **\\\`src/app/page.tsx\\\`**:
+        -   This is the main interactive page. It MUST be a client component (\\\`'use client'\\\`).
+        -   Generate a React component that implements a **complete, functional mini-application** based on the user's \\\`{{{appDescription}}}\\\`.
+        -   It MUST import and use the \\\`useLocalStorage\\\` hook from \\\`src/hooks/use-local-storage.ts\\\` to manage its primary state (e.g., a list of todos, recipes, notes).
+        -   The UI must be interactive. Implement features to **ADD and DELETE** items from the list stored in \\\`localStorage\\\`. Use the \\\`uuid\\\` package for generating unique IDs for new items.
+        -   Use a variety of ShadCN UI components like \\\`<Card>\\\`, \\\`<Button>\\\`, \\\`<Input>\\\`, and \\\`<Dialog>\\\` (for adding new items) to build a rich user interface.
+        -   The design must be colorful, clean, and modern, using the theme defined in \\\`globals.css\\\`.
+
+    8.  **\\\`src/ai.ts\\\`**:
+        -   Create a simple Genkit flow file related to the \\\`{{{appDescription}}}\\\`. For example, if the app is a "recipe generator", the flow could take ingredients as input and return a recipe idea.
+        -   DO NOT integrate this flow into the \\\`page.tsx\\\`. This file is for boilerplate demonstration only.
 
     **ADDITIONAL CRITICAL INSTRUCTION:**
 
-    7.  **Generate \`previewHtml\`**: After generating all the files above, you MUST create one additional piece of data: \`previewHtml\`. This will be a single, self-contained HTML string. It should represent a static preview of the \`src/app/page.tsx\` file. To do this:
-        -   Take the CSS from \`src/app/globals.css\` and put it inside a \`<style>\` tag in the HTML's \`<head>\`.
-        -   Take the JSX from the \`<body>\` of the component in \`src/app/page.tsx\` and convert it into plain HTML. Replace any dynamic React components with static HTML representations.
-        -   The goal is to create a reasonable visual preview that can be rendered in an iframe, without needing to compile React.
-        -   Include a link to the Tailwind CDN in the head to make the utility classes work: \`<script src="https://cdn.tailwindcss.com"></script>\`.
+    9.  **Generate \\\`previewHtml\\\`**: After generating all the files, create one additional piece of data: \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a static preview of \\\`src/app/page.tsx\\\`. Include the CSS from \\\`globals.css\\\` inside a \\\`<style>\\\` tag and add a Tailwind CDN link. Convert the JSX into plain HTML to create a reasonable visual preview.
 
     **OUTPUT FORMAT:**
-    Return a single JSON object matching the output schema. The \`files\` array must contain an object for each of the 6 files listed above. The \`previewHtml\` field must also be populated. The code inside \`fileContent\` and \`previewHtml\` MUST be properly escaped for a JSON string.
+    Return a single JSON object matching the output schema. The \\\`files\\\` array must contain an object for each of the 8 files listed above. The \\\`previewHtml\\\` field must also be populated.
   `,
 });
 

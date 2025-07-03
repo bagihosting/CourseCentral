@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,32 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Download, Folder, File, Server, Pencil } from 'lucide-react';
 import { generateWebAppAction, editWebAppAction } from '@/actions/ai';
 import type { GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+type FileItem = GenerateWebAppOutput['files'][0];
+
+function groupFilesByDirectory(files: FileItem[]) {
+    const grouped = files.reduce((acc, file) => {
+        const pathParts = file.filePath.split('/');
+        const isRoot = pathParts.length === 1;
+        const dir = isRoot ? 'Project Root' : pathParts.slice(0, -1).join('/');
+
+        if (!acc[dir]) {
+            acc[dir] = [];
+        }
+        acc[dir].push(file);
+        return acc;
+    }, {} as Record<string, FileItem[]>);
+
+    // Ensure 'Project Root' is always first
+    const sortedEntries = Object.entries(grouped).sort(([dirA], [dirB]) => {
+        if (dirA === 'Project Root') return -1;
+        if (dirB === 'Project Root') return 1;
+        return dirA.localeCompare(dirB);
+    });
+    
+    return Object.fromEntries(sortedEntries);
+}
 
 export function AiWebAppGenerator() {
   const [appName, setAppName] = useState('');
@@ -109,6 +135,11 @@ export function AiWebAppGenerator() {
     }
   };
 
+  const groupedFiles = useMemo(() => {
+    if (!output) return {};
+    return groupFilesByDirectory(output.files);
+  }, [output]);
+
   return (
     <Card>
       <CardHeader>
@@ -207,26 +238,38 @@ export function AiWebAppGenerator() {
             <div className="space-y-4">
                 <h3 className="text-xl font-bold text-center flex items-center justify-center gap-2"><Folder className="h-6 w-6"/>Struktur Aplikasi Anda</h3>
                 <p className="text-sm text-center text-muted-foreground">Unduh setiap file dan letakkan sesuai dengan path yang ditentukan.</p>
-                <div className="space-y-3">
-                    {output.files.map((file, index) => (
-                        <Card key={index} className="bg-muted/30">
-                            <CardHeader className="flex flex-row items-center justify-between p-3">
-                                <div className="flex items-center gap-2">
-                                    <File className="h-4 w-4"/>
-                                    <p className="font-mono text-sm font-semibold">{file.filePath}</p>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button size="sm" variant="ghost" onClick={() => handleCopy(file.fileContent, file.fileName)}>
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => handleDownload(file.fileContent, file.fileName)}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                        </Card>
-                    ))}
-                </div>
+                <Accordion type="multiple" defaultValue={Object.keys(groupedFiles)} className="w-full">
+                {Object.entries(groupedFiles).map(([dir, filesInDir]) => (
+                    <AccordionItem value={dir} key={dir}>
+                        <AccordionTrigger className="font-semibold text-base bg-muted/30 px-4 rounded-md hover:bg-muted/50">
+                            <div className="flex items-center gap-2">
+                                <Folder className="h-5 w-5 text-primary" />
+                                {dir}
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-2 space-y-2">
+                            {filesInDir.map((file) => (
+                                <Card key={file.filePath} className="bg-background">
+                                    <CardHeader className="flex flex-row items-center justify-between p-2">
+                                        <div className="flex items-center gap-2 font-mono text-sm">
+                                            <File className="h-4 w-4" />
+                                            {file.fileName}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleCopy(file.fileContent, file.fileName)}>
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(file.fileContent, file.fileName)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                </Card>
+                            ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
             </div>
           </div>
         )}
