@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating course certificates using AI.
@@ -84,7 +85,10 @@ const generateCertificateFlow = ai.defineFlow(
     const barcodeGeneration = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `Generate a standard Code 128 barcode image for the number: ${serialNumber}. The image should be clean, high-contrast, black bars on a perfectly white background. Do not include any text or numbers below the barcode. The image should be wide and short.`,
-      config: { responseModalities: ['IMAGE', 'TEXT'] },
+      config: { 
+          responseModalities: ['IMAGE', 'TEXT'],
+          safetySettings: [{ category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }]
+      },
     });
     const barcodeDataUri = barcodeGeneration.media?.url;
     if (!barcodeDataUri) throw new Error("Barcode generation failed. The model did not return media.");
@@ -93,7 +97,10 @@ const generateCertificateFlow = ai.defineFlow(
     const signatureGeneration = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `Generate a realistic, elegant, flowing, handwritten signature for the name 'Scriptify'. Use black ink on a transparent background. The signature should be professional and look like a real signature. Do not include any other text or elements.`,
-      config: { responseModalities: ['IMAGE', 'TEXT'] },
+      config: { 
+          responseModalities: ['IMAGE', 'TEXT'],
+          safetySettings: [{ category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }]
+      },
     });
     const signatureDataUri = signatureGeneration.media?.url;
     if (!signatureDataUri) throw new Error("Signature generation failed. The model did not return media.");
