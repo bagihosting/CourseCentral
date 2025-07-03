@@ -29,18 +29,18 @@ function LandingPage() {
   const features = [
     {
       icon: <ShieldCheck className="h-10 w-10 text-primary" />,
-      title: 'Kurikulum Terstruktur',
-      description: 'Materi disusun secara sistematis dari dasar hingga mahir untuk memastikan pemahaman yang mendalam.',
+      title: 'Kurikulum Relevan Industri',
+      description: 'Materi kursus online kami disusun secara sistematis agar sesuai dengan kebutuhan industri terkini.',
     },
     {
       icon: <Clock className="h-10 w-10 text-primary" />,
-      title: 'Belajar Fleksibel',
-      description: 'Akses kursus kapan saja dan di mana saja. Belajar sesuai dengan kecepatan dan jadwal Anda sendiri.',
+      title: 'Akses Belajar Fleksibel',
+      description: 'Dapatkan akses seumur hidup ke semua materi kursus. Belajar kapan saja sesuai kecepatan Anda.',
     },
     {
       icon: <Users className="h-10 w-10 text-primary" />,
-      title: 'Instruktur Ahli',
-      description: 'Belajar langsung dari para praktisi dan ahli di bidangnya yang memiliki pengalaman nyata.',
+      title: 'Instruktur Ahli & Berpengalaman',
+      description: 'Belajar langsung dari para praktisi dan ahli di bidangnya yang memiliki pengalaman nyata di industri.',
     },
   ];
 
@@ -86,10 +86,10 @@ function LandingPage() {
           <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center px-4">
             <div className="space-y-6 text-center md:text-left">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-                Tingkatkan Skill, <span className="text-primary">Buka Peluang Baru.</span>
+                Kursus Online Bersertifikat untuk <span className="text-primary">Meningkatkan Karir Anda.</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto md:mx-0">
-                Mulai perjalanan Anda dari nol menjadi ahli dengan kursus online terstruktur yang diajar oleh para profesional terbaik di industrinya.
+                Temukan kursus online terbaik untuk meningkatkan skill Anda. Belajar dari nol menjadi ahli dengan materi terstruktur dari instruktur profesional dan dapatkan sertifikasi online terpercaya.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Button size="lg" asChild>
@@ -103,7 +103,7 @@ function LandingPage() {
               </div>
             </div>
             <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl mx-auto w-full max-w-lg">
-                <Image src="https://placehold.co/600x400.png" alt="Hero Image" fill className="object-cover" data-ai-hint="online learning students" />
+                <Image src="https://placehold.co/600x400.png" alt="Siswa sedang belajar kursus online bersertifikat" fill className="object-cover" data-ai-hint="online learning students" />
             </div>
           </div>
         </section>
@@ -112,8 +112,8 @@ function LandingPage() {
         <section id="features" className="py-20 md:py-28">
             <div className="container mx-auto px-4 space-y-16">
                 <div className="text-center space-y-4">
-                     <h2 className="text-3xl md:text-4xl font-bold">Mengapa Memilih {platformName}?</h2>
-                     <p className="text-muted-foreground max-w-2xl mx-auto">Kami menyediakan platform pembelajaran yang tidak hanya berkualitas, tetapi juga dirancang untuk kesuksesan karir Anda.</p>
+                     <h2 className="text-3xl md:text-4xl font-bold">Mengapa Belajar Skill di {platformName}?</h2>
+                     <p className="text-muted-foreground max-w-2xl mx-auto">Kami menyediakan platform pembelajaran yang tidak hanya berkualitas, tetapi juga dirancang untuk kesuksesan karir Anda melalui sertifikasi online terpercaya.</p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8">
                     {features.map((feature, i) => (
@@ -123,7 +123,7 @@ function LandingPage() {
                                     {feature.icon}
                                 </div>
                             </div>
-                            <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
+                            <h3 className="text-xl font-semibold leading-none tracking-tight mb-2">{feature.title}</h3>
                             <CardContent className="p-0">
                                 <p className="text-muted-foreground">{feature.description}</p>
                             </CardContent>
@@ -136,7 +136,7 @@ function LandingPage() {
         {/* Featured Courses Section */}
         <section id="courses" className="py-20 md:py-28 bg-muted/30">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Kursus Unggulan</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Pilihan Kursus Online Populer</h2>
             {loading ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[...Array(4)].map((_, i) => (
@@ -163,7 +163,7 @@ function LandingPage() {
         {/* Testimonials Section */}
         <section className="py-20 md:py-28">
             <div className="container mx-auto px-4">
-                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Apa Kata Mereka?</h2>
+                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Apa Kata Alumni Sukses Kami?</h2>
                  <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     {testimonials.map((testimonial, i) => (
                          <Card key={i} className="p-6">
@@ -175,7 +175,7 @@ function LandingPage() {
                                 <div className="flex items-center gap-4 pt-2">
                                      <Image src={testimonial.avatar} alt={testimonial.name} width={50} height={50} className="rounded-full" data-ai-hint="person portrait"/>
                                      <div>
-                                        <p className="font-semibold">{testimonial.name}</p>
+                                        <h4 className="font-semibold">{testimonial.name}</h4>
                                         <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                                      </div>
                                 </div>
@@ -190,8 +190,8 @@ function LandingPage() {
         <section className="py-20 md:py-28">
             <div className="container mx-auto px-4">
                 <div className="bg-primary text-primary-foreground rounded-2xl p-12 text-center shadow-xl">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Siap Memulai Perjalanan Anda?</h2>
-                    <p className="max-w-2xl mx-auto mb-8 opacity-80">Daftar sekarang secara gratis dan dapatkan akses ke kursus-kursus dasar kami. Tidak ada risiko, hanya ada peluang.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Siap Meningkatkan Skill & Karir Anda?</h2>
+                    <p className="max-w-2xl mx-auto mb-8 opacity-80">Daftar sekarang dan dapatkan akses ke beragam kursus online berkualitas untuk memulai perjalanan Anda. Dapatkan sertifikasi online untuk memvalidasi keahlian baru Anda.</p>
                     <Button size="lg" variant="secondary" asChild>
                         <Link href="/login">Daftar Gratis Sekarang</Link>
                     </Button>
