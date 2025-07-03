@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -14,6 +14,7 @@ interface Database {
   paymentSettings: PaymentAccount[];
   seoSettings: SeoSettings;
   landingPageSettings: LandingPageSettings;
+  testimonials: Testimonial[];
 }
 
 // --- Seed Data ---
@@ -138,7 +139,32 @@ function getInitialData(): Database {
                 description: 'Belajar langsung dari para praktisi dan ahli di bidangnya yang memiliki pengalaman nyata di industri.',
               },
             ],
+            logoUrl: '',
+            footerText: 'Semua Hak Cipta Dilindungi.',
+            featuredTestimonialIds: ['testimonial_1', 'testimonial_2'],
         },
+        testimonials: [
+          {
+            id: 'testimonial_1',
+            userId: 'pro_user_1',
+            userName: 'Member Pro',
+            userAvatar: 'https://placehold.co/100x100.png',
+            userRole: 'pro',
+            quote: 'Aplikasi ini benar-benar mengubah cara saya belajar. Materinya sangat relevan dengan industri saat ini dan mudah dipahami. Sangat direkomendasikan!',
+            rating: 5,
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: 'testimonial_2',
+            userId: 'member',
+            userName: 'Siswa Rajin',
+            userAvatar: 'https://placehold.co/100x100.png',
+            userRole: 'member',
+            quote: 'Saya berhasil mendapatkan pekerjaan impian saya setelah menyelesaikan kursus UI/UX di sini. Kontennya sangat membatu, terutama untuk pemula seperti saya.',
+            rating: 4,
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          }
+        ],
     };
 }
 
@@ -175,6 +201,7 @@ function getDB(): Database {
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
         if (!data.upgradeRequests) data.upgradeRequests = [];
+        if (!data.testimonials) data.testimonials = [];
         if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
           data.paymentSettings = [
             {
@@ -666,4 +693,63 @@ export function updateLandingPageSettings(data: Partial<LandingPageSettings>): L
   db.landingPageSettings = { ...db.landingPageSettings, ...data };
   saveDB(db);
   return db.landingPageSettings;
+}
+
+// --- Testimonial API ---
+export function getAllTestimonials(): Testimonial[] {
+    const db = getDB();
+    return db.testimonials.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function getTestimonialByUserId(userId: string): Testimonial | undefined {
+    const db = getDB();
+    return db.testimonials.find(t => t.userId === userId);
+}
+
+export function addOrUpdateTestimonial(testimonialData: {userId: string; quote: string; rating: number}): Testimonial {
+    const db = getDB();
+    const user = getUserById(testimonialData.userId);
+    if (!user) {
+        throw new Error("Pengguna tidak ditemukan.");
+    }
+    
+    const existingTestimonialIndex = db.testimonials.findIndex(t => t.userId === testimonialData.userId);
+
+    if (existingTestimonialIndex !== -1) {
+        // Update existing testimonial
+        const existing = db.testimonials[existingTestimonialIndex];
+        existing.quote = testimonialData.quote;
+        existing.rating = testimonialData.rating;
+        saveDB(db);
+        return existing;
+    } else {
+        // Add new testimonial
+        const newTestimonial: Testimonial = {
+            id: `testimonial_${Date.now()}`,
+            userId: user.id,
+            userName: user.name,
+            userAvatar: user.avatarUrl,
+            userRole: user.role === 'pro' ? 'pro' : 'member',
+            quote: testimonialData.quote,
+            rating: testimonialData.rating,
+            createdAt: new Date().toISOString()
+        };
+        db.testimonials.push(newTestimonial);
+        saveDB(db);
+        return newTestimonial;
+    }
+}
+
+export function deleteTestimonial(testimonialId: string): void {
+    const db = getDB();
+    const initialLength = db.testimonials.length;
+    db.testimonials = db.testimonials.filter(t => t.id !== testimonialId);
+    
+    // Also remove from featured list if present
+    db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialId);
+
+    if (db.testimonials.length === initialLength) {
+        throw new Error("Gagal menghapus testimoni, ID tidak ditemukan.");
+    }
+    saveDB(db);
 }

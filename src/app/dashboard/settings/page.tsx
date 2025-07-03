@@ -1,20 +1,113 @@
 'use client';
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Loader2, Camera } from 'lucide-react';
+import { User, Loader2, Camera, Star } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import imageCompression from 'browser-image-compression';
-import type { UpdateUserInput } from '@/lib/data';
-import { getCompletedCourseCount } from '@/lib/data';
+import type { UpdateUserInput, Testimonial } from '@/types';
+import { getCompletedCourseCount, getTestimonialByUserId, addOrUpdateTestimonial } from '@/lib/data';
 import { getRank } from '@/lib/ranks';
 import { RankBadge } from '@/components/rank-badge';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+
+function TestimonialForm() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
+  const [quote, setQuote] = useState('');
+  const [rating, setRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const existingTestimonial = getTestimonialByUserId(user.id);
+      if (existingTestimonial) {
+        setTestimonial(existingTestimonial);
+        setQuote(existingTestimonial.quote);
+        setRating(existingTestimonial.rating);
+      }
+    }
+  }, [user]);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (rating === 0) {
+      toast({ title: 'Rating Diperlukan', description: 'Harap berikan rating bintang.', variant: 'destructive' });
+      return;
+    }
+    if (quote.trim().length < 10) {
+      toast({ title: 'Ulasan Terlalu Pendek', description: 'Harap tulis ulasan minimal 10 karakter.', variant: 'destructive' });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      addOrUpdateTestimonial({ userId: user.id, quote, rating });
+      toast({ title: 'Terima Kasih!', description: 'Testimoni Anda telah berhasil disimpan.' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+     <Card>
+        <CardHeader>
+          <CardTitle>Testimoni & Ulasan Anda</CardTitle>
+          <CardDescription>Bagikan pengalaman Anda menggunakan platform ini. Testimoni Anda mungkin akan ditampilkan di halaman depan.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+            <div className="space-y-2">
+                <Label>Rating Anda</Label>
+                <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className="p-1 transition-transform hover:scale-110"
+                        >
+                        <Star className={cn(
+                            "h-7 w-7",
+                            star <= rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
+                        )} />
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="quote">Ulasan Anda</Label>
+                <Textarea 
+                    id="quote"
+                    value={quote}
+                    onChange={(e) => setQuote(e.target.value)}
+                    placeholder="Tuliskan testimoni Anda di sini..."
+                    rows={5}
+                />
+            </div>
+        </CardContent>
+        <CardFooter>
+             <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {testimonial ? 'Perbarui Testimoni' : 'Kirim Testimoni'}
+            </Button>
+        </CardFooter>
+        </form>
+    </Card>
+  )
+}
 
 
 export default function SettingsPage() {
@@ -38,7 +131,7 @@ export default function SettingsPage() {
       setName(user.name);
       setWhatsapp(user.whatsapp || '');
       setAvatarPreview(user.avatarUrl);
-      if (user.role === 'member') {
+      if (user.role === 'member' || user.role === 'pro') {
         setCompletedCourses(getCompletedCourseCount(user.id));
       }
     }
@@ -230,6 +323,9 @@ export default function SettingsPage() {
             </form>
         </CardContent>
       </Card>
+
+      <TestimonialForm />
+
     </div>
   );
 }

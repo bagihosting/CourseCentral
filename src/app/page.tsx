@@ -6,8 +6,9 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/course-card';
-import { getLandingPageSettings, getAllCourses, getSeoSettings } from '@/lib/data';
-import type { Course, LandingPageSettings } from '@/types';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { getLandingPageSettings, getAllCourses, getAllTestimonials } from '@/lib/data';
+import type { Course, LandingPageSettings, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -63,52 +64,55 @@ function LandingPageSkeleton() {
 
 function LandingPage() {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [platformName, setPlatformName] = useState('Aplikasi Kursus');
   const [settings, setSettings] = useState<LandingPageSettings | null>(null);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const seoData = getSeoSettings();
     if (seoData && seoData.platformName) {
-      setPlatformName(seoData.platformName);
       document.title = `${seoData.platformName} - ${seoData.titleSuffix || ''}`;
     }
     const landingData = getLandingPageSettings();
     setSettings(landingData);
     setCourses(getAllCourses().slice(0, 4));
+
+    if (landingData && landingData.featuredTestimonialIds) {
+        const allTestimonials = getAllTestimonials();
+        const featured = allTestimonials.filter(t => landingData.featuredTestimonialIds.includes(t.id));
+        setTestimonials(featured);
+    }
+
     setLoading(false);
   }, []);
 
-  const features = settings ? settings.features.map(f => ({
+  if (loading || !settings) {
+    return <LandingPageSkeleton />;
+  }
+
+  const { platformName } = getSeoSettings();
+  const features = settings.features.map(f => ({
       ...f,
       icon: React.createElement(featureIcons[f.icon] || ShieldCheck, { className: "h-10 w-10 text-primary" })
-  })) : [];
-
-  const testimonials = [
-    {
-      name: 'Andi Pratama',
-      role: 'Web Developer',
-      quote: `"${platformName} benar-benar mengubah cara saya belajar. Materinya sangat relevan dengan industri saat ini dan mudah dipahami."`,
-      avatar: 'https://placehold.co/100x100.png',
-    },
-    {
-      name: 'Citra Kirana',
-      role: 'UI/UX Designer',
-      quote: '"Saya berhasil mendapatkan pekerjaan impian saya setelah menyelesaikan kursus UI/UX di sini. Sangat direkomendasikan!"',
-      avatar: 'https://placehold.co/100x100.png',
-    },
-  ];
+  }));
 
   const Header = () => (
     <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
-          <BookOpenCheck className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold">{platformName}</span>
+          {settings.logoUrl ? (
+            <Image src={settings.logoUrl} alt={`${platformName} logo`} width={120} height={30} className="h-7 w-auto"/>
+          ) : (
+            <>
+              <BookOpenCheck className="h-7 w-7 text-primary" />
+              <span className="text-xl font-bold">{platformName}</span>
+            </>
+          )}
         </Link>
         <nav className="hidden md:flex gap-6 items-center">
           <Link href="#courses" className="text-sm font-medium hover:text-primary transition-colors">Kursus</Link>
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Fitur</Link>
+          <Link href="#testimonials" className="text-sm font-medium hover:text-primary transition-colors">Testimoni</Link>
         </nav>
         <Button asChild>
           <Link href="/login">Masuk / Daftar</Link>
@@ -117,9 +121,6 @@ function LandingPage() {
     </header>
   );
 
-  if (loading || !settings) {
-    return <LandingPageSkeleton />;
-  }
 
   return (
     <div className="bg-background text-foreground">
@@ -191,28 +192,58 @@ function LandingPage() {
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-20 md:py-28">
+        <section id="testimonials" className="py-20 md:py-28">
             <div className="container mx-auto px-4">
                  <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Apa Kata Alumni Sukses Kami?</h2>
-                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    {testimonials.map((testimonial, i) => (
-                         <Card key={i} className="p-6">
-                            <CardContent className="p-0 space-y-4">
-                                <div className="flex text-yellow-400">
-                                    {[...Array(5)].map((_, j) => <Star key={j} className="h-5 w-5 fill-current" />)}
-                                </div>
-                                <p className="text-muted-foreground italic">{testimonial.quote}</p>
-                                <div className="flex items-center gap-4 pt-2">
-                                     <Image src={testimonial.avatar} alt={testimonial.name} width={50} height={50} className="rounded-full" data-ai-hint="person portrait"/>
-                                     <div>
-                                        <h4 className="font-semibold">{testimonial.name}</h4>
-                                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                                     </div>
-                                </div>
-                            </CardContent>
-                         </Card>
-                    ))}
-                 </div>
+                 {testimonials.length > 2 ? (
+                    <Carousel opts={{ loop: true }} className="max-w-4xl mx-auto">
+                        <CarouselContent>
+                            {testimonials.map((testimonial) => (
+                                <CarouselItem key={testimonial.id} className="md:basis-1/2">
+                                     <Card className="p-6 h-full flex flex-col">
+                                        <CardContent className="p-0 space-y-4 flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex text-yellow-400">
+                                                    {[...Array(5)].map((_, j) => <Star key={j} className={`h-5 w-5 ${j < testimonial.rating ? 'fill-current' : ''}`} />)}
+                                                </div>
+                                                <p className="text-muted-foreground italic mt-4">"{testimonial.quote}"</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 pt-2">
+                                                <Image src={testimonial.userAvatar} alt={testimonial.userName} width={50} height={50} className="rounded-full" data-ai-hint="person portrait"/>
+                                                <div>
+                                                    <h4 className="font-semibold">{testimonial.userName}</h4>
+                                                    <p className="text-sm text-muted-foreground capitalize">{testimonial.userRole} Member</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious />
+                        <CarouselNext />
+                    </Carousel>
+                 ) : (
+                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                        {testimonials.map((testimonial) => (
+                             <Card key={testimonial.id} className="p-6">
+                                <CardContent className="p-0 space-y-4">
+                                    <div className="flex text-yellow-400">
+                                        {[...Array(5)].map((_, j) => <Star key={j} className={`h-5 w-5 ${j < testimonial.rating ? 'fill-current' : ''}`} />)}
+                                    </div>
+                                    <p className="text-muted-foreground italic">"{testimonial.quote}"</p>
+                                    <div className="flex items-center gap-4 pt-2">
+                                        <Image src={testimonial.userAvatar} alt={testimonial.userName} width={50} height={50} className="rounded-full" data-ai-hint="person portrait"/>
+                                        <div>
+                                            <h4 className="font-semibold">{testimonial.userName}</h4>
+                                            <p className="text-sm text-muted-foreground capitalize">{testimonial.userRole} Member</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                             </Card>
+                        ))}
+                     </div>
+                 )}
             </div>
         </section>
 
@@ -233,7 +264,7 @@ function LandingPage() {
       {/* Footer */}
       <footer className="bg-muted/30 border-t">
           <div className="container mx-auto py-8 px-4 text-center text-muted-foreground">
-             <p>&copy; {new Date().getFullYear()} {platformName}. Semua Hak Cipta Dilindungi.</p>
+             <p>&copy; {new Date().getFullYear()} {platformName}. {settings.footerText}</p>
           </div>
       </footer>
     </div>

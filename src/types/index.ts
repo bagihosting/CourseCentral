@@ -64,6 +64,17 @@ export type SeoSettings = {
   metaKeywords: string;
 };
 
+export type Testimonial = {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  userRole: 'member' | 'pro';
+  quote: string;
+  rating: number; // 1 to 5
+  createdAt: string;
+};
+
 export type LandingPageSettings = {
   heroHeadline: string;
   heroSubheadline: string;
@@ -72,4 +83,7 @@ export type LandingPageSettings = {
     title: string;
     description: string;
   }[];
+  logoUrl: string;
+  footerText: string;
+  featuredTestimonialIds: string[];
 };
