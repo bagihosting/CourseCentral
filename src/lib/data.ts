@@ -157,33 +157,38 @@ function getDB(): Database {
           ];
         }
 
-        // --- Start of robust self-healing logic for admin user ---
-        const initialUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
+        // --- Start of robust self-healing and security patch logic ---
+        const initialDbString = JSON.stringify(data);
 
-        // Filter out any object that could be an admin user to avoid duplicates.
-        const otherUsers = data.users.filter(u => u.id !== 'admin' && u.username !== 'admin');
-
-        // Define the single, correct admin user.
         const correctAdminUser = {
             id: 'admin',
             name: 'Admin Utama',
             username: 'admin',
             password: 'password',
-            role: 'admin',
+            role: 'admin' as const,
             avatarUrl: 'https://placehold.co/100x100.png',
             whatsapp: '081234567890',
         };
+
+        const otherUsers = data.users.filter(u => u.id !== 'admin');
         
-        // Rebuild the users array with the single correct admin user at the start.
+        // Rebuild the users array to ensure the one true admin is always correct.
         data.users = [correctAdminUser, ...otherUsers];
 
-        const finalUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
+        // Security Patch: Revert any unauthorized privilege escalation.
+        // Any user who is not the designated admin cannot have the 'admin' role.
+        data.users.forEach(user => {
+            if (user.id !== 'admin' && user.role === 'admin') {
+                user.role = 'member'; // Revert to the lowest privilege
+            }
+        });
 
         // Only write back to localStorage if a change was actually made.
-        if (initialUsersString !== finalUsersString) {
+        const finalDbString = JSON.stringify(data);
+        if (initialDbString !== finalDbString) {
              saveDB(data);
         }
-        // --- End of self-healing logic ---
+        // --- End of self-healing and security patch logic ---
 
         return data;
     } catch (e) {
