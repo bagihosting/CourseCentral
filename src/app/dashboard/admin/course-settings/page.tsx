@@ -10,10 +10,10 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings } from '@/lib/data';
-import type { PaymentAccount, SeoSettings } from '@/types';
+import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings, getConfirmationContacts, addConfirmationContact, updateConfirmationContact, deleteConfirmationContact } from '@/lib/data';
+import type { PaymentAccount, SeoSettings, ConfirmationContact } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2 } from 'lucide-react';
+import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2, MessageSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { generateTitleSuffixAction, generateMetaDescriptionAction, generateMetaKeywordsAction } from '@/actions/ai';
@@ -75,13 +75,70 @@ function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount,
     );
 }
 
+function ConfirmationContactForm({ contact, onFinished }: { contact?: ConfirmationContact, onFinished: () => void }) {
+    const [name, setName] = useState(contact?.name || '');
+    const [whatsapp, setWhatsapp] = useState(contact?.whatsapp || '');
+    const [saving, setSaving] = useState(false);
+    const { toast } = useToast();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name || !whatsapp) {
+            toast({ title: "Gagal", description: "Semua kolom wajib diisi.", variant: "destructive" });
+            return;
+        }
+        setSaving(true);
+        try {
+            if (contact) {
+                updateConfirmationContact(contact.id, { name, whatsapp });
+                toast({ title: 'Sukses', description: 'Kontak berhasil diperbarui.' });
+            } else {
+                addConfirmationContact({ name, whatsapp });
+                toast({ title: 'Sukses', description: 'Kontak berhasil ditambahkan.' });
+            }
+            onFinished();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+            toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="contactName">Nama Kontak</Label>
+                <Input id="contactName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Admin CS 1" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="contactWhatsapp">Nomor WhatsApp</Label>
+                <Input id="contactWhatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 6281234567890" />
+                 <p className="text-xs text-muted-foreground">Gunakan format internasional (misal: 628...).</p>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
+                <Button type="submit" disabled={saving}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Simpan
+                </Button>
+            </DialogFooter>
+        </form>
+    );
+}
+
 export default function CourseSettingsPage() {
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [confirmationContacts, setConfirmationContacts] = useState<ConfirmationContact[]>([]);
   const [seoSettings, setSeoSettings] = useState<SeoSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isFormOpen, setFormOpen] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<PaymentAccount | undefined>(undefined);
+
+  const [isPaymentFormOpen, setPaymentFormOpen] = useState(false);
+  const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<PaymentAccount | undefined>(undefined);
   
+  const [isContactFormOpen, setContactFormOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<ConfirmationContact | undefined>(undefined);
+
   const [isSavingSeo, setIsSavingSeo] = useState(false);
   const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
@@ -92,33 +149,58 @@ export default function CourseSettingsPage() {
   const { toast } = useToast();
 
   const refreshPaymentAccounts = () => {
-    const settings = getPaymentSettings();
-    setPaymentAccounts(settings);
+    setPaymentAccounts(getPaymentSettings());
+  };
+  
+  const refreshConfirmationContacts = () => {
+    setConfirmationContacts(getConfirmationContacts());
   };
 
   useEffect(() => {
     refreshPaymentAccounts();
+    refreshConfirmationContacts();
     const settings = getSeoSettings();
     setSeoSettings(settings);
     setPlatformName(settings.platformName);
     setLoading(false);
   }, []);
 
-  const handleOpenForm = (account?: PaymentAccount) => {
-    setSelectedAccount(account);
-    setFormOpen(true);
+  const handleOpenPaymentForm = (account?: PaymentAccount) => {
+    setSelectedPaymentAccount(account);
+    setPaymentFormOpen(true);
+  };
+  
+  const handleOpenContactForm = (contact?: ConfirmationContact) => {
+    setSelectedContact(contact);
+    setContactFormOpen(true);
   };
 
-  const handleFormFinished = () => {
-    setFormOpen(false);
+  const handlePaymentFormFinished = () => {
+    setPaymentFormOpen(false);
     refreshPaymentAccounts();
   };
+  
+  const handleContactFormFinished = () => {
+    setContactFormOpen(false);
+    refreshConfirmationContacts();
+  };
 
-  const handleDelete = (accountId: string) => {
+  const handleDeletePaymentAccount = (accountId: string) => {
     try {
       deletePaymentAccount(accountId);
       toast({ title: 'Sukses', description: 'Akun pembayaran berhasil dihapus.' });
       refreshPaymentAccounts();
+    } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
+    }
+  };
+  
+  const handleDeleteContact = (contactId: string) => {
+    try {
+      deleteConfirmationContact(contactId);
+      toast({ title: 'Sukses', description: 'Kontak konfirmasi berhasil dihapus.' });
+      refreshConfirmationContacts();
     } catch (error) {
        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
@@ -270,13 +352,12 @@ export default function CourseSettingsPage() {
                 Konfigurasi rekening bank untuk menerima pembayaran upgrade ke Pro.
               </CardDescription>
             </div>
-            <Button onClick={() => handleOpenForm()} className="w-full md:w-auto">
+            <Button onClick={() => handleOpenPaymentForm()} className="w-full md:w-auto">
               <PlusCircle className="mr-2" />
               Tambah Akun
             </Button>
           </CardHeader>
           <CardContent>
-            {/* Desktop View: Table */}
             <div className="hidden md:block">
                 <Table>
                 <TableHeader>
@@ -295,7 +376,7 @@ export default function CourseSettingsPage() {
                         <TableCell>{account.accountNumber}</TableCell>
                         <TableCell>{account.accountHolder}</TableCell>
                         <TableCell className="text-right space-x-2">
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(account)}>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentForm(account)}>
                             <Pencil className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
@@ -313,7 +394,7 @@ export default function CourseSettingsPage() {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                 <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(account.id)}>Hapus</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDeletePaymentAccount(account.id)}>Hapus</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                             </AlertDialog>
@@ -330,21 +411,47 @@ export default function CourseSettingsPage() {
                 </TableBody>
                 </Table>
             </div>
-
-            {/* Mobile View: Cards */}
             <div className="md:hidden space-y-4">
                 {paymentAccounts.length > 0 ? (
                 paymentAccounts.map((account) => (
-                    <Card key={account.id}>
-                        <CardContent className="p-4">
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="space-y-1">
-                                    <p className="font-semibold">{account.bankName}</p>
-                                    <p className="text-sm text-muted-foreground font-mono">{account.accountNumber}</p>
-                                    <p className="text-sm text-muted-foreground">{account.accountHolder}</p>
+                    <Card key={account.id}><CardContent className="p-4"><div className="flex justify-between items-start gap-4"><div className="space-y-1"><p className="font-semibold">{account.bankName}</p><p className="text-sm text-muted-foreground font-mono">{account.accountNumber}</p><p className="text-sm text-muted-foreground">{account.accountHolder}</p></div><div className="flex shrink-0 space-x-2"><Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentForm(account)}><Pencil className="h-4 w-4" /></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan. Akun pembayaran ini akan dihapus secara permanen.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePaymentAccount(account.id)}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></CardContent></Card>
+                ))
+                ) : (
+                <div className="h-24 text-center flex items-center justify-center text-muted-foreground">Belum ada akun pembayaran.</div>
+                )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <CardTitle>Kontak Konfirmasi WhatsApp</CardTitle>
+              <CardDescription>
+                Kelola nomor WhatsApp yang akan menerima konfirmasi pembayaran dari member.
+              </CardDescription>
+            </div>
+            <Button onClick={() => handleOpenContactForm()} className="w-full md:w-auto">
+              <PlusCircle className="mr-2" />
+              Tambah Kontak
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {confirmationContacts.length > 0 ? (
+                <div className="space-y-3">
+                {confirmationContacts.map((contact) => (
+                    <Card key={contact.id}>
+                        <CardContent className="p-3">
+                            <div className="flex justify-between items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                   <MessageSquare className="h-5 w-5 text-green-600" />
+                                    <div>
+                                        <p className="font-semibold">{contact.name}</p>
+                                        <p className="text-sm text-muted-foreground font-mono">{contact.whatsapp}</p>
+                                    </div>
                                 </div>
                                 <div className="flex shrink-0 space-x-2">
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(account)}>
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenContactForm(contact)}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                     <AlertDialog>
@@ -355,14 +462,14 @@ export default function CourseSettingsPage() {
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                        <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+                                        <AlertDialogTitle>Hapus Kontak Ini?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Tindakan ini tidak dapat dibatalkan. Akun pembayaran ini akan dihapus secara permanen.
+                                            Tindakan ini tidak dapat dibatalkan. Kontak ini akan dihapus secara permanen.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(account.id)}>Hapus</AlertDialogAction>
+                                        <AlertDialogAction onClick={() => handleDeleteContact(contact.id)}>Hapus</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                     </AlertDialog>
@@ -370,13 +477,13 @@ export default function CourseSettingsPage() {
                             </div>
                         </CardContent>
                     </Card>
-                ))
-                ) : (
-                <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
-                    Belum ada akun pembayaran.
+                ))}
                 </div>
-                )}
-            </div>
+            ) : (
+                <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+                    Belum ada kontak konfirmasi.
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -508,12 +615,21 @@ export default function CourseSettingsPage() {
         </Card>
       </div>
       
-      <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
+      <Dialog open={isPaymentFormOpen} onOpenChange={setPaymentFormOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{selectedAccount ? 'Ubah Akun Pembayaran' : 'Tambah Akun Pembayaran Baru'}</DialogTitle>
+                <DialogTitle>{selectedPaymentAccount ? 'Ubah Akun Pembayaran' : 'Tambah Akun Pembayaran Baru'}</DialogTitle>
             </DialogHeader>
-            <PaymentAccountForm account={selectedAccount} onFinished={handleFormFinished} />
+            <PaymentAccountForm account={selectedPaymentAccount} onFinished={handlePaymentFormFinished} />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isContactFormOpen} onOpenChange={setContactFormOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{selectedContact ? 'Ubah Kontak Konfirmasi' : 'Tambah Kontak Konfirmasi Baru'}</DialogTitle>
+            </DialogHeader>
+            <ConfirmationContactForm contact={selectedContact} onFinished={handleContactFormFinished} />
         </DialogContent>
       </Dialog>
     </>

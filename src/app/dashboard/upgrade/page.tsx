@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Banknote, CheckCircle, ChevronRight, Loader2, Sparkles, Send, Clock, BadgeCheck } from 'lucide-react';
-import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings, cancelUpgradeRequest } from '@/lib/data';
-import type { UpgradeRequest, PaymentAccount } from '@/types';
+import { createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings, cancelUpgradeRequest, getConfirmationContacts } from '@/lib/data';
+import type { UpgradeRequest, PaymentAccount, ConfirmationContact } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const UPGRADE_AMOUNT = 50000;
 
-function UpgradeForm({ onSubmitted, admins }: { onSubmitted: () => void; admins: { name: string; whatsapp: string; }[] }) {
+function UpgradeForm({ onSubmitted, contacts }: { onSubmitted: () => void; contacts: ConfirmationContact[] }) {
   const { user } = useAuth();
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
@@ -32,12 +32,12 @@ function UpgradeForm({ onSubmitted, admins }: { onSubmitted: () => void; admins:
       return;
     }
     
-    if (admins.length > 2 && !whatsappNumber) {
+    if (contacts.length > 2 && !whatsappNumber) {
         setSelectionDialogOpen(true);
         return;
     }
 
-    const targetWhatsapp = whatsappNumber || (admins.length > 0 ? admins[0].whatsapp : undefined);
+    const targetWhatsapp = whatsappNumber || (contacts.length > 0 ? contacts[0].whatsapp : undefined);
     if (!targetWhatsapp) {
         toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
         return;
@@ -99,20 +99,20 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
           <div className="space-y-2">
             <Label>Pilih Admin untuk Konfirmasi</Label>
             <div className="space-y-2">
-                {admins.length === 0 && (
+                {contacts.length === 0 && (
                     <p className="text-sm text-center text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-md">
                         Saat ini tidak ada Admin yang tersedia untuk dihubungi. Silakan coba lagi nanti.
                     </p>
                 )}
                 
-                {admins.length > 0 && admins.length <= 2 && admins.map(admin => (
-                     <Button key={admin.whatsapp} onClick={() => handleConfirmation(admin.whatsapp)} disabled={loading || !bankName || !accountHolder} className="w-full justify-between">
-                        <span>Konfirmasi ke {admin.name}</span>
+                {contacts.length > 0 && contacts.length <= 2 && contacts.map(contact => (
+                     <Button key={contact.id} onClick={() => handleConfirmation(contact.whatsapp)} disabled={loading || !bankName || !accountHolder} className="w-full justify-between">
+                        <span>Konfirmasi ke {contact.name}</span>
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>
                 ))}
 
-                {admins.length > 2 && (
+                {contacts.length > 2 && (
                     <Button onClick={() => handleConfirmation()} disabled={loading || !bankName || !accountHolder} className="w-full">
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                         Pilih Admin & Konfirmasi
@@ -131,19 +131,19 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-4">
-            {admins.map((admin) => (
+            {contacts.map((contact) => (
               <Button
-                key={admin.whatsapp}
+                key={contact.id}
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => handleConfirmation(admin.whatsapp)}
+                onClick={() => handleConfirmation(contact.whatsapp)}
                 disabled={loading}
               >
                 {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                  ) : (
                     <>
-                        <span>{admin.name}</span>
+                        <span>{contact.name}</span>
                         <Send className="h-4 w-4" />
                     </>
                  )}
@@ -210,7 +210,7 @@ export default function UpgradePage() {
   const { user, loading: userLoading } = useAuth();
   const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
-  const [admins, setAdmins] = useState<{ name: string; whatsapp: string; }[]>([]);
+  const [confirmationContacts, setConfirmationContacts] = useState<ConfirmationContact[]>([]);
   const { toast } = useToast();
   
   const refreshRequestStatus = () => {
@@ -226,17 +226,12 @@ export default function UpgradePage() {
         refreshRequestStatus();
       }
       
-      const adminUsers = getAllUsers()
-        .filter(u => u.role === 'admin' && u.whatsapp && u.whatsapp.trim() !== '')
-        .map(u => {
-          let formattedNumber = u.whatsapp!.trim().replace(/[^0-9]/g, '');
-          if (formattedNumber.startsWith('0')) {
-            formattedNumber = '62' + formattedNumber.substring(1);
-          }
-          return { name: u.name, whatsapp: formattedNumber };
-        });
+      const contacts = getConfirmationContacts().map(c => ({
+          ...c,
+          whatsapp: c.whatsapp.replace(/[^0-9]/g, '')
+      }));
 
-      setAdmins(adminUsers);
+      setConfirmationContacts(contacts);
       setPaymentAccounts(getPaymentSettings());
     }
   }, [user, userLoading]);
@@ -340,7 +335,7 @@ export default function UpgradePage() {
                         </AlertDescription>
                     </Alert>
                 </div>
-                <UpgradeForm onSubmitted={refreshRequestStatus} admins={admins} />
+                <UpgradeForm onSubmitted={refreshRequestStatus} contacts={confirmationContacts} />
               </>
             )}
 

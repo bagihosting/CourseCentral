@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -12,6 +12,7 @@ interface Database {
   enrollments: Enrollment[];
   upgradeRequests: UpgradeRequest[];
   paymentSettings: PaymentAccount[];
+  confirmationContacts: ConfirmationContact[];
   seoSettings: SeoSettings;
   landingPageSettings: LandingPageSettings;
   testimonials: Testimonial[];
@@ -118,6 +119,13 @@ function getInitialData(): Database {
             accountHolder: 'Admin Aplikasi Kursus',
           }
         ],
+        confirmationContacts: [
+          {
+            id: 'cc_admin_1',
+            name: 'Admin Utama',
+            whatsapp: '6281234567890',
+          }
+        ],
         seoSettings: {
             platformName: 'Aplikasi Kursus',
             titleSuffix: '| Platform Kursus Online',
@@ -125,7 +133,7 @@ function getInitialData(): Database {
             metaKeywords: 'kursus online, belajar online, skill development, e-learning, platform edukasi',
         },
         landingPageSettings: {
-            heroHeadline: 'Kursus Online Bersertifikat untuk <span class="text-primary">Meningkatkan Karir Anda.</span>',
+            heroHeadline: '<h1>Kursus Online Bersertifikat untuk <span class="text-primary">Meningkatkan Karir Anda</span></h1>',
             heroSubheadline: 'Temukan kursus online terbaik untuk meningkatkan skill Anda. Belajar dari nol menjadi ahli dengan materi terstruktur dari instruktur profesional dan dapatkan sertifikasi online terpercaya.',
             features: [
               {
@@ -208,6 +216,7 @@ function getDB(): Database {
         if (!data.enrollments) data.enrollments = [];
         if (!data.upgradeRequests) data.upgradeRequests = [];
         if (!data.testimonials) data.testimonials = [];
+        if (!data.confirmationContacts) data.confirmationContacts = [];
         if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
           data.paymentSettings = [
             {
@@ -717,6 +726,51 @@ export function deletePaymentAccount(accountId: string): void {
   db.paymentSettings = db.paymentSettings.filter(acc => acc.id !== accountId);
   if (db.paymentSettings.length === initialLength) {
     throw new Error('Gagal menghapus akun pembayaran, ID tidak ditemukan.');
+  }
+  saveDB(db);
+}
+
+// --- Confirmation Contacts API ---
+
+export function getConfirmationContacts(): ConfirmationContact[] {
+  const db = getDB();
+  return db.confirmationContacts;
+}
+
+export function addConfirmationContact(contact: Omit<ConfirmationContact, 'id'>): ConfirmationContact {
+  const db = getDB();
+  const newContact: ConfirmationContact = {
+    ...contact,
+    whatsapp: contact.whatsapp.replace(/[^0-9]/g, ''),
+    id: `cc_${Date.now()}`,
+  };
+  db.confirmationContacts.push(newContact);
+  saveDB(db);
+  return newContact;
+}
+
+export function updateConfirmationContact(contactId: string, data: Partial<Omit<ConfirmationContact, 'id'>>): ConfirmationContact {
+  const db = getDB();
+  const contactIndex = db.confirmationContacts.findIndex(c => c.id === contactId);
+  if (contactIndex === -1) {
+    throw new Error('Kontak tidak ditemukan.');
+  }
+  const updatePayload = { ...data };
+  if (typeof updatePayload.whatsapp === 'string') {
+      updatePayload.whatsapp = updatePayload.whatsapp.replace(/[^0-9]/g, '');
+  }
+  const updatedContact = { ...db.confirmationContacts[contactIndex], ...updatePayload };
+  db.confirmationContacts[contactIndex] = updatedContact;
+  saveDB(db);
+  return updatedContact;
+}
+
+export function deleteConfirmationContact(contactId: string): void {
+  const db = getDB();
+  const initialLength = db.confirmationContacts.length;
+  db.confirmationContacts = db.confirmationContacts.filter(c => c.id !== contactId);
+  if (db.confirmationContacts.length === initialLength) {
+    throw new Error('Gagal menghapus kontak, ID tidak ditemukan.');
   }
   saveDB(db);
 }

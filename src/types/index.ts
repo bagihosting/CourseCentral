@@ -58,6 +58,12 @@ export type PaymentAccount = {
   accountHolder: string;
 };
 
+export type ConfirmationContact = {
+  id: string;
+  name: string;
+  whatsapp: string;
+};
+
 export type SeoSettings = {
   platformName: string;
   titleSuffix: string;
