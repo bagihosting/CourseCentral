@@ -58,6 +58,7 @@ export type PaymentAccount = {
 };
 
 export type SeoSettings = {
+  platformName: string;
   titleSuffix: string;
   metaDescription: string;
   metaKeywords: string;

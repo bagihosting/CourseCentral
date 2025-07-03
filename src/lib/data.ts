@@ -112,6 +112,7 @@ function getInitialData(): Database {
           }
         ],
         seoSettings: {
+            platformName: 'Aplikasi Kursus',
             titleSuffix: '| Platform Kursus Online',
             metaDescription: 'Platform kursus online terbaik untuk meningkatkan skill Anda dalam berbagai bidang. Belajar dari para ahli dengan kurikulum terstruktur.',
             metaKeywords: 'kursus online, belajar online, skill development, e-learning, platform edukasi',
@@ -162,7 +163,12 @@ function getDB(): Database {
             }
           ];
         }
-        if (!data.seoSettings) data.seoSettings = getInitialData().seoSettings;
+        if (!data.seoSettings) {
+            data.seoSettings = getInitialData().seoSettings;
+        }
+        if (typeof data.seoSettings.platformName === 'undefined') {
+            data.seoSettings.platformName = getInitialData().seoSettings.platformName;
+        }
 
 
         // --- Start of robust self-healing and security patch logic ---

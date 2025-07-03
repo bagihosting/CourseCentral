@@ -81,9 +81,12 @@ export default function CourseSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setFormOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PaymentAccount | undefined>(undefined);
+  
   const [isSavingSeo, setIsSavingSeo] = useState(false);
   const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
-  const [platformName, setPlatformName] = useState('Aplikasi Kursus');
+  const [isSavingGeneral, setIsSavingGeneral] = useState(false);
+  
+  const [platformName, setPlatformName] = useState('');
   const { toast } = useToast();
 
   const refreshPaymentAccounts = () => {
@@ -93,7 +96,9 @@ export default function CourseSettingsPage() {
 
   useEffect(() => {
     refreshPaymentAccounts();
-    setSeoSettings(getSeoSettings());
+    const settings = getSeoSettings();
+    setSeoSettings(settings);
+    setPlatformName(settings.platformName);
     setLoading(false);
   }, []);
 
@@ -149,6 +154,23 @@ export default function CourseSettingsPage() {
     } else {
         setSeoSettings(prev => ({...prev!, titleSuffix: result.titleSuffix}));
         toast({ title: 'Sukses', description: 'Saran akhiran judul berhasil dibuat oleh AI.'});
+    }
+  };
+
+  const handleSaveGeneral = () => {
+    if (!platformName.trim()) {
+      toast({ title: 'Input Diperlukan', description: 'Nama platform tidak boleh kosong.', variant: 'destructive' });
+      return;
+    }
+    setIsSavingGeneral(true);
+    try {
+      updateSeoSettings({ platformName });
+      toast({ title: 'Sukses', description: 'Pengaturan umum berhasil disimpan.' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsSavingGeneral(false);
     }
   };
 
@@ -409,6 +431,12 @@ export default function CourseSettingsPage() {
               </Select>
             </div>
           </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <Button onClick={handleSaveGeneral} disabled={isSavingGeneral}>
+              {isSavingGeneral && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Simpan Pengaturan Umum
+            </Button>
+          </CardFooter>
         </Card>
       </div>
       
