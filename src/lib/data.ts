@@ -34,6 +34,7 @@ function getInitialData(): Database {
             instructor: 'Andi Bachtiar',
             price: 0,
             imageUrl: 'https://placehold.co/600x400.png',
+            accessLevel: 'public',
             modules: [
               {
                 id: 'module_1_1',
@@ -82,6 +83,7 @@ function getInitialData(): Database {
             instructor: 'Citra Dewi',
             price: 250000,
             imageUrl: 'https://placehold.co/600x400.png',
+            accessLevel: 'pro',
             modules: []
           },
           {
@@ -91,6 +93,7 @@ function getInitialData(): Database {
             instructor: 'Budi Santoso',
             price: 150000,
             imageUrl: 'https://placehold.co/600x400.png',
+            accessLevel: 'pro',
             modules: []
           },
            {
@@ -100,6 +103,7 @@ function getInitialData(): Database {
             instructor: 'Rina Kartika',
             price: 200000,
             imageUrl: 'https://placehold.co/600x400.png',
+            accessLevel: 'public',
             modules: []
           },
         ],
@@ -342,6 +346,7 @@ export function createCourse(data: Omit<Course, 'id'>): Course {
     ...data,
     id: `course_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     modules: [],
+    accessLevel: data.accessLevel || 'public',
   };
   db.courses.push(newCourse);
   saveDB(db);

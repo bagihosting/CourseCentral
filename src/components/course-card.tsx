@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Gem } from 'lucide-react';
 
 interface CourseCardProps {
   course: Course;
@@ -21,6 +22,12 @@ export function CourseCard({ course }: CourseCardProps) {
               className="object-cover rounded-t-lg"
               data-ai-hint="course topic"
             />
+            {course.accessLevel === 'pro' && (
+                <Badge className="absolute top-2 right-2 bg-violet-600 text-white border-violet-600 shadow-md">
+                    <Gem className="mr-1.5 h-3 w-3" />
+                    Pro
+                </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="flex-grow p-4">

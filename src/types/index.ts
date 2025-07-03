@@ -16,6 +16,7 @@ export type Course = {
   price: number;
   imageUrl: string;
   modules: Module[];
+  accessLevel: 'public' | 'pro';
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;

@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { Loader2, Wand2 } from 'lucide-react';
 import { generateThumbnailAction, generateDescriptionAction } from '@/actions/ai';
 import imageCompression from 'browser-image-compression';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface CourseFormProps {
   course?: Course;
@@ -35,6 +36,7 @@ export function CourseForm({ course }: CourseFormProps) {
   const [instructor, setInstructor] = useState(course?.instructor || '');
   const [price, setPrice] = useState(course?.price || 0);
   const [imageUrl, setImageUrl] = useState(course?.imageUrl || '');
+  const [accessLevel, setAccessLevel] = useState<'public' | 'pro'>(course?.accessLevel || 'public');
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +64,7 @@ export function CourseForm({ course }: CourseFormProps) {
 
     setIsSubmitting(true);
     try {
-      const courseData = { title, description, instructor, price: Number(price), imageUrl, modules: course?.modules || [] };
+      const courseData = { title, description, instructor, price: Number(price), imageUrl, accessLevel, modules: course?.modules || [] };
       if (course) {
         updateCourse(course.id, courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil diperbarui.' });
@@ -218,6 +220,24 @@ export function CourseForm({ course }: CourseFormProps) {
           <Input id="price" name="price" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} aria-describedby="price-error" />
           {errors.price && <p id="price-error" className="text-sm text-destructive">{errors.price}</p>}
         </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Tingkat Akses</Label>
+        <RadioGroup
+          value={accessLevel}
+          onValueChange={(value: 'public' | 'pro') => setAccessLevel(value)}
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="public" id="public" />
+            <Label htmlFor="public" className="font-normal">Publik (Semua Member)</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="pro" id="pro" />
+            <Label htmlFor="pro" className="font-normal">Khusus Pro</Label>
+          </div>
+        </RadioGroup>
       </div>
 
       <div className="space-y-2">

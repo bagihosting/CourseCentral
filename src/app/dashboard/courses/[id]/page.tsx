@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
 import { getCourseById, isUserEnrolled, enrollUserInCourse } from '@/lib/data';
@@ -9,12 +10,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock } from 'lucide-react';
+import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock, Gem, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import YouTube from 'react-youtube';
 import DOMPurify from 'isomorphic-dompurify';
+import { Badge } from '@/components/ui/badge';
 
 
 function getYouTubeVideoId(url: string): string | null {
@@ -248,17 +250,23 @@ export default function CoursePage() {
     const courseData = getCourseById(params.id);
     if (courseData) {
         setCourse(courseData);
-        const isEnrolled = user.role === 'admin' || isUserEnrolled(user.id, courseData.id);
-        setEnrolled(isEnrolled);
-        
-        if (isEnrolled) {
-            const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
-            const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
-            setCompletedLessons(initialCompleted);
 
-            const allLessons = courseData.modules.flatMap(m => m.lessons);
-            const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
-            setActiveLesson(firstUncompleted);
+        const canAccessPro = user.role === 'admin' || user.role === 'pro';
+        const isPublicCourse = courseData.accessLevel === 'public';
+        
+        if (canAccessPro || isPublicCourse) {
+            const isEnrolled = isUserEnrolled(user.id, courseData.id);
+            setEnrolled(isEnrolled);
+            
+            if (isEnrolled) {
+                const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
+                const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
+                setCompletedLessons(initialCompleted);
+
+                const allLessons = courseData.modules.flatMap(m => m.lessons);
+                const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
+                setActiveLesson(firstUncompleted);
+            }
         }
     } else {
         setCourse(null); // Course not found
@@ -358,14 +366,43 @@ export default function CoursePage() {
 
   const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
   const progress = totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
+  
+  const isProCourse = course.accessLevel === 'pro';
+  const canAccessPro = user?.role === 'admin' || user?.role === 'pro';
 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="grid lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3 space-y-6">
-          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">{course.title}</h1>
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight flex items-center gap-3">
+              {course.title}
+              {isProCourse && (
+                  <Badge variant="outline" className="text-violet-500 border-violet-500 text-sm bg-violet-500/10">
+                      <Gem className="mr-1.5 h-4 w-4" />
+                      Pro
+                  </Badge>
+              )}
+          </h1>
           
-          {enrolled && activeLesson ? (
+          {isProCourse && !canAccessPro ? (
+            <Card>
+                <CardContent className="p-8 text-center flex flex-col items-center">
+                    <div className="p-4 bg-violet-100 rounded-full mb-4 dark:bg-violet-900/30">
+                        <Gem className="h-10 w-10 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold">Ini adalah Kursus Pro</h3>
+                    <p className="mt-2 text-md text-muted-foreground max-w-md">
+                        Upgrade ke akun Pro untuk mendapatkan akses instan ke kursus ini dan semua kursus premium lainnya.
+                    </p>
+                    <Button asChild className="mt-6" size="lg">
+                        <Link href="/dashboard/upgrade">
+                            <Sparkles className="mr-2" />
+                            Upgrade ke Pro Sekarang
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+          ) : enrolled && activeLesson ? (
             <LessonDisplay 
               lesson={activeLesson}
               onComplete={handleMarkAsComplete}
@@ -417,7 +454,12 @@ export default function CoursePage() {
               <CardTitle>Isi Kursus</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {course.modules.length > 0 ? (
+               {isProCourse && !canAccessPro ? (
+                  <div className="p-6 text-center text-muted-foreground">
+                      <Lock className="h-6 w-6 mx-auto mb-2" />
+                      Upgrade ke Pro untuk melihat kurikulum.
+                  </div>
+              ) : course.modules.length > 0 ? (
                 enrolled ? (
                     <CourseContentDisplay
                     modules={course.modules}
