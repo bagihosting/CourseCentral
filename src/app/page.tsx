@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpenCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { getSeoSettings } from '@/lib/data';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -106,6 +107,15 @@ function RegisterForm() {
 }
 
 export default function AuthPage() {
+  const [platformName, setPlatformName] = useState('Aplikasi Kursus');
+
+  useEffect(() => {
+    const settings = getSeoSettings();
+    if (settings && settings.platformName) {
+        setPlatformName(settings.platformName);
+    }
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -113,7 +123,7 @@ export default function AuthPage() {
           <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
             <BookOpenCheck className="h-10 w-10 text-primary-foreground" />
           </div>
-          <h1 className="text-5xl font-bold tracking-tight text-foreground">Aplikasi Kursus</h1>
+          <h1 className="text-5xl font-bold tracking-tight text-foreground">{platformName}</h1>
           <p className="mt-4 text-lg text-muted-foreground">
             Masuk untuk mulai belajar atau mendaftar jika Anda pengguna baru.
           </p>

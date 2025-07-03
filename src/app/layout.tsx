@@ -1,21 +1,26 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
+import { useEffect } from 'react';
+import { getSeoSettings } from '@/lib/data';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
-
-export const metadata: Metadata = {
-  title: 'Aplikasi Saya',
-  description: 'Aplikasi Next.js yang dibuat dengan Firebase Studio.',
-};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    const settings = getSeoSettings();
+    if (settings) {
+      document.title = `${settings.platformName} ${settings.titleSuffix || ''}`.trim();
+    }
+  }, []);
+
   return (
     <html lang="id" suppressHydrationWarning>
       <body className={`${inter.variable} font-body antialiased`}>

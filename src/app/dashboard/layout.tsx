@@ -27,11 +27,13 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getSeoSettings } from '@/lib/data';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [platformName, setPlatformName] = useState('Aplikasi Saya');
 
   const memberNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
@@ -58,6 +60,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/');
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    const settings = getSeoSettings();
+    if (settings && settings.platformName) {
+        setPlatformName(settings.platformName);
+    }
+  }, []);
 
   if (loading || !user) {
     return (
@@ -92,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <BookOpenCheck className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-sidebar-foreground">Aplikasi Saya</span>
+            <span className="text-lg font-semibold text-sidebar-foreground">{platformName}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
