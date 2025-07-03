@@ -10,12 +10,12 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const GenerateTitleSuffixInputSchema = z.object({
+const GenerateTitleSuffixInputSchema = z.object({
   platformName: z.string().describe('The name of the online course platform.'),
   platformDescription: z.string().describe('The global meta description of the platform, providing context about its focus.'),
 });
 
-export const GenerateTitleSuffixOutputSchema = z.object({
+const GenerateTitleSuffixOutputSchema = z.object({
   titleSuffix: z.string().describe('An SEO-optimized title suffix, starting with a separator like " | " or " - ", under 60 characters total, designed to rank high with low competition.'),
 });
 
