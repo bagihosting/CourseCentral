@@ -66,13 +66,10 @@ const editWebAppFlow = ai.defineFlow(
     outputSchema: EditWebAppOutputSchema,
   },
   async (input) => {
-    // Genkit prompt expects a flat object, so we stringify the files array.
-    const augmentedInput = {
-      editRequest: input.editRequest,
-      files: JSON.stringify(input.files),
-    };
-
-    const { output } = await prompt(augmentedInput);
+    // Pass the input object directly.
+    // The {{{files}}} syntax in the prompt template will automatically convert
+    // the files array into a JSON string for the LLM.
+    const { output } = await prompt(input);
     
     if (!output) {
       throw new Error('Web application editing failed.');
