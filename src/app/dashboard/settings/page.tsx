@@ -166,6 +166,12 @@ export default function SettingsPage() {
     }
   };
 
+  const validatePassword = (password: string): boolean => {
+    // Requires 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    return passwordRegex.test(password);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -187,8 +193,15 @@ export default function SettingsPage() {
         };
 
         if (password.trim() !== '') {
-            if (password.length < 6) {
-                throw new Error("Kata sandi minimal 6 karakter.");
+            if (!validatePassword(password)) {
+                toast({
+                    title: 'Kata Sandi Lemah',
+                    description: 'Kata sandi baru Anda tidak memenuhi persyaratan keamanan.',
+                    variant: 'destructive',
+                    duration: 7000,
+                });
+                setIsSubmitting(false);
+                return;
             }
             updateData.password = password;
         }
@@ -306,6 +319,9 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="password">Kata Sandi Baru</Label>
                             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                            <p className="text-xs text-muted-foreground">
+                                Minimal 8 karakter, mengandung huruf besar, huruf kecil, angka, dan karakter khusus.
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi Baru</Label>
