@@ -37,7 +37,6 @@ import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { uploadVideoAction } from '@/actions/files';
 
 type FormErrors = {
     title?: string;
@@ -117,21 +116,45 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
         if (!file) return;
 
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('video', file);
+        
+        const allowedTypes = ['video/', 'application/zip', 'application/x-zip-compressed'];
+        if (!allowedTypes.some(type => file.type.startsWith(type))) {
+            toast({ title: 'Gagal', description: 'Hanya file video atau ZIP yang diizinkan.', variant: 'destructive' });
+            setIsUploading(false);
+            return;
+        }
 
-        const result = await uploadVideoAction(formData);
+        const maxSizeInBytes = 100 * 1024 * 1024; 
+        if (file.size > maxSizeInBytes) {
+            toast({ title: 'Gagal', description: `Ukuran file tidak boleh melebihi ${maxSizeInBytes / 1024 / 1024}MB.`, variant: 'destructive' });
+            setIsUploading(false);
+            return;
+        }
 
-        setIsUploading(false);
-        if (result.error) {
-            toast({ title: 'Gagal Mengunggah', description: result.error, variant: 'destructive' });
-        } else if (result.videoUrl) {
-            setContentUrl(result.videoUrl);
-            setType('video');
-            toast({ title: 'Sukses', description: 'Video berhasil diunggah.' });
+        try {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setContentUrl(dataUrl);
+                if (file.type.startsWith('video/')) {
+                    setType('video');
+                } else {
+                    setType('zip');
+                }
+                setIsUploading(false);
+                toast({ title: 'Sukses', description: 'File berhasil dibaca dan siap disimpan.' });
+            };
+            reader.onerror = () => {
+                setIsUploading(false);
+                toast({ title: 'Gagal Membaca File', description: 'Terjadi kesalahan saat membaca file.', variant: 'destructive' });
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            setIsUploading(false);
+            const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+            toast({ title: 'Gagal', description: errorMessage, variant: 'destructive' });
         }
         
-        // Reset file input
         if(fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -218,12 +241,12 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="video-upload">Unggah Video (Maks 100MB)</Label>
+            <Label htmlFor="file-upload">Unggah File (Video/ZIP, Maks 100MB)</Label>
             <div className="flex gap-2">
-                <Input id="video-upload" type="file" accept="video/*" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading} className="flex-grow" />
+                <Input id="file-upload" type="file" accept="video/*,application/zip,application/x-zip-compressed" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading} className="flex-grow" />
                 {isUploading && <Button disabled variant="outline" size="icon"><Loader2 className="animate-spin" /></Button>}
             </div>
-            <p className="text-xs text-muted-foreground">Mengunggah video akan otomatis mengatur tipe pelajaran ke "Video (URL Langsung)" dan mengisi URL-nya.</p>
+            <p className="text-xs text-muted-foreground">Mengunggah file akan otomatis mengatur tipe pelajaran dan mengisi URL-nya.</p>
         </div>
 
 
