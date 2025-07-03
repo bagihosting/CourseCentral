@@ -17,6 +17,7 @@ import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInpu
 import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from '@/ai/flows/edit-web-app';
 import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
+import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInput, GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
 
 
 export async function generateThumbnailAction(
@@ -284,5 +285,21 @@ export async function generateCourseSeoAction(
   } catch (error) {
     console.error('Error generating course SEO:', error);
     return { error: 'Gagal membuat optimasi SEO. Silakan coba lagi.' };
+  }
+}
+
+export async function generateTitleSuffixAction(
+  input: GenerateTitleSuffixInput
+): Promise<GenerateTitleSuffixOutput | { error: string }> {
+  if (!input.platformName || !input.platformDescription) {
+    return { error: 'Nama platform dan deskripsi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateTitleSuffixFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating title suffix:', error);
+    return { error: 'Gagal membuat akhiran judul SEO. Silakan coba lagi.' };
   }
 }

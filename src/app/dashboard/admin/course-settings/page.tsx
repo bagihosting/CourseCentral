@@ -13,9 +13,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings } from '@/lib/data';
 import type { PaymentAccount, SeoSettings } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Pencil, Trash2, Globe } from 'lucide-react';
+import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { generateTitleSuffixAction } from '@/actions/ai';
 
 
 function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount, onFinished: () => void }) {
@@ -81,6 +82,8 @@ export default function CourseSettingsPage() {
   const [isFormOpen, setFormOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PaymentAccount | undefined>(undefined);
   const [isSavingSeo, setIsSavingSeo] = useState(false);
+  const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
+  const [platformName, setPlatformName] = useState('Aplikasi Kursus');
   const { toast } = useToast();
 
   const refreshPaymentAccounts = () => {
@@ -126,6 +129,26 @@ export default function CourseSettingsPage() {
       toast({ title: 'Gagal Menyimpan SEO', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsSavingSeo(false);
+    }
+  };
+  
+  const handleGenerateTitleSuffix = async () => {
+    if (!platformName || !seoSettings?.metaDescription) {
+        toast({ title: 'Input Diperlukan', description: 'Nama platform dan deskripsi meta global harus diisi.', variant: 'destructive' });
+        return;
+    }
+    setIsGeneratingSuffix(true);
+    const result = await generateTitleSuffixAction({
+        platformName: platformName,
+        platformDescription: seoSettings.metaDescription
+    });
+    setIsGeneratingSuffix(false);
+
+    if('error' in result) {
+        toast({ title: 'Gagal Membuat Akhiran Judul', description: result.error, variant: 'destructive'});
+    } else {
+        setSeoSettings(prev => ({...prev!, titleSuffix: result.titleSuffix}));
+        toast({ title: 'Sukses', description: 'Saran akhiran judul berhasil dibuat oleh AI.'});
     }
   };
 
@@ -307,13 +330,26 @@ export default function CourseSettingsPage() {
             <>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="titleSuffix">Akhiran Judul (Title Suffix)</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="titleSuffix">Akhiran Judul (Title Suffix)</Label>
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-sm"
+                        onClick={handleGenerateTitleSuffix}
+                        disabled={isGeneratingSuffix || !platformName || !seoSettings.metaDescription}
+                    >
+                        {isGeneratingSuffix ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        Buat dengan AI
+                    </Button>
+                  </div>
                   <Input
                     id="titleSuffix"
                     name="titleSuffix"
                     value={seoSettings.titleSuffix}
                     onChange={(e) => setSeoSettings(prev => ({...prev!, titleSuffix: e.target.value}))}
                     placeholder="| Nama Platform Anda"
+                    disabled={isGeneratingSuffix}
                   />
                   <p className="text-xs text-muted-foreground">Teks ini akan ditambahkan di akhir setiap judul halaman.</p>
                 </div>
@@ -341,7 +377,7 @@ export default function CourseSettingsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t px-6 py-4">
-                <Button onClick={handleSaveSeo} disabled={isSavingSeo}>
+                <Button onClick={handleSaveSeo} disabled={isSavingSeo || isGeneratingSuffix}>
                   {isSavingSeo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Simpan Pengaturan SEO
                 </Button>
@@ -358,7 +394,7 @@ export default function CourseSettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="platform-name">Nama Platform</Label>
-              <Input id="platform-name" defaultValue="Aplikasi Kursus" />
+              <Input id="platform-name" value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="language">Bahasa Default</Label>
