@@ -176,70 +176,120 @@ export default function CourseSettingsPage() {
         </div>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle>Pengaturan Pembayaran</CardTitle>
               <CardDescription>
                 Konfigurasi rekening bank untuk menerima pembayaran upgrade ke Pro.
               </CardDescription>
             </div>
-            <Button onClick={() => handleOpenForm()}>
+            <Button onClick={() => handleOpenForm()} className="w-full md:w-auto">
               <PlusCircle className="mr-2" />
               Tambah Akun
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama Bank</TableHead>
-                  <TableHead>Nomor Rekening</TableHead>
-                  <TableHead>Atas Nama</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paymentAccounts.length > 0 ? (
-                  paymentAccounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.bankName}</TableCell>
-                      <TableCell>{account.accountNumber}</TableCell>
-                      <TableCell>{account.accountHolder}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(account)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon" className="h-8 w-8">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tindakan ini tidak dapat dibatalkan. Akun pembayaran ini akan dihapus secara permanen.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(account.id)}>Hapus</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
+            {/* Desktop View: Table */}
+            <div className="hidden md:block">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Nama Bank</TableHead>
+                    <TableHead>Nomor Rekening</TableHead>
+                    <TableHead>Atas Nama</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
-                  ))
+                </TableHeader>
+                <TableBody>
+                    {paymentAccounts.length > 0 ? (
+                    paymentAccounts.map((account) => (
+                        <TableRow key={account.id}>
+                        <TableCell className="font-medium">{account.bankName}</TableCell>
+                        <TableCell>{account.accountNumber}</TableCell>
+                        <TableCell>{account.accountHolder}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(account)}>
+                            <Pencil className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" className="h-8 w-8">
+                                <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Tindakan ini tidak dapat dibatalkan. Akun pembayaran ini akan dihapus secara permanen.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(account.id)}>Hapus</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                            </AlertDialog>
+                        </TableCell>
+                        </TableRow>
+                    ))
+                    ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                        Belum ada akun pembayaran.
+                        </TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
+
+            {/* Mobile View: Cards */}
+            <div className="md:hidden space-y-4">
+                {paymentAccounts.length > 0 ? (
+                paymentAccounts.map((account) => (
+                    <Card key={account.id}>
+                        <CardContent className="p-4">
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="space-y-1">
+                                    <p className="font-semibold">{account.bankName}</p>
+                                    <p className="text-sm text-muted-foreground font-mono">{account.accountNumber}</p>
+                                    <p className="text-sm text-muted-foreground">{account.accountHolder}</p>
+                                </div>
+                                <div className="flex shrink-0 space-x-2">
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(account)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="icon" className="h-8 w-8">
+                                        <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Tindakan ini tidak dapat dibatalkan. Akun pembayaran ini akan dihapus secara permanen.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(account.id)}>Hapus</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      Belum ada akun pembayaran.
-                    </TableCell>
-                  </TableRow>
+                <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+                    Belum ada akun pembayaran.
+                </div>
                 )}
-              </TableBody>
-            </Table>
+            </div>
           </CardContent>
         </Card>
 
