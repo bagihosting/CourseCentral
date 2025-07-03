@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { generateTitleSuffixAction } from '@/actions/ai';
+import { generateTitleSuffixAction, generateMetaDescriptionAction } from '@/actions/ai';
 
 
 function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount, onFinished: () => void }) {
@@ -84,6 +84,7 @@ export default function CourseSettingsPage() {
   
   const [isSavingSeo, setIsSavingSeo] = useState(false);
   const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
   
   const [platformName, setPlatformName] = useState('');
@@ -154,6 +155,26 @@ export default function CourseSettingsPage() {
     } else {
         setSeoSettings(prev => ({...prev!, titleSuffix: result.titleSuffix}));
         toast({ title: 'Sukses', description: 'Saran akhiran judul berhasil dibuat oleh AI.'});
+    }
+  };
+
+  const handleGenerateMetaDescription = async () => {
+    if (!platformName || !seoSettings?.titleSuffix) {
+        toast({ title: 'Input Diperlukan', description: 'Nama platform dan akhiran judul SEO harus diisi.', variant: 'destructive' });
+        return;
+    }
+    setIsGeneratingDesc(true);
+    const result = await generateMetaDescriptionAction({
+        platformName: platformName,
+        titleSuffix: seoSettings.titleSuffix
+    });
+    setIsGeneratingDesc(false);
+
+    if('error' in result) {
+        toast({ title: 'Gagal Membuat Deskripsi', description: result.error, variant: 'destructive'});
+    } else {
+        setSeoSettings(prev => ({...prev!, metaDescription: result.metaDescription}));
+        toast({ title: 'Sukses', description: 'Deskripsi meta global berhasil dibuat oleh AI.'});
     }
   };
 
@@ -376,13 +397,26 @@ export default function CourseSettingsPage() {
                   <p className="text-xs text-muted-foreground">Teks ini akan ditambahkan di akhir setiap judul halaman.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="metaDescription">Deskripsi Meta Global</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="metaDescription">Deskripsi Meta Global</Label>
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-sm"
+                        onClick={handleGenerateMetaDescription}
+                        disabled={isGeneratingDesc || !platformName || !seoSettings.titleSuffix}
+                    >
+                        {isGeneratingDesc ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        Buat dengan AI
+                    </Button>
+                  </div>
                   <Textarea
                     id="metaDescription"
                     name="metaDescription"
                     value={seoSettings.metaDescription}
                     onChange={(e) => setSeoSettings(prev => ({...prev!, metaDescription: e.target.value}))}
                     rows={3}
+                    disabled={isGeneratingDesc}
                   />
                   <p className="text-xs text-muted-foreground">Deskripsi default untuk halaman yang tidak memiliki deskripsi khusus (150-160 karakter).</p>
                 </div>
@@ -399,7 +433,7 @@ export default function CourseSettingsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t px-6 py-4">
-                <Button onClick={handleSaveSeo} disabled={isSavingSeo || isGeneratingSuffix}>
+                <Button onClick={handleSaveSeo} disabled={isSavingSeo || isGeneratingSuffix || isGeneratingDesc}>
                   {isSavingSeo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Simpan Pengaturan SEO
                 </Button>

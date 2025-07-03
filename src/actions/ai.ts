@@ -18,6 +18,7 @@ import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebA
 import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from '@/ai/flows/edit-web-app';
 import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
 import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInput, GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
+import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 
 
 export async function generateThumbnailAction(
@@ -301,5 +302,21 @@ export async function generateTitleSuffixAction(
   } catch (error) {
     console.error('Error generating title suffix:', error);
     return { error: 'Gagal membuat akhiran judul SEO. Silakan coba lagi.' };
+  }
+}
+
+export async function generateMetaDescriptionAction(
+  input: GenerateMetaDescriptionInput
+): Promise<GenerateMetaDescriptionOutput | { error: string }> {
+  if (!input.platformName || !input.titleSuffix) {
+    return { error: 'Nama platform dan akhiran judul tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateMetaDescriptionFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating meta description:', error);
+    return { error: 'Gagal membuat deskripsi meta. Silakan coba lagi.' };
   }
 }
