@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,11 +10,13 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount } from '@/lib/data';
-import type { PaymentAccount } from '@/types';
+import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings } from '@/lib/data';
+import type { PaymentAccount, SeoSettings } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Pencil, Trash2, Globe } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+
 
 function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount, onFinished: () => void }) {
     const [bankName, setBankName] = useState(account?.bankName || '');
@@ -74,9 +76,11 @@ function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount,
 
 export default function CourseSettingsPage() {
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [seoSettings, setSeoSettings] = useState<SeoSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setFormOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PaymentAccount | undefined>(undefined);
+  const [isSavingSeo, setIsSavingSeo] = useState(false);
   const { toast } = useToast();
 
   const refreshPaymentAccounts = () => {
@@ -86,6 +90,7 @@ export default function CourseSettingsPage() {
 
   useEffect(() => {
     refreshPaymentAccounts();
+    setSeoSettings(getSeoSettings());
     setLoading(false);
   }, []);
 
@@ -107,6 +112,20 @@ export default function CourseSettingsPage() {
     } catch (error) {
        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handleSaveSeo = () => {
+    if (!seoSettings) return;
+    setIsSavingSeo(true);
+    try {
+      updateSeoSettings(seoSettings);
+      toast({ title: 'Sukses', description: 'Pengaturan SEO berhasil disimpan.' });
+    } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Menyimpan SEO', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsSavingSeo(false);
     }
   };
 
@@ -138,23 +157,6 @@ export default function CourseSettingsPage() {
                     <Skeleton className="h-4 w-64" />
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-40 mb-2" />
-                    <Skeleton className="h-4 w-56" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <Skeleton className="h-16 w-full" />
                     <div className="space-y-2">
                         <Skeleton className="h-4 w-24" />
                         <Skeleton className="h-10 w-full" />
@@ -243,6 +245,63 @@ export default function CourseSettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              Pengaturan SEO
+            </CardTitle>
+            <CardDescription>
+              Kelola metadata global untuk optimisasi mesin pencari (SEO).
+            </CardDescription>
+          </CardHeader>
+          {seoSettings && (
+            <>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="titleSuffix">Akhiran Judul (Title Suffix)</Label>
+                  <Input
+                    id="titleSuffix"
+                    name="titleSuffix"
+                    value={seoSettings.titleSuffix}
+                    onChange={(e) => setSeoSettings(prev => ({...prev!, titleSuffix: e.target.value}))}
+                    placeholder="| Nama Platform Anda"
+                  />
+                  <p className="text-xs text-muted-foreground">Teks ini akan ditambahkan di akhir setiap judul halaman.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="metaDescription">Deskripsi Meta Global</Label>
+                  <Textarea
+                    id="metaDescription"
+                    name="metaDescription"
+                    value={seoSettings.metaDescription}
+                    onChange={(e) => setSeoSettings(prev => ({...prev!, metaDescription: e.target.value}))}
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">Deskripsi default untuk halaman yang tidak memiliki deskripsi khusus (150-160 karakter).</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="metaKeywords">Kata Kunci Meta Global</Label>
+                  <Input
+                    id="metaKeywords"
+                    name="metaKeywords"
+                    value={seoSettings.metaKeywords}
+                    onChange={(e) => setSeoSettings(prev => ({...prev!, metaKeywords: e.target.value}))}
+                    placeholder="kursus online, belajar, skill"
+                  />
+                  <p className="text-xs text-muted-foreground">Pisahkan kata kunci dengan koma.</p>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t px-6 py-4">
+                <Button onClick={handleSaveSeo} disabled={isSavingSeo}>
+                  {isSavingSeo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Simpan Pengaturan SEO
+                </Button>
+              </CardFooter>
+            </>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Pengaturan Umum</CardTitle>
             <CardDescription>Konfigurasi dasar untuk platform Anda.</CardDescription>
           </CardHeader>
@@ -263,56 +322,8 @@ export default function CourseSettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Mata Uang Default</Label>
-              <Select defaultValue="idr">
-                <SelectTrigger id="currency">
-                  <SelectValue placeholder="Pilih mata uang" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="idr">IDR - Rupiah Indonesia</SelectItem>
-                  <SelectItem value="usd">USD - United States Dollar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Pengaturan AI</CardTitle>
-            <CardDescription>Kelola fitur berbasis kecerdasan buatan.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <Label htmlFor="ai-recommendations" className="font-semibold">Aktifkan Rekomendasi AI</Label>
-                <p className="text-sm text-muted-foreground">
-                  Tampilkan saran kursus yang dipersonalisasi di halaman katalog.
-                </p>
-              </div>
-              <Switch id="ai-recommendations" defaultChecked />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="ai-model">Model AI</Label>
-              <Select defaultValue="gemini-flash">
-                <SelectTrigger id="ai-model">
-                  <SelectValue placeholder="Pilih model AI" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gemini-flash">Gemini 2.0 Flash (Direkomendasikan)</SelectItem>
-                  <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button>
-            Simpan Perubahan
-          </Button>
-        </div>
       </div>
       
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>

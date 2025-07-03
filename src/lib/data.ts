@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -12,6 +12,7 @@ interface Database {
   enrollments: Enrollment[];
   upgradeRequests: UpgradeRequest[];
   paymentSettings: PaymentAccount[];
+  seoSettings: SeoSettings;
 }
 
 // --- Seed Data ---
@@ -110,6 +111,11 @@ function getInitialData(): Database {
             accountHolder: 'Admin Aplikasi Kursus',
           }
         ],
+        seoSettings: {
+            titleSuffix: '| Platform Kursus Online',
+            metaDescription: 'Platform kursus online terbaik untuk meningkatkan skill Anda dalam berbagai bidang. Belajar dari para ahli dengan kurikulum terstruktur.',
+            metaKeywords: 'kursus online, belajar online, skill development, e-learning, platform edukasi',
+        },
     };
 }
 
@@ -156,6 +162,8 @@ function getDB(): Database {
             }
           ];
         }
+        if (!data.seoSettings) data.seoSettings = getInitialData().seoSettings;
+
 
         // --- Start of robust self-healing and security patch logic ---
         const initialDbString = JSON.stringify(data);
@@ -282,7 +290,7 @@ export function createCourse(data: Omit<Course, 'id'>): Course {
   return newCourse;
 }
 
-export function updateCourse(id: string, data: Omit<Course, 'id' | 'modules'>): Course {
+export function updateCourse(id: string, data: Partial<Course>): Course {
     const db = getDB();
     const courseIndex = db.courses.findIndex(c => c.id === id);
     if (courseIndex === -1) {
@@ -599,4 +607,18 @@ export function deletePaymentAccount(accountId: string): void {
     throw new Error('Gagal menghapus akun pembayaran, ID tidak ditemukan.');
   }
   saveDB(db);
+}
+
+// --- SEO Settings API ---
+
+export function getSeoSettings(): SeoSettings {
+  const db = getDB();
+  return db.seoSettings;
+}
+
+export function updateSeoSettings(data: Partial<SeoSettings>): SeoSettings {
+  const db = getDB();
+  db.seoSettings = { ...db.seoSettings, ...data };
+  saveDB(db);
+  return db.seoSettings;
 }

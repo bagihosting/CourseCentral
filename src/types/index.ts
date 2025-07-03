@@ -16,6 +16,9 @@ export type Course = {
   price: number;
   imageUrl: string;
   modules: Module[];
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 };
 
 export type Module = {
@@ -52,4 +55,10 @@ export type PaymentAccount = {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+};
+
+export type SeoSettings = {
+  titleSuffix: string;
+  metaDescription: string;
+  metaKeywords: string;
 };
