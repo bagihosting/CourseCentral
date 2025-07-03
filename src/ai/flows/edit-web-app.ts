@@ -27,7 +27,7 @@ const EditWebAppOutputSchema = z.object({
     filePath: z.string().describe('The full path of the file within the project (e.g., "src/app/page.tsx").'),
     fileContent: z.string().describe('The complete source code or content for the file.'),
   })).describe('The updated array of files representing the web application structure.'),
-  previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes, reflecting the new changes.'),
+  previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes, reflecting the new changes, including styles from globals.css and a Tailwind CDN script.'),
 });
 
 export type EditWebAppInput = z.infer<typeof EditWebAppInputSchema>;
@@ -52,10 +52,15 @@ const prompt = ai.definePrompt({
     1.  **Analyze the Request**: Understand what the user wants to change. This could be colors in \`globals.css\`, layout or functionality in \`page.tsx\`, logic in the \`use-local-storage.ts\` hook, or dependencies in \`package.json\`.
     2.  **Modify the Code**: Apply the requested changes to the provided file contents. You may need to modify multiple files to fulfill one request. For example, adding a "due date" field might require changing the data structure in \`page.tsx\` and updating the form in the UI.
     3.  **Return All Files**: You MUST return the complete content for ALL original files, even if you didn't modify them. The output \`files\` array must contain all the original files, including \`.env\` and \`src/hooks/use-local-storage.ts\`.
-    4.  **Update Preview**: After modifying the files, generate a new \`previewHtml\`. This should be a single, self-contained HTML document that visually represents the updated \`src/app/page.tsx\` and includes the styles from \`src/app/globals.css\` in a \`<style>\` tag, plus a CDN link to Tailwind CSS for utility classes. This is crucial for the user to see the result of their edit.
+    4.  **Update Preview**: After modifying the files, generate a new \`previewHtml\`. This must be a single, self-contained HTML document that visually represents the updated \`src/app/page.tsx\`. To make it a realistic preview, you MUST:
+        a.  Create a full HTML structure (\`<html><head>...</head><body>...</body></html>\`).
+        b.  In the \`<head>\`, add a \`<script src="https://cdn.tailwindcss.com"></script>\` tag to enable Tailwind utility classes.
+        c.  In the \`<head>\`, copy the entire content of the updated \`globals.css\` file and place it inside a \`<style>\` tag.
+        d.  In the \`<body>\`, convert the JSX from the updated \`page.tsx\` into plain HTML.
+        This is crucial for the user to see the result of their edit.
 
     **Original Files to Modify (in JSON format):**
-    {{{files}}}
+    {{{json files}}}
   `,
 });
 
@@ -66,9 +71,6 @@ const editWebAppFlow = ai.defineFlow(
     outputSchema: EditWebAppOutputSchema,
   },
   async (input) => {
-    // Pass the input object directly.
-    // The {{{files}}} syntax in the prompt template will automatically convert
-    // the files array into a JSON string for the LLM.
     const { output } = await prompt(input);
     
     if (!output) {

@@ -21,7 +21,7 @@ const GenerateWebAppOutputSchema = z.object({
     filePath: z.string().describe('The full path of the file within the project (e.g., "src/app/page.tsx").'),
     fileContent: z.string().describe('The complete source code or content for the file.'),
   })).describe('An array of files representing the generated web application structure.'),
-  previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes. It should include styles from globals.css inside a <style> tag.'),
+  previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes. It should include styles from globals.css inside a <style> tag and a Tailwind CDN script.'),
 });
 
 export type GenerateWebAppInput = z.infer<typeof GenerateWebAppInputSchema>;
@@ -92,7 +92,7 @@ const prompt = ai.definePrompt({
               useEffect(() => {
                 if (typeof window === 'undefined') return;
                 try {
-                  const valueToStore = value instanceof Function ? value(storedValue) : storedValue;
+                  const valueToStore = storedValue instanceof Function ? storedValue(storedValue) : storedValue;
                   window.localStorage.setItem(key, JSON.stringify(valueToStore));
                 } catch (error) {
                   console.log(error);
@@ -116,7 +116,11 @@ const prompt = ai.definePrompt({
 
     **ADDITIONAL CRITICAL INSTRUCTION:**
 
-    9.  **Generate \\\`previewHtml\\\`**: After generating all the files, create one additional piece of data: \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a static preview of \\\`src/app/page.tsx\\\`. Include the CSS from \\\`globals.css\\\` inside a \\\`<style>\\\` tag and add a Tailwind CDN link. Convert the JSX into plain HTML to create a reasonable visual preview.
+    9.  **Generate \\\`previewHtml\\\`**: After generating all files, create the \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a realistic static preview of \\\`src/app/page.tsx\\\`. To do this, you MUST:
+        a.  Create a full HTML structure (\`<html><head>...</head><body>...</body></html>\`).
+        b.  In the \`<head>\`, add a \`<script src="https://cdn.tailwindcss.com"></script>\` tag to enable Tailwind utility classes.
+        c.  In the \`<head>\`, copy the entire content of the generated \`globals.css\` file and place it inside a \`<style>\` tag.
+        d.  In the \`<body>\`, convert the JSX from \`page.tsx\` into plain HTML. Use realistic placeholder content for dynamic parts of the UI. This preview is crucial.
 
     **OUTPUT FORMAT:**
     Return a single JSON object matching the output schema. The \\\`files\\\` array must contain an object for each of the 8 files listed above. The \\\`previewHtml\\\` field must also be populated.
