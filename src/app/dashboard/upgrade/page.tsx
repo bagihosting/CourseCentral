@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,25 +24,23 @@ function UpgradeForm({ onSubmitted, admins }: { onSubmitted: () => void; admins:
   const [accountHolder, setAccountHolder] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSelectionDialogOpen, setSelectionDialogOpen] = useState(false);
-  const [generatedMessage, setGeneratedMessage] = useState('');
   const { toast } = useToast();
 
-  const handleAdminSelect = (whatsappNumber: string) => {
-    const encodedMessage = encodeURIComponent(generatedMessage);
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-    setSelectionDialogOpen(false);
-    toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
-    setTimeout(() => {
-        onSubmitted();
-    }, 500);
-  }
-  
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const handleConfirmation = async (whatsappNumber?: string) => {
     if (!bankName || !accountHolder || !user) {
       toast({ title: 'Form Tidak Lengkap', description: 'Harap isi semua kolom konfirmasi.', variant: 'destructive' });
       return;
+    }
+    
+    if (admins.length > 2 && !whatsappNumber) {
+        setSelectionDialogOpen(true);
+        return;
+    }
+
+    const targetWhatsapp = whatsappNumber || (admins.length > 0 ? admins[0].whatsapp : undefined);
+    if (!targetWhatsapp) {
+        toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
+        return;
     }
 
     setLoading(true);
@@ -63,19 +61,16 @@ Berikut adalah detailnya:
 Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. Terima kasih!
       `.trim();
       
-      setGeneratedMessage(message);
-
-      if (admins.length === 0) {
-        toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
-      } else if (admins.length === 1) {
-        const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${admins[0].whatsapp}?text=${encodedMessage}`;
-        window.open(whatsappUrl, '_blank');
-        toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
-        setTimeout(() => { onSubmitted(); }, 500);
-      } else {
-        setSelectionDialogOpen(true);
-      }
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${targetWhatsapp}?text=${encodedMessage}`;
+      window.open(whatsappUrl, '_blank');
+      toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
+      
+      if(isSelectionDialogOpen) setSelectionDialogOpen(false);
+      
+      setTimeout(() => {
+          onSubmitted();
+      }, 500);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
@@ -85,9 +80,10 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
     }
   };
 
+
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4 pt-4 border-t">
+      <div className="space-y-4 pt-4 border-t">
         <h3 className="text-lg font-semibold">Formulir Konfirmasi</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -99,12 +95,33 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
                   <Input id="accountHolder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} required placeholder="Contoh: Budi Sanjaya" />
               </div>
           </div>
-          <Button type="submit" disabled={loading || admins.length === 0} className="w-full">
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Konfirmasi via WhatsApp
-          </Button>
-          {admins.length === 0 && <p className="text-xs text-center text-destructive">Nomor WhatsApp Admin tidak dikonfigurasi.</p>}
-      </form>
+          
+          <div className="space-y-2">
+            <Label>Pilih Admin untuk Konfirmasi</Label>
+            <div className="space-y-2">
+                {admins.length === 0 && (
+                    <p className="text-sm text-center text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-md">
+                        Saat ini tidak ada Admin yang tersedia untuk dihubungi. Silakan coba lagi nanti.
+                    </p>
+                )}
+                
+                {admins.length > 0 && admins.length <= 2 && admins.map(admin => (
+                     <Button key={admin.whatsapp} onClick={() => handleConfirmation(admin.whatsapp)} disabled={loading || !bankName || !accountHolder} className="w-full justify-between">
+                        <span>Konfirmasi ke {admin.name}</span>
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                ))}
+
+                {admins.length > 2 && (
+                    <Button onClick={() => handleConfirmation()} disabled={loading || !bankName || !accountHolder} className="w-full">
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        Pilih Admin & Konfirmasi
+                    </Button>
+                )}
+            </div>
+          </div>
+      </div>
+      
       <Dialog open={isSelectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -119,17 +136,24 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
                 key={admin.whatsapp}
                 variant="outline"
                 className="w-full justify-between"
-                onClick={() => handleAdminSelect(admin.whatsapp)}
+                onClick={() => handleConfirmation(admin.whatsapp)}
+                disabled={loading}
               >
-                {admin.name}
-                <Send className="h-4 w-4" />
+                {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                 ) : (
+                    <>
+                        <span>{admin.name}</span>
+                        <Send className="h-4 w-4" />
+                    </>
+                 )}
               </Button>
             ))}
           </div>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
 
 function RequestStatus({ request, onCancel }: { request: UpgradeRequest, onCancel: () => void }) {
@@ -312,7 +336,7 @@ export default function UpgradePage() {
                         <ChevronRight className="h-4 w-4" />
                         <AlertTitle className="font-semibold">Langkah 2: Konfirmasi Pembayaran</AlertTitle>
                         <AlertDescription>
-                          Isi formulir di bawah ini setelah Anda berhasil melakukan transfer. Anda akan diarahkan ke WhatsApp untuk mengirim pesan konfirmasi dan bukti transfer kepada Admin.
+                          Isi formulir di bawah ini setelah Anda berhasil melakukan transfer. Pilih salah satu Admin untuk mengirim pesan konfirmasi dan bukti transfer via WhatsApp.
                         </AlertDescription>
                     </Alert>
                 </div>

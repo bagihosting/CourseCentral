@@ -289,11 +289,17 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
   if (db.users.some(u => u.username === data.username)) {
     throw new Error('Nama pengguna sudah digunakan. Silakan pilih nama pengguna lain.');
   }
+  // Security enhancement: Prevent registering a user with the 'admin' username.
+  if (data.username.toLowerCase() === 'admin') {
+      throw new Error("Nama pengguna 'admin' tidak diizinkan untuk pendaftaran baru.");
+  }
   const newUser: User = {
     id: `user_${Date.now()}`,
     name: data.name,
     username: data.username,
     password: data.password, // In a real app, this should be hashed.
+    // New users are always registered as 'member' for security.
+    // The main admin account is protected and cannot be created this way.
     role: 'member',
     avatarUrl: data.avatarUrl || 'https://placehold.co/100x100.png',
     whatsapp: '',
