@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -11,6 +11,7 @@ interface Database {
   courses: Course[];
   enrollments: Enrollment[];
   upgradeRequests: UpgradeRequest[];
+  certificateRequests: CertificateRequest[];
   paymentSettings: PaymentAccount[];
   confirmationContacts: ConfirmationContact[];
   seoSettings: SeoSettings;
@@ -112,6 +113,7 @@ function getInitialData(): Database {
         ],
         enrollments: [],
         upgradeRequests: [],
+        certificateRequests: [],
         paymentSettings: [
           {
             id: 'default_bca_1',
@@ -216,6 +218,7 @@ function getDB(): Database {
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
         if (!data.upgradeRequests) data.upgradeRequests = [];
+        if (!data.certificateRequests) data.certificateRequests = [];
         if (!data.testimonials) data.testimonials = [];
         if (!data.confirmationContacts) data.confirmationContacts = [];
         if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
@@ -938,4 +941,108 @@ export function deleteTestimonial(testimonialId: string): void {
         throw new Error("Gagal menghapus testimoni, ID tidak ditemukan.");
     }
     saveDB(db);
+}
+
+
+// --- Certificate Request API ---
+export function hasUserRequestedCertificate(userId: string, courseId: string): boolean {
+  const db = getDB();
+  return db.certificateRequests.some(req => req.userId === userId && req.courseId === courseId);
+}
+
+export function createCertificateRequest(userId: string, courseId: string): CertificateRequest {
+  const db = getDB();
+  if (hasUserRequestedCertificate(userId, courseId)) {
+    throw new Error('Anda sudah mengajukan sertifikat untuk kursus ini.');
+  }
+
+  const newRequest: CertificateRequest = {
+    id: `cert_req_${Date.now()}`,
+    userId,
+    courseId,
+    requestDate: new Date().toISOString(),
+    status: 'pending',
+  };
+
+  db.certificateRequests.push(newRequest);
+  saveDB(db);
+  return newRequest;
+}
+
+export type PopulatedCertificateRequest = CertificateRequest & {
+  userName: string;
+  userAvatar: string;
+  courseTitle: string;
+};
+
+export function getCertificateRequests(): PopulatedCertificateRequest[] {
+  const db = getDB();
+  return db.certificateRequests
+    .map(req => {
+      const user = db.users.find(u => u.id === req.userId);
+      const course = db.courses.find(c => c.id === req.courseId);
+      return {
+        ...req,
+        userName: user?.name || 'N/A',
+        userAvatar: user?.avatarUrl || '',
+        courseTitle: course?.title || 'Kursus Dihapus',
+      };
+    })
+    .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+}
+
+export function approveCertificateRequest(requestId: string, certificateHtml: string): void {
+  const db = getDB();
+  const request = db.certificateRequests.find(req => req.id === requestId);
+  if (!request) {
+    throw new Error('Permintaan sertifikat tidak ditemukan.');
+  }
+  request.status = 'approved';
+  request.certificateHtml = certificateHtml;
+  request.approvedAt = new Date().toISOString();
+  saveDB(db);
+}
+
+export function getApprovedCertificatesForUser(userId: string): PopulatedCertificateRequest[] {
+    const db = getDB();
+    return db.certificateRequests
+        .filter(req => req.userId === userId && req.status === 'approved')
+        .map(req => {
+            const user = db.users.find(u => u.id === req.userId);
+            const course = db.courses.find(c => c.id === req.courseId);
+            return {
+                ...req,
+                userName: user?.name || 'N/A',
+                userAvatar: user?.avatarUrl || '',
+                courseTitle: course?.title || 'Kursus Dihapus',
+            };
+        })
+        .sort((a, b) => new Date(b.approvedAt!).getTime() - new Date(a.approvedAt!).getTime());
+}
+
+export function awardCertificateToUser(userId: string, courseId: string, certificateHtml: string): CertificateRequest {
+    const db = getDB();
+    const existingRequest = db.certificateRequests.find(r => r.userId === userId && r.courseId === courseId);
+
+    if (existingRequest) {
+        existingRequest.status = 'approved';
+        existingRequest.certificateHtml = certificateHtml;
+        existingRequest.approvedAt = new Date().toISOString();
+        saveDB(db);
+        return existingRequest;
+    }
+
+    const newRequest: CertificateRequest = {
+        id: `cert_req_${Date.now()}`,
+        userId,
+        courseId,
+        requestDate: new Date().toISOString(),
+        status: 'approved',
+        certificateHtml,
+        approvedAt: new Date().toISOString(),
+    };
+
+    db.certificateRequests.push(newRequest);
+    saveDB(db);
+    return newRequest;
 }

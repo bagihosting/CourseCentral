@@ -4,13 +4,13 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
-import { getCourseById, isUserEnrolled, enrollUserInCourse } from '@/lib/data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getCourseById, isUserEnrolled, enrollUserInCourse, hasUserRequestedCertificate, createCertificateRequest } from '@/lib/data';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock, Gem, Sparkles } from 'lucide-react';
+import { CheckCircle, Film, FileText, Package, Download, Youtube, Lock, Gem, Sparkles, Award, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
@@ -235,6 +235,8 @@ export default function CoursePage() {
   const { user, loading: userLoading } = useAuth();
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasRequestedCert, setHasRequestedCert] = useState(false);
+  const [isRequestingCert, setIsRequestingCert] = useState(false);
   const router = useRouter();
 
   // Load course, user, and progress data
@@ -262,6 +264,7 @@ export default function CoursePage() {
                 const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
                 const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
                 setCompletedLessons(initialCompleted);
+                setHasRequestedCert(hasUserRequestedCertificate(user.id, courseData.id));
 
                 const allLessons = courseData.modules.flatMap(m => m.lessons);
                 const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
@@ -343,6 +346,21 @@ export default function CoursePage() {
         });
     }
   };
+  
+  const handleRequestCertificate = () => {
+    if (!user || !course) return;
+    setIsRequestingCert(true);
+    try {
+        createCertificateRequest(user.id, course.id);
+        setHasRequestedCert(true);
+        toast({ title: 'Permintaan Terkirim', description: 'Permintaan sertifikat Anda telah dikirim. Admin akan segera meninjaunya.' });
+    } catch (e) {
+        const error = e as Error;
+        toast({ title: 'Gagal', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsRequestingCert(false);
+    }
+  }
 
   if (loading || userLoading) {
     return (
@@ -364,7 +382,7 @@ export default function CoursePage() {
     notFound();
   }
 
-  const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
+  const totalLessons = allLessons.length;
   const progress = totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
   
   const isProCourse = course.accessLevel === 'pro';
@@ -448,6 +466,20 @@ export default function CoursePage() {
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground">{completedLessons.size} dari {totalLessons} pelajaran selesai.</p>
             </CardContent>
+            {enrolled && progress >= 100 && (
+              <CardFooter>
+                {hasRequestedCert ? (
+                    <Button disabled className="w-full" variant="outline">
+                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Permintaan Terkirim
+                    </Button>
+                ) : (
+                    <Button onClick={handleRequestCertificate} disabled={isRequestingCert} className="w-full">
+                       {isRequestingCert ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Award className="mr-2 h-4 w-4" />}
+                        Ajukan Sertifikat
+                    </Button>
+                )}
+              </CardFooter>
+            )}
           </Card>
           <Card>
             <CardHeader>

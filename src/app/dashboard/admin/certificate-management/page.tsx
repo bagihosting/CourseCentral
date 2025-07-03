@@ -11,10 +11,10 @@ export default function CertificateManagementPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="h-6 w-6 text-primary" />
-            Manajemen Sertifikat
+            Generator Sertifikat Manual
           </CardTitle>
           <CardDescription>
-            Buat dan kelola sertifikat kelulusan untuk peserta kursus menggunakan AI.
+            Buat dan berikan sertifikat kelulusan untuk peserta kursus secara manual menggunakan AI. Sertifikat yang disimpan di sini akan dapat diunduh oleh member.
           </CardDescription>
         </CardHeader>
         <CardContent>

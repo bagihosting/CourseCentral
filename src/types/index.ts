@@ -55,6 +55,16 @@ export type UpgradeRequest = {
   status: 'pending' | 'approved';
 };
 
+export type CertificateRequest = {
+  id: string;
+  userId: string;
+  courseId: string;
+  requestDate: string;
+  status: 'pending' | 'approved';
+  certificateHtml?: string;
+  approvedAt?: string;
+};
+
 export type PaymentAccount = {
   id: string;
   bankName: string;

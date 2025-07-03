@@ -25,6 +25,7 @@ import {
   Gem,
   LayoutTemplate,
   Award,
+  FileClock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+    { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
     { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
@@ -52,7 +54,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
-    { href: '/dashboard/admin/certificate-management', icon: Award, label: 'Manajemen Sertifikat' },
+    { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
+    { href: '/dashboard/admin/certificate-management', icon: Award, label: 'Generator Sertifikat' },
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },

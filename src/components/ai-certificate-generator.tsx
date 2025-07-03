@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -7,27 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Printer, Award, Download, Mail } from 'lucide-react';
-import { generateCertificateAction } from '@/actions/ai';
+import { Sparkles, Loader2, Printer, Award, Download, Save } from 'lucide-react';
+import { generateCertificateAction, awardCertificateAction } from '@/actions/ai';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAllCourses, getSeoSettings } from '@/lib/data';
-import type { Course } from '@/types';
+import { getAllCourses, getSeoSettings, getAllUsers } from '@/lib/data';
+import type { Course, User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function AiCertificateGenerator() {
   const [participantName, setParticipantName] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [courseName, setCourseName] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState('');
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date());
   const [organizerName, setOrganizerName] = useState('');
   const [logoUrl, setLogoUrl] = useState('https://placehold.co/200x80.png');
   
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [outputHtml, setOutputHtml] = useState<string | null>(null);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -35,6 +38,7 @@ export function AiCertificateGenerator() {
   
   useEffect(() => {
     setAllCourses(getAllCourses());
+    setAllUsers(getAllUsers().filter(u => u.role !== 'admin'));
     const settings = getSeoSettings();
     setOrganizerName(settings.platformName || 'Scriptify');
   }, []);
@@ -71,11 +75,34 @@ export function AiCertificateGenerator() {
       setOutputHtml(result.certificateHtml);
       toast({
         title: 'Sukses!',
-        description: 'Sertifikat Anda telah berhasil dibuat oleh AI.',
+        description: 'Pratinjau sertifikat Anda telah berhasil dibuat oleh AI.',
       });
     }
   };
 
+  const handleSaveForMember = async () => {
+    if (!outputHtml || !selectedUserId || !selectedCourseId) {
+      toast({ title: 'Gagal', description: 'Pilih pengguna, kursus, dan buat pratinjau sertifikat terlebih dahulu.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    const result = await awardCertificateAction(selectedUserId, selectedCourseId, outputHtml);
+    setIsSaving(false);
+
+    if ('error' in result) {
+      toast({
+        title: 'Gagal Menyimpan',
+        description: result.error,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Sukses!',
+        description: 'Sertifikat telah disimpan untuk member dan akan muncul di halaman "Sertifikat Saya" mereka.',
+      });
+    }
+  };
+  
   const handlePrint = () => {
     if (!iframeRef.current?.srcdoc) {
       toast({ title: 'Gagal', description: 'Tidak ada sertifikat untuk dicetak.', variant: 'destructive' });
@@ -129,67 +156,46 @@ export function AiCertificateGenerator() {
     }
   };
 
-  const handleSendEmail = () => {
-    if (!outputHtml || !participantName || !courseName || !organizerName) {
-        toast({ title: 'Gagal', description: 'Sertifikat belum dibuat atau data tidak lengkap.', variant: 'destructive' });
-        return;
-    }
-
-    const recipientEmail = prompt("Masukkan alamat email peserta:");
-    if (!recipientEmail) {
-        toast({ title: 'Dibatalkan', description: 'Pengiriman email dibatalkan.', variant: 'default' });
-        return;
-    }
-    
-    if (!/\S+@\S+\.\S+/.test(recipientEmail)) {
-        toast({ title: 'Email Tidak Valid', description: 'Format alamat email tidak benar.', variant: 'destructive' });
-        return;
-    }
-
-    const subject = `Sertifikat Kelulusan Anda untuk Kursus: ${courseName}`;
-    const body = `
-Halo ${participantName},
-
-Selamat atas kelulusan Anda dari kursus "${courseName}"!
-
-Untuk menerima sertifikat Anda, silakan kembali ke aplikasi, gunakan fitur 'Unduh' untuk menyimpan file sertifikat (HTML), lalu lampirkan file tersebut ke balasan email ini.
-
-Terima kasih dan semoga sukses selalu!
-
-Hormat kami,
-Tim ${organizerName}
-    `.trim().replace(/\n/g, '%0D%0A');
-
-    const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${body}`;
-    
-    try {
-        window.open(mailtoLink, '_blank');
-    } catch(e) {
-        toast({ title: 'Gagal', description: 'Tidak dapat membuka aplikasi email Anda.', variant: 'destructive' });
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Form Section */}
       <div className="lg:col-span-1 space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle>Generator Sertifikat</CardTitle>
-                <CardDescription>Isi detail di bawah ini untuk membuat sertifikat baru.</CardDescription>
+                <CardTitle>Generator Sertifikat Manual</CardTitle>
+                <CardDescription>Buat sertifikat untuk member secara manual.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="participantName">Nama Lengkap Peserta</Label>
-                    <Input id="participantName" value={participantName} onChange={(e) => setParticipantName(e.target.value)} disabled={isLoading} />
+                    <Label htmlFor="participantName">Nama Peserta</Label>
+                    <Select onValueChange={(v) => {
+                        const user = allUsers.find(u => u.id === v);
+                        if (user) {
+                            setSelectedUserId(user.id);
+                            setParticipantName(user.name);
+                        }
+                    }} value={selectedUserId} disabled={isLoading || isSaving}>
+                        <SelectTrigger id="participantName"><SelectValue placeholder="Pilih peserta" /></SelectTrigger>
+                        <SelectContent>
+                            {allUsers.map(user => (
+                                <SelectItem key={user.id} value={user.id}>{user.name} ({user.username})</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="courseName">Nama Kursus</Label>
-                     <Select onValueChange={setCourseName} value={courseName} disabled={isLoading}>
+                     <Select onValueChange={(v) => {
+                         const course = allCourses.find(c => c.id === v);
+                         if(course) {
+                            setSelectedCourseId(course.id);
+                            setCourseName(course.title);
+                         }
+                     }} value={selectedCourseId} disabled={isLoading || isSaving}>
                         <SelectTrigger id="courseName"><SelectValue placeholder="Pilih kursus" /></SelectTrigger>
                         <SelectContent>
                             {allCourses.map(course => (
-                                <SelectItem key={course.id} value={course.title}>{course.title}</SelectItem>
+                                <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -204,7 +210,7 @@ Tim ${organizerName}
                             "w-full justify-start text-left font-normal",
                             !completionDate && "text-muted-foreground"
                             )}
-                            disabled={isLoading}
+                            disabled={isLoading || isSaving}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {completionDate ? format(completionDate, "PPP", { locale: id }) : <span>Pilih tanggal</span>}
@@ -222,19 +228,19 @@ Tim ${organizerName}
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="organizerName">Nama Penyelenggara</Label>
-                    <Input id="organizerName" value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} disabled={isLoading} />
+                    <Input id="organizerName" value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} disabled={isLoading || isSaving} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="logoUrl">URL Logo (Opsional)</Label>
-                    <Input id="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} disabled={isLoading} />
+                    <Input id="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} disabled={isLoading || isSaving} />
                 </div>
-                <Button onClick={handleGenerate} disabled={isLoading} className="w-full">
+                <Button onClick={handleGenerate} disabled={isLoading || isSaving} className="w-full">
                 {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                 )}
-                Buat Sertifikat dengan AI
+                Buat Pratinjau Sertifikat
                 </Button>
             </CardContent>
         </Card>
@@ -245,17 +251,13 @@ Tim ${organizerName}
         <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Pratinjau Sertifikat</h3>
              <div className="flex items-center gap-2">
-                <Button onClick={handlePrint} disabled={!outputHtml || isLoading} variant="outline" size="sm">
+                <Button onClick={handlePrint} disabled={!outputHtml} variant="outline" size="sm">
                     <Printer className="mr-2 h-4 w-4" />
                     Cetak
                 </Button>
-                 <Button onClick={handleDownload} disabled={!outputHtml || isLoading} variant="outline" size="sm">
+                 <Button onClick={handleDownload} disabled={!outputHtml} variant="outline" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     Unduh
-                </Button>
-                 <Button onClick={handleSendEmail} disabled={!outputHtml || isLoading} variant="outline" size="sm">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Kirim
                 </Button>
             </div>
         </div>
@@ -282,6 +284,10 @@ Tim ${organizerName}
             </div>
           )}
         </div>
+         <Button onClick={handleSaveForMember} disabled={!outputHtml || isSaving || isLoading} className="w-full" size="lg">
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Simpan Sertifikat untuk Member
+        </Button>
       </div>
     </div>
   );

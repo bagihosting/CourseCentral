@@ -21,7 +21,9 @@ import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInpu
 import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 import { generateMetaKeywords as generateMetaKeywordsFlow, GenerateMetaKeywordsInput, GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 import { generateCertificate as generateCertificateFlow, GenerateCertificateInput, GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
-
+import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser } from '@/lib/data';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export async function generateThumbnailAction(
   title: string
@@ -354,4 +356,50 @@ export async function generateCertificateAction(
     const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
     return { error: `Gagal membuat sertifikat: ${errorMessage}` };
   }
+}
+
+export async function generateAndApproveCertificateAction(
+    requestId: string
+): Promise<{ success: boolean } | { error: string }> {
+    const allRequests = getCertificateRequests();
+    const request = allRequests.find(r => r.id === requestId);
+
+    if (!request) {
+        return { error: 'Permintaan tidak ditemukan.' };
+    }
+    if (request.status !== 'pending') {
+        return { error: 'Permintaan ini sudah diproses.'}
+    }
+
+    const generationInput = {
+        participantName: request.userName,
+        courseName: request.courseTitle,
+        completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
+        organizerName: 'Scriptify',
+        logoUrl: 'https://placehold.co/200x80.png',
+    };
+    
+    try {
+        const generationResult = await generateCertificateFlow(generationInput);
+        approveCertificateRequest(requestId, generationResult.certificateHtml);
+        return { success: true };
+    } catch (error) {
+        console.error('Error approving certificate:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+        return { error: `Gagal menyetujui sertifikat: ${errorMessage}` };
+    }
+}
+
+export async function awardCertificateAction(
+    userId: string,
+    courseId: string,
+    certificateHtml: string
+): Promise<{ success: boolean } | { error: string }> {
+    try {
+        awardCertificateToUser(userId, courseId, certificateHtml);
+        return { success: true };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+        return { error: `Gagal menyimpan sertifikat: ${errorMessage}` };
+    }
 }
