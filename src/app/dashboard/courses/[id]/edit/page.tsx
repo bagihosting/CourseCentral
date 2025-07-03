@@ -13,14 +13,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { generateCourseSeoAction } from '@/actions/ai';
 
 function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => void }) {
     const [seoTitle, setSeoTitle] = useState(course.seoTitle || '');
     const [seoDescription, setSeoDescription] = useState(course.seoDescription || '');
     const [seoKeywords, setSeoKeywords] = useState(course.seoKeywords || '');
     const [isSaving, setIsSaving] = useState(false);
+    const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
     const { toast } = useToast();
 
     const handleSave = () => {
@@ -37,8 +39,39 @@ function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => v
         }
     }
 
+    const handleGenerateSeo = async () => {
+        setIsGeneratingSeo(true);
+        const result = await generateCourseSeoAction({ courseTitle: course.title, courseDescription: course.description });
+        setIsGeneratingSeo(false);
+
+        if('error' in result) {
+            toast({ title: 'Gagal Membuat SEO', description: result.error, variant: 'destructive'});
+        } else {
+            setSeoTitle(result.seoTitle);
+            setSeoDescription(result.seoDescription);
+            setSeoKeywords(result.seoKeywords);
+            toast({ title: 'Sukses', description: 'Saran SEO berhasil dibuat oleh AI.'});
+        }
+    }
+
     return (
         <div className="space-y-6">
+            <CardFooter className="p-0 mb-6 bg-amber-50 border-amber-200 border rounded-lg">
+                 <div className="flex items-start p-4">
+                    <Wand2 className="h-8 w-8 text-amber-600 mr-4 mt-1" />
+                    <div>
+                        <h4 className="font-semibold text-amber-900">Asisten SEO AI</h4>
+                        <p className="text-sm text-amber-800">
+                           Gunakan tombol "Buat Semua dengan AI" untuk mengisi semua kolom di bawah ini secara otomatis dengan rekomendasi dari AI.
+                        </p>
+                         <Button onClick={handleGenerateSeo} disabled={isGeneratingSeo} className="mt-2" size="sm" variant="outline">
+                            {isGeneratingSeo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Buat Semua dengan AI
+                        </Button>
+                    </div>
+                </div>
+            </CardFooter>
+
             <div className="space-y-2">
                 <Label htmlFor="seo-title">Judul SEO</Label>
                 <Input
@@ -71,7 +104,7 @@ function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => v
                  <p className="text-xs text-muted-foreground">Pisahkan kata kunci dengan koma.</p>
             </div>
              <CardFooter className="px-0 pb-0 pt-4">
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button onClick={handleSave} disabled={isSaving || isGeneratingSeo}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Simpan Pengaturan SEO
                 </Button>

@@ -16,6 +16,7 @@ import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeI
 import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
 import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from '@/ai/flows/edit-web-app';
+import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, GenerateCourseSeoOutput } from '@/ai/flows/generate-course-seo';
 
 
 export async function generateThumbnailAction(
@@ -267,5 +268,21 @@ export async function editWebAppAction(
   } catch (error) {
     console.error('Error editing web app:', error);
     return { error: 'Gagal mengedit boilerplate aplikasi. Silakan coba lagi.' };
+  }
+}
+
+export async function generateCourseSeoAction(
+  input: GenerateCourseSeoInput
+): Promise<GenerateCourseSeoOutput | { error: string }> {
+  if (!input.courseTitle || !input.courseDescription) {
+    return { error: 'Judul dan deskripsi kursus tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateCourseSeoFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating course SEO:', error);
+    return { error: 'Gagal membuat optimasi SEO. Silakan coba lagi.' };
   }
 }
