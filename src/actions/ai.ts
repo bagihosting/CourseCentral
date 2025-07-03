@@ -14,6 +14,7 @@ import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, 
 import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOutput } from '@/ai/flows/generate-image';
 import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeInput, GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
 import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
+import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 
 
 export async function generateThumbnailAction(
@@ -233,5 +234,21 @@ export async function generateSoapFormulaAction(
   } catch (error) {
     console.error('Error generating soap formula:', error);
     return { error: 'Gagal membuat formula. Silakan coba lagi.' };
+  }
+}
+
+export async function generateWebAppAction(
+  input: GenerateWebAppInput
+): Promise<GenerateWebAppOutput | { error: string }> {
+  if (!input.appName || !input.appDescription) {
+    return { error: 'Nama dan deskripsi aplikasi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateWebAppFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating web app:', error);
+    return { error: 'Gagal membuat boilerplate aplikasi. Silakan coba lagi.' };
   }
 }
