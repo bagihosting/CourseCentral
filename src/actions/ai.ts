@@ -13,6 +13,7 @@ import { generateUmkmProfile as generateUmkmProfileFlow, GenerateUmkmProfileInpu
 import { generateSpssSyntax as generateSpssSyntaxFlow, GenerateSpssSyntaxInput, GenerateSpssSyntaxOutput } from '@/ai/flows/generate-spss-syntax';
 import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOutput } from '@/ai/flows/generate-image';
 import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeInput, GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
+import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
 
 
 export async function generateThumbnailAction(
@@ -216,5 +217,21 @@ export async function generateAppPrototypeAction(
   } catch (error) {
     console.error('Error generating app prototype:', error);
     return { error: 'Gagal membuat prototipe aplikasi. Silakan coba lagi.' };
+  }
+}
+
+export async function generateSoapFormulaAction(
+  input: GenerateSoapFormulaInput
+): Promise<GenerateSoapFormulaOutput | { error: string }> {
+  if (!input.productType) {
+    return { error: 'Jenis produk tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateSoapFormulaFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating soap formula:', error);
+    return { error: 'Gagal membuat formula. Silakan coba lagi.' };
   }
 }
