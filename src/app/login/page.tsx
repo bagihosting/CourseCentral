@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -73,6 +74,13 @@ function RegisterForm() {
     return passwordRegex.test(password);
   };
 
+  const validateWhatsapp = (number: string): boolean => {
+    if (!number) return true; // It's optional, so empty is valid.
+    // Starts with 08, followed by 8-11 digits. Total length 10-13.
+    const whatsappRegex = /^08[1-9][0-9]{7,10}$/;
+    return whatsappRegex.test(number);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !username || !password || !confirmPassword) {
@@ -89,6 +97,14 @@ function RegisterForm() {
             description: 'Kata sandi harus memenuhi persyaratan keamanan yang ditentukan.', 
             variant: 'destructive',
             duration: 7000,
+        });
+        return;
+    }
+    if (!validateWhatsapp(whatsapp)) {
+        toast({ 
+            title: 'Nomor WhatsApp Tidak Valid', 
+            description: 'Harap gunakan format nomor provider Indonesia yang benar (Contoh: 081234567890).', 
+            variant: 'destructive',
         });
         return;
     }
@@ -122,6 +138,9 @@ function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="register-whatsapp">Nomor WhatsApp</Label>
         <Input id="register-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" />
+        <p className="text-xs text-muted-foreground">
+            Hanya nomor provider Indonesia yang diizinkan (diawali dengan 08).
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="register-password">Kata Sandi</Label>
