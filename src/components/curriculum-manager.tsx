@@ -35,8 +35,8 @@ import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, 
 import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { uploadVideoAction } from '@/actions/files';
 
 type FormErrors = {

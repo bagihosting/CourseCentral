@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Mail } from 'lucide-react';
 import { generateDigitalInvitationAction } from '@/actions/ai';
 import type { GenerateDigitalInvitationOutput } from '@/ai/flows/generate-digital-invitation';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function OutputField({ label, value, onCopy }: { label: string; value: string; onCopy: () => void; }) {
   return (

@@ -8,9 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, FlaskConical, AlertTriangle } from 'lucide-react';
 import { generateSoapFormulaAction } from '@/actions/ai';
 import type { GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function AiSoapFormulaGenerator() {
   const [productType, setProductType] = useState<GenerateSoapFormulaInput['productType']>('dish-soap');
