@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Printer, Award } from 'lucide-react';
+import { Sparkles, Loader2, Printer, Award, Download, Mail } from 'lucide-react';
 import { generateCertificateAction } from '@/actions/ai';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -88,13 +89,83 @@ export function AiCertificateGenerator() {
         printWindow.onload = () => {
             printWindow.focus();
             printWindow.print();
-            // Closing the window after print dialog is a bit tricky, but this is a common approach
             setTimeout(() => {
                  printWindow.close();
             }, 1000);
         };
     } else {
         toast({ title: 'Gagal', description: 'Pop-up window diblokir. Harap izinkan pop-up untuk mencetak.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownload = () => {
+    if (!outputHtml || !participantName) {
+      toast({ title: 'Gagal', description: 'Tidak ada sertifikat untuk diunduh.', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+        const blob = new Blob([outputHtml], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const filename = `sertifikat-${participantName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.html`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({
+            title: 'Mengunduh...',
+            description: 'File sertifikat Anda telah mulai diunduh.',
+        });
+    } catch (err) {
+        console.error('Download failed: ', err);
+        toast({
+            title: 'Gagal Mengunduh',
+            description: 'Tidak dapat membuat file untuk diunduh.',
+            variant: 'destructive',
+        });
+    }
+  };
+
+  const handleSendEmail = () => {
+    if (!outputHtml || !participantName || !courseName || !organizerName) {
+        toast({ title: 'Gagal', description: 'Sertifikat belum dibuat atau data tidak lengkap.', variant: 'destructive' });
+        return;
+    }
+
+    const recipientEmail = prompt("Masukkan alamat email peserta:");
+    if (!recipientEmail) {
+        toast({ title: 'Dibatalkan', description: 'Pengiriman email dibatalkan.', variant: 'default' });
+        return;
+    }
+    
+    if (!/\S+@\S+\.\S+/.test(recipientEmail)) {
+        toast({ title: 'Email Tidak Valid', description: 'Format alamat email tidak benar.', variant: 'destructive' });
+        return;
+    }
+
+    const subject = `Sertifikat Kelulusan Anda untuk Kursus: ${courseName}`;
+    const body = `
+Halo ${participantName},
+
+Selamat atas kelulusan Anda dari kursus "${courseName}"!
+
+Untuk menerima sertifikat Anda, silakan kembali ke aplikasi, gunakan fitur 'Unduh' untuk menyimpan file sertifikat (HTML), lalu lampirkan file tersebut ke balasan email ini.
+
+Terima kasih dan semoga sukses selalu!
+
+Hormat kami,
+Tim ${organizerName}
+    `.trim().replace(/\n/g, '%0D%0A');
+
+    const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${body}`;
+    
+    try {
+        window.open(mailtoLink, '_blank');
+    } catch(e) {
+        toast({ title: 'Gagal', description: 'Tidak dapat membuka aplikasi email Anda.', variant: 'destructive' });
     }
   };
 
@@ -173,10 +244,20 @@ export function AiCertificateGenerator() {
       <div className="lg:col-span-2 space-y-4">
         <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Pratinjau Sertifikat</h3>
-            <Button onClick={handlePrint} disabled={!outputHtml || isLoading} variant="outline">
-                <Printer className="mr-2 h-4 w-4" />
-                Cetak
-            </Button>
+             <div className="flex items-center gap-2">
+                <Button onClick={handlePrint} disabled={!outputHtml || isLoading} variant="outline" size="sm">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Cetak
+                </Button>
+                 <Button onClick={handleDownload} disabled={!outputHtml || isLoading} variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Unduh
+                </Button>
+                 <Button onClick={handleSendEmail} disabled={!outputHtml || isLoading} variant="outline" size="sm">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Kirim
+                </Button>
+            </div>
         </div>
         <div className="w-full aspect-[1.414] border rounded-lg overflow-hidden bg-muted shadow-inner">
           {isLoading ? (
