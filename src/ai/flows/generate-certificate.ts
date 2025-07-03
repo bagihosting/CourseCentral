@@ -43,8 +43,7 @@ const certificateHtmlPrompt = ai.definePrompt({
     prompt: `
       You are a professional graphic designer tasked with creating a certificate.
       Generate a complete, self-contained HTML document for a Certificate of Completion.
-      The design must be elegant, professional, and suitable for printing on A4 landscape paper.
-      Use a <style> block for all CSS. Use web-safe or Google Fonts.
+      The design must be MODERN, ELEGANT, and PROFESSIONAL, suitable for printing on A4 landscape paper.
 
       **Data to Use:**
       - Participant: {{{participantName}}}
@@ -52,18 +51,20 @@ const certificateHtmlPrompt = ai.definePrompt({
       - Date: {{{completionDate}}}
       - Organizer: {{{organizerName}}}
       - NIP: {{{nip}}}
-      - Logo: <img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px;" />
+      - Logo: <img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />
       - Barcode: <img src="{{{barcodeDataUri}}}" alt="Barcode" style="height: 40px;" />
       - Signature: <img src="{{{signatureDataUri}}}" alt="Signature" style="height: 50px; mix-blend-mode: darken;" />
 
-      **CRITICAL INSTRUCTIONS:**
+      **CRITICAL DESIGN INSTRUCTIONS:**
       1.  **Full HTML Document**: The output MUST be a complete HTML document from <!DOCTYPE html> to </html>.
-      2.  **Layout**: Design for A4 landscape (approx. 1123px by 794px). Use a decorative border. The layout should be balanced and formal.
-      3.  **Content**: Include the following texts: "Certificate of Completion", "This is to certify that", "[Participant Name]", "has successfully completed the course", "[Course Name]", "on [Date]".
-      4.  **Signature Area**: Below the main content, align a block for the signature. It should contain the signature image, the organizer's name below it, and the NIP below that.
-      5.  **Barcode & Serial**: Place the barcode image and the text "Serial No: [Serial Number]" in a corner, like the bottom-left. Make it discreet.
-      6.  **Fonts**: Use professional fonts like 'Merriweather', 'Montserrat', 'Lato', or 'Playfair Display' from Google Fonts.
-      7.  **No External Files**: All CSS must be in a <style> tag. No external stylesheets or scripts.
+      2.  **Layout**: Design for A4 landscape (approx. 1123px by 794px). The layout must be balanced, formal, and visually appealing with good use of whitespace.
+      3.  **Decorative Frame**: Create a beautiful, modern, and intricate certificate border or frame. **You MUST use inline SVG for the frame** to create elegant patterns, guilloche, or geometric designs in the corners and/or along the edges. Do not use a simple CSS border. The frame should look sophisticated and premium. Use a color palette based on a deep, professional blue (#0A2240) and gold accents (#D4AF37) for the frame.
+      4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
+      5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "[Participant Name]", "has successfully completed the course", "[Course Name]", "on [Date]".
+      6.  **Signature Area**: Below the main content, create a centered signature block. It should contain the signature image, the organizer's name below it, and the NIP below that.
+      7.  **Barcode & Serial**: Place the barcode image and the text "Serial No: [Serial Number]" in a corner (e.g., bottom-left). It should be discreet but readable.
+      8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in <style> tags or as inline SVG. No external files.
+      9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center.
     `,
 });
 
@@ -83,7 +84,7 @@ const generateCertificateFlow = ai.defineFlow(
     const barcodeGeneration = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `Generate a standard Code 128 barcode image for the number: ${serialNumber}. The image should be clean, high-contrast, black bars on a perfectly white background. Do not include any text or numbers below the barcode. The image should be wide and short.`,
-      config: { responseModalities: ['TEXT', 'IMAGE'] },
+      config: { responseModalities: ['IMAGE', 'TEXT'] },
     });
     const barcodeDataUri = barcodeGeneration.media?.url;
     if (!barcodeDataUri) throw new Error("Barcode generation failed. The model did not return media.");
@@ -92,7 +93,7 @@ const generateCertificateFlow = ai.defineFlow(
     const signatureGeneration = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `Generate a realistic, elegant, flowing, handwritten signature for the name 'Scriptify'. Use black ink on a transparent background. The signature should be professional and look like a real signature. Do not include any other text or elements.`,
-      config: { responseModalities: ['TEXT', 'IMAGE'] },
+      config: { responseModalities: ['IMAGE', 'TEXT'] },
     });
     const signatureDataUri = signatureGeneration.media?.url;
     if (!signatureDataUri) throw new Error("Signature generation failed. The model did not return media.");

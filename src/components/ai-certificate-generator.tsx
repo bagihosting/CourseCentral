@@ -14,7 +14,7 @@ import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAllCourses, getSeoSettings, getAllUsers } from '@/lib/data';
+import { getAllCourses, getSeoSettings, getAllUsers, getLandingPageSettings } from '@/lib/data';
 import type { Course, User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -25,7 +25,7 @@ export function AiCertificateGenerator() {
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date());
   const [organizerName, setOrganizerName] = useState('');
-  const [logoUrl, setLogoUrl] = useState('https://placehold.co/200x80.png');
+  const [logoUrl, setLogoUrl] = useState('');
   
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -39,8 +39,10 @@ export function AiCertificateGenerator() {
   useEffect(() => {
     setAllCourses(getAllCourses());
     setAllUsers(getAllUsers().filter(u => u.role !== 'admin'));
-    const settings = getSeoSettings();
-    setOrganizerName(settings.platformName || 'Scriptify');
+    const seoSettings = getSeoSettings();
+    const landingPageSettings = getLandingPageSettings();
+    setOrganizerName(seoSettings.platformName || 'Scriptify');
+    setLogoUrl(landingPageSettings.logoUrl || 'https://placehold.co/200x80.png');
   }, []);
 
   const handleGenerate = async () => {
@@ -228,11 +230,8 @@ export function AiCertificateGenerator() {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="organizerName">Nama Penyelenggara</Label>
-                    <Input id="organizerName" value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} disabled={isLoading || isSaving} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="logoUrl">URL Logo (Opsional)</Label>
-                    <Input id="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} disabled={isLoading || isSaving} />
+                    <Input id="organizerName" value={organizerName} disabled />
+                     <p className="text-xs text-muted-foreground">Diambil dari Pengaturan Global. Logo juga akan diambil dari pengaturan.</p>
                 </div>
                 <Button onClick={handleGenerate} disabled={isLoading || isSaving} className="w-full">
                 {isLoading ? (

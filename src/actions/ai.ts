@@ -21,7 +21,7 @@ import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInpu
 import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 import { generateMetaKeywords as generateMetaKeywordsFlow, GenerateMetaKeywordsInput, GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 import { generateCertificate as generateCertificateFlow, GenerateCertificateInput, GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
-import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser } from '@/lib/data';
+import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser, getSeoSettings, getLandingPageSettings } from '@/lib/data';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -371,12 +371,15 @@ export async function generateAndApproveCertificateAction(
         return { error: 'Permintaan ini sudah diproses.'}
     }
 
+    const seoSettings = getSeoSettings();
+    const landingSettings = getLandingPageSettings();
+
     const generationInput = {
         participantName: request.userName,
         courseName: request.courseTitle,
         completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
-        organizerName: 'Scriptify',
-        logoUrl: 'https://placehold.co/200x80.png',
+        organizerName: seoSettings.platformName || 'Scriptify',
+        logoUrl: landingSettings.logoUrl || 'https://placehold.co/200x80.png',
     };
     
     try {
