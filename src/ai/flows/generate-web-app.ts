@@ -82,7 +82,7 @@ const prompt = ai.definePrompt({
         -   It must handle reading from and writing to localStorage, including JSON serialization/deserialization.
         -   It must be robust and handle the server-side rendering case where \\\`window\\\` is not available.
         -   Use this exact implementation:
-            \\\`\\\`\\\`typescript
+            \`\`\`typescript
             'use client';
             import { useState, useEffect } from 'react';
             export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
@@ -109,7 +109,7 @@ const prompt = ai.definePrompt({
               }, [key, storedValue]);
               return [storedValue, setStoredValue];
             }
-            \\\`\\\`\\\`
+            \`\`\`
 
     7.  **\\\`src/app/page.tsx\\\`**:
         -   This is the main interactive page. It MUST be a client component (\\\`'use client'\\\`).
@@ -137,11 +137,13 @@ const prompt = ai.definePrompt({
         {{/if}}
         -   DO NOT integrate this flow into the \\\`page.tsx\\\`. This file is for boilerplate demonstration only.
 
-    9.  **Generate \\\`previewHtml\\\`**: After generating all files, create the \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a realistic static preview of \\\`src/app/page.tsx\\\`. To do this, you MUST:
+    9.  **Generate \\\`previewHtml\\\`**: After generating all files, create the \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a **production-like static preview** of \\\`src/app/page.tsx\\\`. The goal is to make it look as real as possible without any client-side JavaScript. To do this, you MUST:
         a.  Create a full HTML structure (\`<html><head>...</head><body>...</body></html>\`).
-        b.  In the \`<head>\`, add a \`<script src="https://cdn.tailwindcss.com"></script>\` tag to enable Tailwind utility classes.
-        c.  In the \`<head>\`, copy the entire content of the generated \`globals.css\` file and place it inside a \`<style>\` tag.
-        d.  In the \`<body>\`, convert the JSX from \`page.tsx\` into plain HTML. Use realistic placeholder content for dynamic parts of the UI. This preview is crucial.
+        b.  In the \`<head>\`, add \`<script src="https://cdn.tailwindcss.com"></script>\` to enable Tailwind utility classes.
+        c.  In the \`<head>\`, copy the **entire content** of the generated \`globals.css\` file and place it inside a \`<style>\` tag. This is crucial for matching the theme.
+        d.  In the \`<body>\`, convert the JSX from \`page.tsx\` into plain HTML.
+        e.  **IMPORTANT FOR REALISM**: If \`page.tsx\` renders a list of items from \`localStorage\` (like a to-do list or recipe list), you MUST **hardcode 2-3 realistic example items** directly into the HTML. Do not show an empty state. For example, if it's a to-do app, render two sample to-do items with text like "Buy milk" and "Finish report".
+        f.  For cloned sites, ensure all placeholder images (\`https://placehold.co/...\`) are included with correct dimensions.
 
     10. **Generate Detailed Explanation**: After generating all files, create the \`explanation\` text. This must be a comprehensive, step-by-step guide formatted in Markdown.
         {{#if cloneUrl}}
