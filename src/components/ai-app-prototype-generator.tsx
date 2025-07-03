@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, LayoutTemplate, Lightbulb, Tag, CheckSquare, Users, DollarSign } from 'lucide-react';
 import { generateAppPrototypeAction } from '@/actions/ai';
 import type { GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 
 export function AiAppPrototypeGenerator() {
   const [appIdea, setAppIdea] = useState('');

@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Megaphone } from 'lucide-react';
 import { generateGoogleAdsAction } from '@/actions/ai';
 import type { GenerateGoogleAdsOutput } from '@/ai/flows/generate-google-ads';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 
 export function AiGoogleAdsGenerator() {
   const [productName, setProductName] = useState('');
