@@ -12,15 +12,29 @@ import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymen
 import type { UpgradeRequest, PaymentSettings } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const UPGRADE_AMOUNT = 50000;
 
-function UpgradeForm({ onSubmitted, adminWhatsapp }: { onSubmitted: () => void; adminWhatsapp: string | null }) {
+function UpgradeForm({ onSubmitted, admins }: { onSubmitted: () => void; admins: { name: string; whatsapp: string; }[] }) {
   const { user } = useAuth();
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSelectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [generatedMessage, setGeneratedMessage] = useState('');
   const { toast } = useToast();
+
+  const handleAdminSelect = (whatsappNumber: string) => {
+    const encodedMessage = encodeURIComponent(generatedMessage);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+    setSelectionDialogOpen(false);
+    toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
+    setTimeout(() => {
+        onSubmitted();
+    }, 500);
+  }
   
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -28,18 +42,12 @@ function UpgradeForm({ onSubmitted, adminWhatsapp }: { onSubmitted: () => void; 
       toast({ title: 'Form Tidak Lengkap', description: 'Harap isi semua kolom konfirmasi.', variant: 'destructive' });
       return;
     }
-    if (!adminWhatsapp) {
-      toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
-      return;
-    }
 
     setLoading(true);
 
     try {
-      // 1. Create the upgrade request in the database
       createUpgradeRequest(user.id, bankName, accountHolder);
 
-      // 2. Prepare and open the WhatsApp message
       const message = `
 *Konfirmasi Pembayaran Upgrade Pro*
 
@@ -52,17 +60,21 @@ Berikut adalah detailnya:
 
 Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. Terima kasih!
       `.trim();
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${adminWhatsapp}?text=${encodedMessage}`;
       
-      window.open(whatsappUrl, '_blank');
-      
-      toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
-      
-      setTimeout(() => {
-        onSubmitted();
-      }, 500);
+      setGeneratedMessage(message);
 
+      if (admins.length === 0) {
+        toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
+      } else if (admins.length === 1) {
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${admins[0].whatsapp}?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+        toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
+        setTimeout(() => { onSubmitted(); }, 500);
+      } else {
+        setSelectionDialogOpen(true);
+      }
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
       toast({ title: "Gagal Mengirim Permintaan", description: errorMessage, variant: 'destructive' });
@@ -72,24 +84,49 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
   };
 
   return (
-     <form onSubmit={handleSubmit} className="space-y-4 pt-4 border-t">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-4 pt-4 border-t">
         <h3 className="text-lg font-semibold">Formulir Konfirmasi</h3>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="bankName">Bank Pengirim</Label>
-                <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} required placeholder="Contoh: Bank Mandiri" />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="accountHolder">Nama Pemilik Rekening</Label>
-                <Input id="accountHolder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} required placeholder="Contoh: Budi Sanjaya" />
-            </div>
-        </div>
-        <Button type="submit" disabled={loading || !adminWhatsapp} className="w-full">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Konfirmasi via WhatsApp
-        </Button>
-        {!adminWhatsapp && <p className="text-xs text-center text-destructive">Nomor WhatsApp Admin tidak dikonfigurasi.</p>}
-    </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label htmlFor="bankName">Bank Pengirim</Label>
+                  <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} required placeholder="Contoh: Bank Mandiri" />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="accountHolder">Nama Pemilik Rekening</Label>
+                  <Input id="accountHolder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} required placeholder="Contoh: Budi Sanjaya" />
+              </div>
+          </div>
+          <Button type="submit" disabled={loading || admins.length === 0} className="w-full">
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Konfirmasi via WhatsApp
+          </Button>
+          {admins.length === 0 && <p className="text-xs text-center text-destructive">Nomor WhatsApp Admin tidak dikonfigurasi.</p>}
+      </form>
+      <Dialog open={isSelectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pilih Admin untuk Dihubungi</DialogTitle>
+            <DialogDescription>
+              Silakan pilih salah satu admin di bawah ini untuk melanjutkan konfirmasi pembayaran Anda via WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            {admins.map((admin) => (
+              <Button
+                key={admin.whatsapp}
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => handleAdminSelect(admin.whatsapp)}
+              >
+                {admin.name}
+                <Send className="h-4 w-4" />
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -126,7 +163,7 @@ export default function UpgradePage() {
   const { user, loading: userLoading } = useAuth();
   const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentSettings | null>(null);
-  const [adminWhatsapp, setAdminWhatsapp] = useState<string | null>(null);
+  const [admins, setAdmins] = useState<{ name: string; whatsapp: string; }[]>([]);
   
   const refreshRequestStatus = () => {
     if (user) {
@@ -141,15 +178,17 @@ export default function UpgradePage() {
         refreshRequestStatus();
       }
       
-      const adminUser = getAllUsers().find(u => u.role === 'admin');
-      if (adminUser && adminUser.whatsapp) {
-        let formattedNumber = adminUser.whatsapp.trim().replace(/[^0-9]/g, '');
-        if (formattedNumber.startsWith('0')) {
-          formattedNumber = '62' + formattedNumber.substring(1);
-        }
-        setAdminWhatsapp(formattedNumber);
-      }
-      
+      const adminUsers = getAllUsers()
+        .filter(u => u.role === 'admin' && u.whatsapp && u.whatsapp.trim() !== '')
+        .map(u => {
+          let formattedNumber = u.whatsapp!.trim().replace(/[^0-9]/g, '');
+          if (formattedNumber.startsWith('0')) {
+            formattedNumber = '62' + formattedNumber.substring(1);
+          }
+          return { name: u.name, whatsapp: formattedNumber };
+        });
+
+      setAdmins(adminUsers);
       setPaymentDetails(getPaymentSettings());
     }
   }, [user, userLoading]);
@@ -234,7 +273,7 @@ export default function UpgradePage() {
                         </AlertDescription>
                     </Alert>
                 </div>
-                <UpgradeForm onSubmitted={refreshRequestStatus} adminWhatsapp={adminWhatsapp} />
+                <UpgradeForm onSubmitted={refreshRequestStatus} admins={admins} />
               </>
             )}
 
