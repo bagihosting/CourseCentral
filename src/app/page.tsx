@@ -11,6 +11,7 @@ import { getLandingPageSettings, getAllCourses, getAllTestimonials, getSeoSettin
 import type { Course, LandingPageSettings, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import DOMPurify from 'isomorphic-dompurify';
 
 const featureIcons: { [key: string]: React.ElementType } = {
   ShieldCheck,
@@ -130,7 +131,7 @@ function LandingPage() {
         <section className="py-20 md:py-32 bg-muted/30">
           <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center px-4">
             <div className="space-y-6 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight" dangerouslySetInnerHTML={{ __html: settings.heroHeadline }}></h1>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(settings.heroHeadline) }}></h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto md:mx-0">
                 {settings.heroSubheadline}
               </p>

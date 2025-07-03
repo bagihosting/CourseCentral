@@ -12,6 +12,7 @@ import { generateWebAppAction, editWebAppAction } from '@/actions/ai';
 import type { GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DOMPurify from 'isomorphic-dompurify';
 
 type FileItem = GenerateWebAppOutput['files'][0];
 
@@ -254,7 +255,7 @@ export function AiWebAppGenerator() {
                 <div className="w-full aspect-[16/10] border rounded-lg overflow-hidden bg-white">
                     <iframe
                         id="template-preview"
-                        srcDoc={output.previewHtml}
+                        srcDoc={DOMPurify.sanitize(output.previewHtml, { WHOLE_DOCUMENT: true })}
                         title="Pratinjau Aplikasi Web"
                         className="w-full h-full border-0"
                         sandbox="allow-scripts allow-same-origin"

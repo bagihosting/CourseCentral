@@ -24,6 +24,7 @@ import { generateCertificate as generateCertificateFlow, type GenerateCertificat
 import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser, getSeoSettings, getLandingPageSettings } from '@/lib/data';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
   title: string
@@ -350,6 +351,8 @@ export async function generateCertificateAction(
 
   try {
     const result = await generateCertificateFlow(input);
+    // Sanitize the generated HTML before returning it to the client
+    result.certificateHtml = DOMPurify.sanitize(result.certificateHtml);
     return result;
   } catch (error) {
     console.error('Error generating certificate:', error);
@@ -384,7 +387,9 @@ export async function generateAndApproveCertificateAction(
     
     try {
         const generationResult = await generateCertificateFlow(generationInput);
-        approveCertificateRequest(requestId, generationResult.certificateHtml);
+        // Sanitize the generated HTML before saving it
+        const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml);
+        approveCertificateRequest(requestId, cleanHtml);
         return { success: true };
     } catch (error) {
         console.error('Error approving certificate:', error);
@@ -399,7 +404,9 @@ export async function awardCertificateAction(
     certificateHtml: string
 ): Promise<{ success: boolean } | { error: string }> {
     try {
-        awardCertificateToUser(userId, courseId, certificateHtml);
+        // Sanitize the HTML before saving it
+        const cleanHtml = DOMPurify.sanitize(certificateHtml);
+        awardCertificateToUser(userId, courseId, cleanHtml);
         return { success: true };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';

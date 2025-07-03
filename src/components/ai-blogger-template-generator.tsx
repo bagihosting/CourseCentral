@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Copy, Download, Pencil } from 'lucide-react';
 import { generateBloggerTemplateAction, editBloggerTemplateAction } from '@/actions/ai';
+import DOMPurify from 'isomorphic-dompurify';
 
 export function AiBloggerTemplateGenerator() {
   const [niche, setNiche] = useState('');
@@ -99,6 +100,9 @@ export function AiBloggerTemplateGenerator() {
       `;
     // We inject the placeholder *inside* the blog widget container
     bodyContent = bodyContent.replace(blogWidgetRegex, `$1${blogPostPlaceholder}`);
+
+    // SECURITY: Sanitize the body content before rendering
+    bodyContent = DOMPurify.sanitize(bodyContent);
 
     // Step 7: Construct the final, complete HTML document for the iframe
     return `
