@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentSettings } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -11,7 +11,7 @@ interface Database {
   courses: Course[];
   enrollments: Enrollment[];
   upgradeRequests: UpgradeRequest[];
-  paymentSettings: PaymentSettings;
+  paymentSettings: PaymentAccount[];
 }
 
 // --- Seed Data ---
@@ -102,11 +102,14 @@ function getInitialData(): Database {
         ],
         enrollments: [],
         upgradeRequests: [],
-        paymentSettings: {
-          bankName: 'Bank BCA',
-          accountNumber: '1234567890',
-          accountHolder: 'Admin Aplikasi Kursus',
-        },
+        paymentSettings: [
+          {
+            id: 'default_bca_1',
+            bankName: 'Bank BCA',
+            accountNumber: '1234567890',
+            accountHolder: 'Admin Aplikasi Kursus',
+          }
+        ],
     };
 }
 
@@ -143,12 +146,15 @@ function getDB(): Database {
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
         if (!data.upgradeRequests) data.upgradeRequests = [];
-        if (!data.paymentSettings) {
-          data.paymentSettings = {
-            bankName: 'Bank BCA',
-            accountNumber: '1234567890',
-            accountHolder: 'Admin Aplikasi Kursus',
-          };
+        if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
+          data.paymentSettings = [
+            {
+              id: 'default_bca_1',
+              bankName: (data.paymentSettings as any)?.bankName || 'Bank BCA',
+              accountNumber: (data.paymentSettings as any)?.accountNumber || '1234567890',
+              accountHolder: (data.paymentSettings as any)?.accountHolder || 'Admin Aplikasi Kursus',
+            }
+          ];
         }
 
         // --- Start of robust self-healing logic for admin user ---
@@ -552,13 +558,40 @@ export function approveUpgrade(requestId: string): void {
 
 // --- Payment Settings API ---
 
-export function getPaymentSettings(): PaymentSettings {
+export function getPaymentSettings(): PaymentAccount[] {
   const db = getDB();
   return db.paymentSettings;
 }
 
-export function updatePaymentSettings(settings: PaymentSettings): void {
+export function addPaymentAccount(account: Omit<PaymentAccount, 'id'>): PaymentAccount {
   const db = getDB();
-  db.paymentSettings = settings;
+  const newAccount: PaymentAccount = {
+    ...account,
+    id: `pa_${Date.now()}`,
+  };
+  db.paymentSettings.push(newAccount);
+  saveDB(db);
+  return newAccount;
+}
+
+export function updatePaymentAccount(accountId: string, data: Partial<Omit<PaymentAccount, 'id'>>): PaymentAccount {
+  const db = getDB();
+  const accountIndex = db.paymentSettings.findIndex(acc => acc.id === accountId);
+  if (accountIndex === -1) {
+    throw new Error('Akun pembayaran tidak ditemukan.');
+  }
+  const updatedAccount = { ...db.paymentSettings[accountIndex], ...data };
+  db.paymentSettings[accountIndex] = updatedAccount;
+  saveDB(db);
+  return updatedAccount;
+}
+
+export function deletePaymentAccount(accountId: string): void {
+  const db = getDB();
+  const initialLength = db.paymentSettings.length;
+  db.paymentSettings = db.paymentSettings.filter(acc => acc.id !== accountId);
+  if (db.paymentSettings.length === initialLength) {
+    throw new Error('Gagal menghapus akun pembayaran, ID tidak ditemukan.');
+  }
   saveDB(db);
 }

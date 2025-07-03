@@ -47,7 +47,8 @@ export type UpgradeRequest = {
   status: 'pending' | 'approved';
 };
 
-export type PaymentSettings = {
+export type PaymentAccount = {
+  id: string;
   bankName: string;
   accountNumber: string;
   accountHolder: string;

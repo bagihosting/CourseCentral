@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Banknote, CheckCircle, ChevronRight, Loader2, Sparkles, Send, Clock, BadgeCheck } from 'lucide-react';
 import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings } from '@/lib/data';
-import type { UpgradeRequest, PaymentSettings } from '@/types';
+import type { UpgradeRequest, PaymentAccount } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -162,7 +162,7 @@ function RequestStatus({ request }: { request: UpgradeRequest }) {
 export default function UpgradePage() {
   const { user, loading: userLoading } = useAuth();
   const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
-  const [paymentDetails, setPaymentDetails] = useState<PaymentSettings | null>(null);
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [admins, setAdmins] = useState<{ name: string; whatsapp: string; }[]>([]);
   
   const refreshRequestStatus = () => {
@@ -189,7 +189,7 @@ export default function UpgradePage() {
         });
 
       setAdmins(adminUsers);
-      setPaymentDetails(getPaymentSettings());
+      setPaymentAccounts(getPaymentSettings());
     }
   }, [user, userLoading]);
 
@@ -202,7 +202,7 @@ export default function UpgradePage() {
     'Akses awal ke fitur-fitur baru.',
   ];
 
-  if(userLoading || !paymentDetails) {
+  if(userLoading) {
     return <Skeleton className="w-full h-96" />
   }
 
@@ -255,12 +255,20 @@ export default function UpgradePage() {
                         <Banknote className="h-4 w-4" />
                         <AlertTitle className="font-semibold">Langkah 1: Lakukan Pembayaran</AlertTitle>
                         <AlertDescription>
-                            <p>Silakan transfer sejumlah <strong>Rp{UPGRADE_AMOUNT.toLocaleString('id-ID')}</strong> ke rekening berikut:</p>
-                            <ul className="mt-2 list-disc pl-5 space-y-1">
-                                <li><strong>Bank:</strong> {paymentDetails.bankName}</li>
-                                <li><strong>No. Rekening:</strong> {paymentDetails.accountNumber}</li>
-                                <li><strong>Atas Nama:</strong> {paymentDetails.accountHolder}</li>
-                            </ul>
+                            <p>Silakan transfer sejumlah <strong>Rp{UPGRADE_AMOUNT.toLocaleString('id-ID')}</strong> ke salah satu rekening berikut:</p>
+                            <div className="mt-2 space-y-3">
+                                {paymentAccounts.length > 0 ? (
+                                    paymentAccounts.map((account) => (
+                                        <div key={account.id} className="p-3 border rounded-md bg-muted/30">
+                                            <p className="font-semibold">{account.bankName}</p>
+                                            <p>No. Rekening: <span className="font-mono">{account.accountNumber}</span></p>
+                                            <p>Atas Nama: <span className="font-mono">{account.accountHolder}</span></p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p>Informasi pembayaran belum diatur oleh admin.</p>
+                                )}
+                            </div>
                             <p className="mt-2 text-xs">Pastikan jumlah transfer sesuai untuk mempercepat proses verifikasi.</p>
                         </AlertDescription>
                     </Alert>
