@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/course-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { getLandingPageSettings, getAllCourses, getAllTestimonials } from '@/lib/data';
+import { getLandingPageSettings, getAllCourses, getAllTestimonials, getSeoSettings } from '@/lib/data';
 import type { Course, LandingPageSettings, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
