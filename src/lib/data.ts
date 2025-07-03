@@ -335,8 +335,13 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
         throw new Error("Pengguna tidak ditemukan.");
     }
 
+    const updatePayload = { ...data };
+    if (typeof updatePayload.whatsapp === 'string') {
+        updatePayload.whatsapp = updatePayload.whatsapp.replace(/[^0-9]/g, '');
+    }
+
     const currentUser = db.users[userIndex];
-    const updatedUser = { ...currentUser, ...data };
+    const updatedUser = { ...currentUser, ...updatePayload };
 
     db.users[userIndex] = updatedUser;
     saveDB(db);

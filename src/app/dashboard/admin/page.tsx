@@ -26,6 +26,7 @@ export default function AdminPage() {
   // Form state
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [password, setPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,11 +48,13 @@ export default function AdminPage() {
     if (user) { // Edit mode
         setName(user.name);
         setUsername(user.username);
+        setWhatsapp(user.whatsapp || '');
         setAvatarPreview(user.avatarUrl);
         setPassword('');
     } else { // Add mode
         setName('');
         setUsername('');
+        setWhatsapp('');
         setAvatarPreview(undefined);
         setPassword('');
     }
@@ -93,14 +96,13 @@ export default function AdminPage() {
     setIsSubmitting(true);
 
     try {
-      // The avatar is now a data URL stored in `avatarPreview`.
-      // No server-side upload action is needed.
       const newAvatarUrl = avatarPreview;
 
       if (selectedUser) {
         // --- UPDATE LOGIC ---
         const updateData: UpdateUserInput = {
-          name: name,
+          name,
+          whatsapp,
           avatarUrl: newAvatarUrl,
         };
         if (password.trim() !== '') {
@@ -120,6 +122,7 @@ export default function AdminPage() {
           name,
           username,
           password,
+          whatsapp,
           avatarUrl: newAvatarUrl,
         };
         registerUser(createData);
@@ -245,8 +248,18 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-2">
+                    <Label htmlFor="whatsapp">Nomor WhatsApp</Label>
+                    <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" disabled={selectedUser?.role === 'admin'} />
+                    {selectedUser?.role === 'admin' && (
+                        <p className="text-xs text-muted-foreground">
+                            Admin tidak dapat mengubah nomor WhatsApp sendiri di halaman ini.
+                        </p>
+                    )}
+                </div>
+
+                <div className="space-y-2">
                     <Label htmlFor="password">Kata Sandi</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={selectedUser ? "Biarkan kosong jika tidak ingin mengubah" : "Wajib diisi"} required={!selectedUser} />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={selectedUser ? "Biarkan kosong jika tidak ingin mengubah" : "Wajib diisi"} required={!selectedUser} disabled={selectedUser?.role === 'admin'} />
                 </div>
 
                 <DialogFooter>
