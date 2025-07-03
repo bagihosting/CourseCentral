@@ -6,6 +6,10 @@ export type User = {
   role: 'admin' | 'member' | 'pro';
   avatarUrl: string;
   whatsapp?: string;
+  createdAt: string;
+  lastLoginAt: string;
+  status: 'active' | 'inactive';
+  loginCount: number;
 };
 
 export type Course = {

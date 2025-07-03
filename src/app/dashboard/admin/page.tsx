@@ -3,19 +3,22 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getAllUsers, updateUser, registerUser } from '@/lib/data';
+import { getAllUsers, updateUser, registerUser, deleteUser, reactivateUser } from '@/lib/data';
 import type { UpdateUserInput, RegisterUserInput } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { User, Pencil, Loader2, Camera, PlusCircle } from 'lucide-react';
+import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX } from 'lucide-react';
 import type { User as UserType } from '@/types';
 import imageCompression from 'browser-image-compression';
 import { Skeleton } from '@/components/ui/skeleton';
-
+import { Badge } from '@/components/ui/badge';
+import { format, formatDistanceToNow } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -74,7 +77,6 @@ export default function AdminPage() {
         };
         const compressedFile = await imageCompression(file, options);
         
-        // Convert compressed file to a Data URL to store in localStorage
         const reader = new FileReader();
         reader.onloadend = () => {
             setAvatarPreview(reader.result as string);
@@ -96,55 +98,52 @@ export default function AdminPage() {
     setIsSubmitting(true);
 
     try {
-      const newAvatarUrl = avatarPreview;
-
       if (selectedUser) {
-        // --- UPDATE LOGIC ---
-        const updateData: UpdateUserInput = {
-          name,
-          whatsapp,
-          avatarUrl: newAvatarUrl,
-        };
+        const updateData: UpdateUserInput = { name, whatsapp, avatarUrl: avatarPreview };
         if (password.trim() !== '') {
           updateData.password = password;
         }
         updateUser(selectedUser.id, updateData);
-        toast({
-          title: 'Sukses',
-          description: `Data pengguna ${name} berhasil diperbarui.`,
-        });
+        toast({ title: 'Sukses', description: `Data pengguna ${name} berhasil diperbarui.` });
       } else {
-        // --- CREATE LOGIC ---
         if (!username || password.trim() === '') {
           throw new Error('Nama pengguna dan kata sandi wajib diisi untuk anggota baru.');
         }
-        const createData: RegisterUserInput & { avatarUrl?: string } = {
-          name,
-          username,
-          password,
-          whatsapp,
-          avatarUrl: newAvatarUrl,
-        };
+        const createData: RegisterUserInput & { avatarUrl?: string } = { name, username, password, whatsapp, avatarUrl: avatarPreview };
         registerUser(createData);
-        toast({
-          title: 'Sukses',
-          description: `Anggota baru ${name} berhasil ditambahkan.`,
-        });
+        toast({ title: 'Sukses', description: `Anggota baru ${name} berhasil ditambahkan.` });
       }
-
       refreshUsers();
       setIsDialogOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
-      toast({
-        title: 'Gagal Menyimpan',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleDeleteUser = (userId: string) => {
+    try {
+      deleteUser(userId);
+      toast({ title: 'Sukses', description: 'Member berhasil dihapus.' });
+      refreshUsers();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
+    }
+  };
+  
+  const handleReactivateUser = (userId: string) => {
+     try {
+      reactivateUser(userId);
+      toast({ title: 'Sukses', description: 'Member berhasil diaktifkan kembali.' });
+      refreshUsers();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+      toast({ title: 'Gagal Aktivasi', description: errorMessage, variant: 'destructive' });
+    }
+  }
   
   if (loading) {
     return (
@@ -189,26 +188,67 @@ export default function AdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama Pengguna</TableHead>
-                  <TableHead>Peran</TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Login Terakhir</TableHead>
+                  <TableHead className="hidden lg:table-cell">Terdaftar</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                      </Avatar>
-                      {user.name}
+                  <TableRow key={user.id} className={user.status === 'inactive' ? 'bg-muted/30' : ''}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatarUrl} alt={user.name} />
+                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p>{user.name}</p>
+                            <Badge variant="secondary" className="font-normal capitalize">{user.role}</Badge>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell>{user.role === 'admin' ? 'Admin' : user.role === 'pro' ? 'Pro' : 'Member'}</TableCell>
-                    <TableCell className="text-right">
-                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)} disabled={user.role === 'admin'}>
+                    <TableCell className="hidden md:table-cell">
+                        {user.status === 'active' ? (
+                            <Badge variant="outline" className="border-green-600 text-green-700"><BadgeCheck className="mr-1 h-3 w-3" />Aktif</Badge>
+                        ) : (
+                             <Badge variant="destructive"><BadgeX className="mr-1 h-3 w-3" />Tidak Aktif</Badge>
+                        )}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">{formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id })}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id })}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                        {user.role !== 'admin' && user.status === 'inactive' && (
+                             <Button variant="secondary" size="sm" onClick={() => handleReactivateUser(user.id)}>
+                                Re-aktivasi
+                            </Button>
+                        )}
+                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)}>
                           <Pencil className="h-3 w-3 mr-2" />
                           Ubah
                         </Button>
+                       {user.role !== 'admin' && (
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" className="h-8 w-8">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Hapus Member Ini?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Tindakan ini akan menghapus member secara permanen, termasuk semua data terkait seperti pendaftaran kursus dan testimoni.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Ya, Hapus</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                       )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -222,6 +262,11 @@ export default function AdminPage() {
           <DialogContent>
             <DialogHeader>
                 <DialogTitle>{selectedUser ? `Ubah Pengguna: ${selectedUser.name}` : 'Tambah Member Baru'}</DialogTitle>
+                {selectedUser && (
+                     <DialogDescription>
+                        Terdaftar: {new Date(selectedUser.createdAt).toLocaleDateString('id-ID')} | Total Login: {selectedUser.loginCount}
+                    </DialogDescription>
+                )}
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2 flex flex-col items-center">
@@ -249,24 +294,19 @@ export default function AdminPage() {
 
                 <div className="space-y-2">
                     <Label htmlFor="whatsapp">Nomor WhatsApp</Label>
-                    <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" disabled={selectedUser?.role === 'admin'} />
-                    {selectedUser?.role === 'admin' && (
-                        <p className="text-xs text-muted-foreground">
-                            Admin tidak dapat mengubah nomor WhatsApp sendiri di halaman ini.
-                        </p>
-                    )}
+                    <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" />
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="password">Kata Sandi</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={selectedUser ? "Biarkan kosong jika tidak ingin mengubah" : "Wajib diisi"} required={!selectedUser} disabled={selectedUser?.role === 'admin'} />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={selectedUser ? "Biarkan kosong jika tidak ingin mengubah" : "Wajib diisi"} required={!selectedUser} />
                 </div>
 
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Simpan Perubahan
+                        Simpan
                     </Button>
                 </DialogFooter>
             </form>

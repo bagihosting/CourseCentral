@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpenCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getSeoSettings } from '@/lib/data';
+import { getSeoSettings, getConfirmationContacts } from '@/lib/data';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ToastAction } from '@/components/ui/toast';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -34,7 +35,29 @@ function LoginForm() {
       // The context will handle redirection
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
-      toast({ title: 'Gagal Masuk', description: errorMessage, variant: 'destructive'});
+      if (errorMessage === 'ACCOUNT_INACTIVE') {
+        const contacts = getConfirmationContacts();
+        const adminContact = contacts.length > 0 ? contacts[0].whatsapp : '';
+        let whatsappUrl = '#';
+        if(adminContact) {
+          const message = encodeURIComponent(`Halo Admin, mohon bantuannya untuk mengaktifkan kembali akun saya dengan username: ${username}. Terima kasih.`);
+          whatsappUrl = `https://wa.me/${adminContact}?text=${message}`;
+        }
+    
+        toast({
+          title: 'Akun Anda Tidak Aktif',
+          description: 'Akun Anda dinonaktifkan karena tidak ada aktivitas selama lebih dari 30 hari. Silakan hubungi admin untuk aktivasi kembali.',
+          variant: 'destructive',
+          duration: 10000,
+          action: (
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <ToastAction altText="Hubungi Admin">Hubungi Admin</ToastAction>
+            </a>
+          ),
+        });
+      } else {
+        toast({ title: 'Gagal Masuk', description: errorMessage, variant: 'destructive'});
+      }
       setLoading(false);
     }
   };

@@ -22,11 +22,12 @@ interface Database {
 // --- Seed Data ---
 
 function getInitialData(): Database {
+    const now = new Date().toISOString();
     return {
         users: [
-            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6281234567890' },
-            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '' },
-            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210' },
+            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6281234567890', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
+            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
+            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
         ],
         courses: [
           {
@@ -240,10 +241,19 @@ function getDB(): Database {
             data.registeredDeviceIds = [];
         }
 
+        const initialDbString = JSON.stringify(data);
+        
+        // Data migration for existing users
+        const now = new Date().toISOString();
+        data.users.forEach(user => {
+            if (!user.createdAt) user.createdAt = now;
+            if (!user.lastLoginAt) user.lastLoginAt = now;
+            if (!user.status) user.status = 'active';
+            if (typeof user.loginCount !== 'number') user.loginCount = 0;
+        });
+
 
         // --- Start of robust self-healing and security patch logic ---
-        const initialDbString = JSON.stringify(data);
-
         const correctAdminUser = {
             id: 'admin',
             name: 'Admin Utama',
@@ -252,6 +262,10 @@ function getDB(): Database {
             role: 'admin' as const,
             avatarUrl: 'https://placehold.co/100x100.png',
             whatsapp: '6281234567890',
+            createdAt: data.users.find(u => u.id === 'admin')?.createdAt || now,
+            lastLoginAt: data.users.find(u => u.id === 'admin')?.lastLoginAt || now,
+            status: 'active' as const,
+            loginCount: data.users.find(u => u.id === 'admin')?.loginCount || 1,
         };
 
         const otherUsers = data.users.filter(u => u.id !== 'admin');
@@ -287,6 +301,23 @@ function getDB(): Database {
 
 export function getAllUsers(): User[] {
   const db = getDB();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  let dbWasModified = false;
+
+  db.users.forEach(user => {
+      // Only check non-admin users who are currently active
+      if (user.role !== 'admin' && user.status === 'active') {
+          const lastLoginDate = new Date(user.lastLoginAt);
+          if (lastLoginDate < thirtyDaysAgo) {
+              user.status = 'inactive';
+              dbWasModified = true;
+          }
+      }
+  });
+
+  if (dbWasModified) {
+      saveDB(db);
+  }
   return db.users;
 }
 
@@ -295,20 +326,18 @@ export function getUserById(id: string): User | undefined {
     return db.users.find(user => user.id === id);
 }
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl'>;
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username'>>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount'>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username' | 'createdAt'>>;
 
 export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): User {
   const db = getDB();
   if (db.users.some(u => u.username === data.username)) {
     throw new Error('Nama pengguna sudah digunakan. Silakan pilih nama pengguna lain.');
   }
-  // Security enhancement: Prevent registering a user with the 'admin' username.
   if (data.username.toLowerCase() === 'admin') {
       throw new Error("Nama pengguna 'admin' tidak diizinkan untuk pendaftaran baru.");
   }
 
-  // Device registration check
   const DEVICE_ID_KEY = 'device_fingerprint_id';
   let deviceId = localStorage.getItem(DEVICE_ID_KEY);
   if (!deviceId) {
@@ -319,20 +348,23 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
   if (db.registeredDeviceIds.includes(deviceId)) {
       throw new Error('Pendaftaran dari perangkat ini telah mencapai batas maksimum (1 akun).');
   }
-
+  
+  const now = new Date().toISOString();
   const newUser: User = {
     id: `user_${Date.now()}`,
     name: data.name,
     username: data.username,
-    password: data.password, // In a real app, this should be hashed.
-    // New users are always registered as 'member' for security.
-    // The main admin account is protected and cannot be created this way.
+    password: data.password,
     role: 'member',
     avatarUrl: data.avatarUrl || 'https://placehold.co/100x100.png',
     whatsapp: data.whatsapp ? data.whatsapp.replace(/[^0-9]/g, '') : '',
+    createdAt: now,
+    lastLoginAt: now,
+    status: 'active',
+    loginCount: 1, // Registration counts as the first login activity
   };
   db.users.push(newUser);
-  db.registeredDeviceIds.push(deviceId); // Register the device ID
+  db.registeredDeviceIds.push(deviceId);
   saveDB(db);
   return newUser;
 }
@@ -361,9 +393,55 @@ export function validateUser(username: string, password: string): User | null {
   const db = getDB();
   const user = db.users.find(u => u.username === username);
   if (user && user.password === password) {
+    if (user.role !== 'admin' && user.status === 'inactive') {
+      throw new Error('ACCOUNT_INACTIVE');
+    }
+    // Update login stats
+    user.lastLoginAt = new Date().toISOString();
+    user.loginCount = (user.loginCount || 0) + 1;
+    user.status = 'active'; // Reactivate on successful login if needed
+    saveDB(db);
     return user;
   }
   return null;
+}
+
+export function deleteUser(userId: string): void {
+    const db = getDB();
+    
+    if (userId === 'admin') {
+        throw new Error("Akun admin utama tidak dapat dihapus.");
+    }
+
+    const initialUserLength = db.users.length;
+    db.users = db.users.filter(u => u.id !== userId);
+
+    if (db.users.length === initialUserLength) {
+        throw new Error("Gagal menghapus pengguna, ID tidak ditemukan.");
+    }
+    
+    // Remove related data
+    db.enrollments = db.enrollments.filter(e => e.userId !== userId);
+    db.upgradeRequests = db.upgradeRequests.filter(r => r.userId !== userId);
+    
+    const testimonialToDelete = db.testimonials.find(t => t.userId === userId);
+    if (testimonialToDelete) {
+      db.testimonials = db.testimonials.filter(t => t.userId !== userId);
+      db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialToDelete.id);
+    }
+    
+    saveDB(db);
+}
+
+export function reactivateUser(userId: string): User {
+    const db = getDB();
+    const userIndex = db.users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+        throw new Error("Pengguna tidak ditemukan.");
+    }
+    db.users[userIndex].status = 'active';
+    saveDB(db);
+    return db.users[userIndex];
 }
 
 
