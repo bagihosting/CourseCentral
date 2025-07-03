@@ -47,6 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
+    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
 
@@ -64,7 +65,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
   
-  const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
+  const getNavItems = () => {
+      if (user.role === 'admin') {
+        return adminNavItems;
+      }
+      return memberNavItems.filter(item => {
+        if (item.label === 'Upgrade ke Pro') {
+          return user.role === 'member'; // Only show for regular members
+        }
+        if (item.label === 'Unduhan') {
+          return user.role === 'pro'; // Only show for pro members
+        }
+        return true;
+      });
+    };
+
+  const navItems = getNavItems();
 
   return (
     <SidebarProvider>
