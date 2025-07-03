@@ -14,6 +14,7 @@ import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaym
 import type { PaymentAccount } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount, onFinished: () => void }) {
     const [bankName, setBankName] = useState(account?.bankName || '');
@@ -110,7 +111,58 @@ export default function CourseSettingsPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+        <div className="space-y-6">
+            <div>
+                <Skeleton className="h-9 w-64 mb-2" />
+                <Skeleton className="h-5 w-80" />
+            </div>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <Skeleton className="h-6 w-56 mb-2" />
+                        <Skeleton className="h-4 w-72" />
+                    </div>
+                    <Skeleton className="h-10 w-36" />
+                </CardHeader>
+                <CardContent>
+                    <div className="w-full space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48 mb-2" />
+                    <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-40 mb-2" />
+                    <Skeleton className="h-4 w-56" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-16 w-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
   }
 
   return (

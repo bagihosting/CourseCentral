@@ -12,9 +12,11 @@ import { getUpgradeRequests, approveUpgrade } from '@/lib/data';
 import type { PopulatedUpgradeRequest } from '@/lib/data';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProRequestsPage() {
   const [requests, setRequests] = useState<PopulatedUpgradeRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const refreshRequests = () => {
@@ -23,6 +25,7 @@ export default function ProRequestsPage() {
 
   useEffect(() => {
     refreshRequests();
+    setLoading(false);
   }, []);
 
   const handleApprove = (requestId: string) => {
@@ -42,6 +45,26 @@ export default function ProRequestsPage() {
       });
     }
   };
+  
+  if (loading) {
+    return (
+        <div className="grid gap-6">
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-7 w-64 mb-2" />
+                    <Skeleton className="h-5 w-96" />
+                </CardHeader>
+                <CardContent>
+                    <div className="w-full space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
 
   return (
     <div className="grid gap-6">

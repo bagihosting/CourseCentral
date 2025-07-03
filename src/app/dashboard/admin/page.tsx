@@ -14,10 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Pencil, Loader2, Camera, PlusCircle } from 'lucide-react';
 import type { User as UserType } from '@/types';
 import imageCompression from 'browser-image-compression';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
 
@@ -37,6 +39,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     refreshUsers();
+    setLoading(false);
   }, []);
 
   const handleOpenDialog = (user: UserType | null) => {
@@ -139,6 +142,30 @@ export default function AdminPage() {
       setIsSubmitting(false);
     }
   };
+  
+  if (loading) {
+    return (
+      <div className="grid gap-6">
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <Skeleton className="h-7 w-56 mb-2" />
+                    <Skeleton className="h-5 w-80" />
+                </div>
+                <Skeleton className="h-10 w-36" />
+            </CardHeader>
+            <CardContent>
+                <div className="w-full space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <>
