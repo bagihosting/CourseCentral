@@ -22,9 +22,9 @@ interface Database {
 function getInitialData(): Database {
     return {
         users: [
-            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '081234567890' },
+            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6281234567890' },
             { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '' },
-            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '089876543210' },
+            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210' },
         ],
         courses: [
           {
@@ -237,7 +237,7 @@ function getDB(): Database {
             password: 'password',
             role: 'admin' as const,
             avatarUrl: 'https://placehold.co/100x100.png',
-            whatsapp: '081234567890',
+            whatsapp: '6281234567890',
         };
 
         const otherUsers = data.users.filter(u => u.id !== 'admin');
@@ -553,6 +553,7 @@ export function getCompletedCourseCount(userId: string): number {
 export type PopulatedUpgradeRequest = UpgradeRequest & {
   userName: string;
   userAvatar: string;
+  userWhatsapp?: string;
 };
 
 export function createUpgradeRequest(userId: string, bankName: string, accountHolder: string): UpgradeRequest {
@@ -591,6 +592,7 @@ export function getUpgradeRequests(): PopulatedUpgradeRequest[] {
             ...req,
             userName: user?.name || 'Pengguna Dihapus',
             userAvatar: user?.avatarUrl || 'https://placehold.co/100x100.png',
+            userWhatsapp: user?.whatsapp,
         };
     });
     
@@ -630,6 +632,23 @@ export function approveUpgrade(requestId: string): void {
     db.upgradeRequests[requestIndex].status = 'approved';
 
     saveDB(db);
+}
+
+export function cancelUpgradeRequest(userId: string): void {
+  const db = getDB();
+  const request = db.upgradeRequests.find(r => r.userId === userId && r.status === 'pending');
+  if (!request) {
+    throw new Error('Permintaan upgrade yang sedang menunggu tidak ditemukan untuk dibatalkan.');
+  }
+  
+  const initialLength = db.upgradeRequests.length;
+  db.upgradeRequests = db.upgradeRequests.filter(r => r.id !== request.id);
+
+  if(db.upgradeRequests.length === initialLength) {
+    throw new Error("Gagal membatalkan permintaan.");
+  }
+
+  saveDB(db);
 }
 
 // --- Payment Settings API ---

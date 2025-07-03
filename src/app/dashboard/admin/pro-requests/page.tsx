@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle, Clock } from 'lucide-react';
+import { User, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { getUpgradeRequests, approveUpgrade } from '@/lib/data';
 import type { PopulatedUpgradeRequest } from '@/lib/data';
 import { formatDistanceToNow } from 'date-fns';
@@ -126,7 +126,14 @@ export default function ProRequestsPage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                      {req.userWhatsapp && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                          <a href={`https://wa.me/${req.userWhatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" title={`Chat ${req.userName} di WhatsApp`}>
+                            <MessageSquare className="h-4 w-4 text-green-600" />
+                          </a>
+                        </Button>
+                      )}
                       {req.status === 'pending' && (
                         <Button size="sm" onClick={() => handleApprove(req.id)}>
                           Approve

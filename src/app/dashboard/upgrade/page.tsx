@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Banknote, CheckCircle, ChevronRight, Loader2, Sparkles, Send, Clock, BadgeCheck } from 'lucide-react';
-import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings } from '@/lib/data';
+import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings, cancelUpgradeRequest } from '@/lib/data';
 import type { UpgradeRequest, PaymentAccount } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const UPGRADE_AMOUNT = 50000;
 
@@ -130,7 +132,7 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
   )
 }
 
-function RequestStatus({ request }: { request: UpgradeRequest }) {
+function RequestStatus({ request, onCancel }: { request: UpgradeRequest, onCancel: () => void }) {
   if (request.status === 'pending') {
     return (
       <Alert>
@@ -139,6 +141,27 @@ function RequestStatus({ request }: { request: UpgradeRequest }) {
         <AlertDescription>
           <p>Kami telah menerima konfirmasi pembayaran Anda pada {new Date(request.requestDate).toLocaleString('id-ID')}. Admin akan segera memverifikasi pembayaran Anda.</p>
           <p className="mt-2">Proses ini biasanya memakan waktu 1x24 jam. Anda akan otomatis menjadi anggota Pro setelah disetujui.</p>
+           <div className="mt-4">
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="link" className="p-0 h-auto text-destructive hover:text-destructive/80">
+                        Batalkan Permintaan
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Anda yakin ingin membatalkan?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Permintaan upgrade Anda akan dihapus. Anda dapat mengajukan permintaan baru kapan saja.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Tidak</AlertDialogCancel>
+                    <AlertDialogAction onClick={onCancel} className="bg-destructive hover:bg-destructive/90">Ya, Batalkan</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </AlertDescription>
       </Alert>
     );
@@ -164,6 +187,7 @@ export default function UpgradePage() {
   const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [admins, setAdmins] = useState<{ name: string; whatsapp: string; }[]>([]);
+  const { toast } = useToast();
   
   const refreshRequestStatus = () => {
     if (user) {
@@ -193,6 +217,17 @@ export default function UpgradePage() {
     }
   }, [user, userLoading]);
 
+  const handleCancel = () => {
+    if (!user) return;
+    try {
+        cancelUpgradeRequest(user.id);
+        toast({ title: "Permintaan Dibatalkan", description: "Permintaan upgrade Anda telah berhasil dibatalkan." });
+        refreshRequestStatus();
+    } catch(e) {
+        const errorMessage = e instanceof Error ? e.message : 'Terjadi kesalahan tidak diketahui.';
+        toast({ title: 'Gagal Membatalkan', description: errorMessage, variant: 'destructive'});
+    }
+  }
 
   const proFeatures = [
     'Akses ke semua alat bantu AI canggih.',
@@ -247,7 +282,7 @@ export default function UpgradePage() {
         <CardContent className="space-y-6">
             
             {request ? (
-                <RequestStatus request={request} />
+                <RequestStatus request={request} onCancel={handleCancel} />
             ) : (
               <>
                 <div className="space-y-4">
