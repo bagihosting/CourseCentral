@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Copy, Download, Folder, File, Server, Pencil } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Download, Folder, File, Server, Pencil, BookOpenText } from 'lucide-react';
 import { generateWebAppAction, editWebAppAction } from '@/actions/ai';
 import type { GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -233,6 +233,24 @@ export function AiWebAppGenerator() {
                     Pratinjau ini adalah representasi statis dan mungkin tidak sepenuhnya akurat.
                 </p>
             </div>
+
+            {/* Explanation Section */}
+            {output.explanation && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BookOpenText className="text-primary"/>
+                            Penjelasan: Dari Kanvas Kosong ke Aplikasi
+                        </CardTitle>
+                        <CardDescription>Berikut adalah panduan langkah demi langkah tentang bagaimana file-file ini bekerja sama.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="p-4 rounded-md border bg-background whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                            {output.explanation}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* File List Section */}
             <div className="space-y-4">

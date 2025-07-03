@@ -9,7 +9,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { GenerateWebAppOutput } from './generate-web-app'; // Reuse the output schema
 
 const EditWebAppInputSchema = z.object({
   files: z.array(z.object({
@@ -20,7 +19,6 @@ const EditWebAppInputSchema = z.object({
   editRequest: z.string().describe('The user\'s request for changes to the application (e.g., "change the primary color to blue", "add a contact form").'),
 });
 
-// The output is the same as the generation output
 const EditWebAppOutputSchema = z.object({
   files: z.array(z.object({
     fileName: z.string().describe('The name of the file (e.g., "page.tsx").'),
@@ -28,10 +26,11 @@ const EditWebAppOutputSchema = z.object({
     fileContent: z.string().describe('The complete source code or content for the file.'),
   })).describe('The updated array of files representing the web application structure.'),
   previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes, reflecting the new changes, including styles from globals.css and a Tailwind CDN script.'),
+  explanation: z.string().describe('An updated, step-by-step explanation that reflects the recent changes made to the application. It should explain what was modified and how the new code works in Markdown format.'),
 });
 
 export type EditWebAppInput = z.infer<typeof EditWebAppInputSchema>;
-export type EditWebAppOutput = GenerateWebAppOutput; // It's the same shape
+export type EditWebAppOutput = z.infer<typeof EditWebAppOutputSchema>;
 
 export async function editWebApp(input: EditWebAppInput): Promise<EditWebAppOutput> {
   return editWebAppFlow(input);
@@ -58,6 +57,7 @@ const prompt = ai.definePrompt({
         c.  In the \`<head>\`, copy the entire content of the updated \`globals.css\` file and place it inside a \`<style>\` tag.
         d.  In the \`<body>\`, convert the JSX from the updated \`page.tsx\` into plain HTML.
         This is crucial for the user to see the result of their edit.
+    5.  **Update Explanation**: After modifying the files and the preview, update the \`explanation\` field. Explain what changes you made based on the user's request and how the new or modified code works within the application's structure. The explanation should be clear and in Markdown format.
 
     **Original Files to Modify (in JSON format):**
     {{{json files}}}

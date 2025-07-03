@@ -22,6 +22,7 @@ const GenerateWebAppOutputSchema = z.object({
     fileContent: z.string().describe('The complete source code or content for the file.'),
   })).describe('An array of files representing the generated web application structure.'),
   previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes. It should include styles from globals.css inside a <style> tag and a Tailwind CDN script.'),
+  explanation: z.string().describe('A detailed, step-by-step explanation of how the generated files work together, written like a mini-course in Markdown format. It should explain the purpose of each file and how they connect, starting from a blank canvas to a full application.'),
 });
 
 export type GenerateWebAppInput = z.infer<typeof GenerateWebAppInputSchema>;
@@ -36,7 +37,7 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateWebAppInputSchema },
   output: { schema: GenerateWebAppOutputSchema },
   prompt: `
-    You are an expert full-stack web developer specializing in the Next.js ecosystem. Your task is to generate a complete, production-ready, and interactive boilerplate for a web application based on a user's description.
+    You are an expert full-stack web developer and an excellent teacher, specializing in the Next.js ecosystem. Your task is to generate a complete, production-ready, and interactive boilerplate for a web application and explain how it works like a mini-course.
     The stack is strictly defined: Next.js (App Router), React, TypeScript, Tailwind CSS, ShadCN UI, and Genkit for AI features. The application must use a custom hook for client-side persistence with localStorage.
 
     **User's Request:**
@@ -114,16 +115,16 @@ const prompt = ai.definePrompt({
         -   Create a simple Genkit flow file related to the \\\`{{{appDescription}}}\\\`. For example, if the app is a "recipe generator", the flow could take ingredients as input and return a recipe idea.
         -   DO NOT integrate this flow into the \\\`page.tsx\\\`. This file is for boilerplate demonstration only.
 
-    **ADDITIONAL CRITICAL INSTRUCTION:**
-
     9.  **Generate \\\`previewHtml\\\`**: After generating all files, create the \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a realistic static preview of \\\`src/app/page.tsx\\\`. To do this, you MUST:
         a.  Create a full HTML structure (\`<html><head>...</head><body>...</body></html>\`).
         b.  In the \`<head>\`, add a \`<script src="https://cdn.tailwindcss.com"></script>\` tag to enable Tailwind utility classes.
         c.  In the \`<head>\`, copy the entire content of the generated \`globals.css\` file and place it inside a \`<style>\` tag.
         d.  In the \`<body>\`, convert the JSX from \`page.tsx\` into plain HTML. Use realistic placeholder content for dynamic parts of the UI. This preview is crucial.
 
+    10. **Generate Detailed Explanation**: After generating all files, create the \`explanation\` text. This must be a comprehensive, step-by-step guide formatted in Markdown. Explain how the generated files create a complete application, starting from the foundational files (\`layout.tsx\`, \`globals.css\`) and building up to the interactive components (\`page.tsx\`, \`use-local-storage.ts\`). Describe the role of each file as if you were teaching a beginner how their blank canvas becomes a functional app.
+
     **OUTPUT FORMAT:**
-    Return a single JSON object matching the output schema. The \\\`files\\\` array must contain an object for each of the 8 files listed above. The \\\`previewHtml\\\` field must also be populated.
+    Return a single JSON object matching the output schema. The \\\`files\\\` array must contain an object for each of the 8 files listed above. The \\\`previewHtml\\\` and \\\`explanation\\\` fields must also be populated.
   `,
 });
 
