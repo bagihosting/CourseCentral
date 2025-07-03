@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { getSeoSettings } from '@/lib/data';
 import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -64,6 +65,7 @@ function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const validatePassword = (password: string): boolean => {
     // Requires 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
@@ -89,6 +91,10 @@ function RegisterForm() {
             duration: 7000,
         });
         return;
+    }
+    if (!agreed) {
+      toast({ title: 'Gagal Daftar', description: 'Anda harus menyetujui syarat dan ketentuan.', variant: 'destructive' });
+      return;
     }
     
     setLoading(true);
@@ -128,7 +134,24 @@ function RegisterForm() {
         <Label htmlFor="register-confirm-password">Konfirmasi Kata Sandi</Label>
         <Input id="register-confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+      <div className="flex items-start space-x-2">
+        <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(!!checked)} className="mt-1" />
+        <div className="grid gap-1.5 leading-none">
+          <label
+            htmlFor="terms"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Saya setuju dengan{' '}
+            <Link href="#" className="underline hover:text-primary">
+              Syarat & Ketentuan
+            </Link>
+          </label>
+          <p className="text-sm text-muted-foreground">
+            Anda setuju untuk menerima email dan pemberitahuan dari kami.
+          </p>
+        </div>
+      </div>
+      <Button type="submit" className="w-full" disabled={loading || !agreed}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Daftar
       </Button>
