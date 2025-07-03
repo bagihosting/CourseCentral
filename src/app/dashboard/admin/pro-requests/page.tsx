@@ -9,12 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock } from 'lucide-react';
 import { getUpgradeRequests, approveUpgrade } from '@/lib/data';
-import type { UpgradeRequest } from '@/types';
+import type { PopulatedUpgradeRequest } from '@/lib/data';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 export default function ProRequestsPage() {
-  const [requests, setRequests] = useState<UpgradeRequest[]>([]);
+  const [requests, setRequests] = useState<PopulatedUpgradeRequest[]>([]);
   const { toast } = useToast();
 
   const refreshRequests = () => {

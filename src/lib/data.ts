@@ -455,6 +455,11 @@ export function getCompletedCourseCount(userId: string): number {
 
 // --- Upgrade Request API Functions ---
 
+export type PopulatedUpgradeRequest = UpgradeRequest & {
+  userName: string;
+  userAvatar: string;
+};
+
 export function createUpgradeRequest(userId: string, bankName: string, accountHolder: string): UpgradeRequest {
   const db = getDB();
   const user = db.users.find(u => u.id === userId);
@@ -471,8 +476,6 @@ export function createUpgradeRequest(userId: string, bankName: string, accountHo
   const newRequest: UpgradeRequest = {
     id: `req_${Date.now()}`,
     userId: user.id,
-    userName: user.name,
-    userAvatar: user.avatarUrl || 'https://placehold.co/100x100.png',
     bankName,
     accountHolder,
     requestDate: new Date().toISOString(),
@@ -484,10 +487,20 @@ export function createUpgradeRequest(userId: string, bankName: string, accountHo
   return newRequest;
 }
 
-export function getUpgradeRequests(): UpgradeRequest[] {
+export function getUpgradeRequests(): PopulatedUpgradeRequest[] {
     const db = getDB();
+    
+    const populatedRequests = db.upgradeRequests.map(req => {
+        const user = db.users.find(u => u.id === req.userId);
+        return {
+            ...req,
+            userName: user?.name || 'Pengguna Dihapus',
+            userAvatar: user?.avatarUrl || 'https://placehold.co/100x100.png',
+        };
+    });
+    
     // Return newest requests first
-    return db.upgradeRequests.sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+    return populatedRequests.sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 }
 
 export function getUpgradeRequestByUserId(userId: string): UpgradeRequest | undefined {
