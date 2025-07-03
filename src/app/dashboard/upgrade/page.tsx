@@ -8,45 +8,31 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Banknote, CheckCircle, ChevronRight, Loader2, Sparkles, Send, Clock, BadgeCheck } from 'lucide-react';
-import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId } from '@/lib/data';
-import type { UpgradeRequest } from '@/types';
+import { getAllUsers, createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings } from '@/lib/data';
+import type { UpgradeRequest, PaymentSettings } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const PAYMENT_DETAILS = {
-  bankName: 'Bank BCA',
-  accountNumber: '1234567890',
-  accountHolder: 'Admin Aplikasi Kursus',
-  amount: 50000,
-};
+const UPGRADE_AMOUNT = 50000;
 
-function UpgradeForm({ onSubmitted }: { onSubmitted: () => void }) {
+function UpgradeForm({ onSubmitted, adminWhatsapp }: { onSubmitted: () => void; adminWhatsapp: string | null }) {
   const { user } = useAuth();
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
-  const [adminWhatsapp, setAdminWhatsapp] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const adminUser = getAllUsers().find(u => u.role === 'admin');
-    if (adminUser && adminUser.whatsapp) {
-      let formattedNumber = adminUser.whatsapp.trim().replace(/[^0-9]/g, '');
-      if (formattedNumber.startsWith('0')) {
-        formattedNumber = '62' + formattedNumber.substring(1);
-      }
-      setAdminWhatsapp(formattedNumber);
-    } else {
-      setAdminWhatsapp('6281234567890');
-    }
-  }, []);
-
+  
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!bankName || !accountHolder || !user) {
       toast({ title: 'Form Tidak Lengkap', description: 'Harap isi semua kolom konfirmasi.', variant: 'destructive' });
       return;
     }
+    if (!adminWhatsapp) {
+      toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,7 +46,7 @@ function UpgradeForm({ onSubmitted }: { onSubmitted: () => void }) {
 Halo Admin, saya telah melakukan pembayaran untuk upgrade ke akun Pro atas nama pengguna: *${user.username}*.
 
 Berikut adalah detailnya:
-- *Jumlah Transfer:* Rp${PAYMENT_DETAILS.amount.toLocaleString('id-ID')}
+- *Jumlah Transfer:* Rp${UPGRADE_AMOUNT.toLocaleString('id-ID')}
 - *Bank Pengirim:* ${bankName}
 - *Atas Nama Pengirim:* ${accountHolder}
 
@@ -73,11 +59,9 @@ Mohon segera diproses. Saya akan mengirimkan bukti transfer setelah pesan ini. T
       
       toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan percakapan dan kirim bukti transfer Anda.' });
       
-      // 3. Notify parent component to refresh state, with a small delay
-      // This allows the new tab to open properly before the component unmounts.
       setTimeout(() => {
         onSubmitted();
-      }, 300);
+      }, 500);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
@@ -141,6 +125,8 @@ function RequestStatus({ request }: { request: UpgradeRequest }) {
 export default function UpgradePage() {
   const { user, loading: userLoading } = useAuth();
   const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentSettings | null>(null);
+  const [adminWhatsapp, setAdminWhatsapp] = useState<string | null>(null);
   
   const refreshRequestStatus = () => {
     if (user) {
@@ -150,8 +136,21 @@ export default function UpgradePage() {
   }
 
   useEffect(() => {
-    if (!userLoading && user) {
-      refreshRequestStatus();
+    if (!userLoading) {
+      if (user) {
+        refreshRequestStatus();
+      }
+      
+      const adminUser = getAllUsers().find(u => u.role === 'admin');
+      if (adminUser && adminUser.whatsapp) {
+        let formattedNumber = adminUser.whatsapp.trim().replace(/[^0-9]/g, '');
+        if (formattedNumber.startsWith('0')) {
+          formattedNumber = '62' + formattedNumber.substring(1);
+        }
+        setAdminWhatsapp(formattedNumber);
+      }
+      
+      setPaymentDetails(getPaymentSettings());
     }
   }, [user, userLoading]);
 
@@ -164,7 +163,7 @@ export default function UpgradePage() {
     'Akses awal ke fitur-fitur baru.',
   ];
 
-  if(userLoading) {
+  if(userLoading || !paymentDetails) {
     return <Skeleton className="w-full h-96" />
   }
 
@@ -194,7 +193,7 @@ export default function UpgradePage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-4xl font-bold">
-                        Rp{PAYMENT_DETAILS.amount.toLocaleString('id-ID')}
+                        Rp{UPGRADE_AMOUNT.toLocaleString('id-ID')}
                     </p>
                     <p className="text-muted-foreground">Akses Pro Seumur Hidup</p>
                 </CardContent>
@@ -217,11 +216,11 @@ export default function UpgradePage() {
                         <Banknote className="h-4 w-4" />
                         <AlertTitle className="font-semibold">Langkah 1: Lakukan Pembayaran</AlertTitle>
                         <AlertDescription>
-                            <p>Silakan transfer sejumlah <strong>Rp{PAYMENT_DETAILS.amount.toLocaleString('id-ID')}</strong> ke rekening berikut:</p>
+                            <p>Silakan transfer sejumlah <strong>Rp{UPGRADE_AMOUNT.toLocaleString('id-ID')}</strong> ke rekening berikut:</p>
                             <ul className="mt-2 list-disc pl-5 space-y-1">
-                                <li><strong>Bank:</strong> {PAYMENT_DETAILS.bankName}</li>
-                                <li><strong>No. Rekening:</strong> {PAYMENT_DETAILS.accountNumber}</li>
-                                <li><strong>Atas Nama:</strong> {PAYMENT_DETAILS.accountHolder}</li>
+                                <li><strong>Bank:</strong> {paymentDetails.bankName}</li>
+                                <li><strong>No. Rekening:</strong> {paymentDetails.accountNumber}</li>
+                                <li><strong>Atas Nama:</strong> {paymentDetails.accountHolder}</li>
                             </ul>
                             <p className="mt-2 text-xs">Pastikan jumlah transfer sesuai untuk mempercepat proses verifikasi.</p>
                         </AlertDescription>
@@ -235,7 +234,7 @@ export default function UpgradePage() {
                         </AlertDescription>
                     </Alert>
                 </div>
-                <UpgradeForm onSubmitted={refreshRequestStatus} />
+                <UpgradeForm onSubmitted={refreshRequestStatus} adminWhatsapp={adminWhatsapp} />
               </>
             )}
 

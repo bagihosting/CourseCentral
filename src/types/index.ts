@@ -46,3 +46,9 @@ export type UpgradeRequest = {
   requestDate: string;
   status: 'pending' | 'approved';
 };
+
+export type PaymentSettings = {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+};

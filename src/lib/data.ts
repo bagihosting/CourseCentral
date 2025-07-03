@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentSettings } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -11,6 +11,7 @@ interface Database {
   courses: Course[];
   enrollments: Enrollment[];
   upgradeRequests: UpgradeRequest[];
+  paymentSettings: PaymentSettings;
 }
 
 // --- Seed Data ---
@@ -101,6 +102,11 @@ function getInitialData(): Database {
         ],
         enrollments: [],
         upgradeRequests: [],
+        paymentSettings: {
+          bankName: 'Bank BCA',
+          accountNumber: '1234567890',
+          accountHolder: 'Admin Aplikasi Kursus',
+        },
     };
 }
 
@@ -137,6 +143,13 @@ function getDB(): Database {
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
         if (!data.upgradeRequests) data.upgradeRequests = [];
+        if (!data.paymentSettings) {
+          data.paymentSettings = {
+            bankName: 'Bank BCA',
+            accountNumber: '1234567890',
+            accountHolder: 'Admin Aplikasi Kursus',
+          };
+        }
 
         // --- Start of robust self-healing logic for admin user ---
         const initialUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
@@ -535,4 +548,17 @@ export function approveUpgrade(requestId: string): void {
     db.upgradeRequests[requestIndex].status = 'approved';
 
     saveDB(db);
+}
+
+// --- Payment Settings API ---
+
+export function getPaymentSettings(): PaymentSettings {
+  const db = getDB();
+  return db.paymentSettings;
+}
+
+export function updatePaymentSettings(settings: PaymentSettings): void {
+  const db = getDB();
+  db.paymentSettings = settings;
+  saveDB(db);
 }
