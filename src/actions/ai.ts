@@ -20,6 +20,7 @@ import { generateCourseSeo as generateCourseSeoFlow, GenerateCourseSeoInput, Gen
 import { generateTitleSuffix as generateTitleSuffixFlow, GenerateTitleSuffixInput, GenerateTitleSuffixOutput } from '@/ai/flows/generate-title-suffix';
 import { generateMetaDescription as generateMetaDescriptionFlow, GenerateMetaDescriptionInput, GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 import { generateMetaKeywords as generateMetaKeywordsFlow, GenerateMetaKeywordsInput, GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
+import { generateCertificate as generateCertificateFlow, GenerateCertificateInput, GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
 
 
 export async function generateThumbnailAction(
@@ -335,5 +336,22 @@ export async function generateMetaKeywordsAction(
   } catch (error) {
     console.error('Error generating meta keywords:', error);
     return { error: 'Gagal membuat kata kunci meta. Silakan coba lagi.' };
+  }
+}
+
+export async function generateCertificateAction(
+  input: GenerateCertificateInput
+): Promise<GenerateCertificateOutput | { error: string }> {
+  if (!input.participantName || !input.courseName || !input.completionDate || !input.organizerName) {
+    return { error: 'Semua kolom wajib diisi untuk membuat sertifikat.' };
+  }
+
+  try {
+    const result = await generateCertificateFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating certificate:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+    return { error: `Gagal membuat sertifikat: ${errorMessage}` };
   }
 }

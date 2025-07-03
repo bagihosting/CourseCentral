@@ -24,6 +24,7 @@ import {
   Sparkles,
   Gem,
   LayoutTemplate,
+  Award,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -51,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
+    { href: '/dashboard/admin/certificate-management', icon: Award, label: 'Manajemen Sertifikat' },
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
