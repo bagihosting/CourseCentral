@@ -11,7 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-export const GenerateCertificateInputSchema = z.object({
+const GenerateCertificateInputSchema = z.object({
   participantName: z.string().describe('The full name of the course participant.'),
   courseName: z.string().describe('The name of the course they completed.'),
   completionDate: z.string().describe('The date the course was completed (e.g., "28 Agustus 2024").'),
@@ -20,7 +20,7 @@ export const GenerateCertificateInputSchema = z.object({
 });
 export type GenerateCertificateInput = z.infer<typeof GenerateCertificateInputSchema>;
 
-export const GenerateCertificateOutputSchema = z.object({
+const GenerateCertificateOutputSchema = z.object({
   certificateHtml: z.string().describe('The full, self-contained HTML for the certificate.'),
   serialNumber: z.string().describe('The unique serial number generated for the certificate.'),
 });
@@ -66,11 +66,6 @@ const certificateHtmlPrompt = ai.definePrompt({
       7.  **No External Files**: All CSS must be in a <style> tag. No external stylesheets or scripts.
     `,
 });
-
-export async function generateCertificate(input: GenerateCertificateInput): Promise<GenerateCertificateOutput> {
-  return generateCertificateFlow(input);
-}
-
 
 const generateCertificateFlow = ai.defineFlow(
   {
@@ -118,3 +113,7 @@ const generateCertificateFlow = ai.defineFlow(
     };
   }
 );
+
+export async function generateCertificate(input: GenerateCertificateInput): Promise<GenerateCertificateOutput> {
+  return generateCertificateFlow(input);
+}
