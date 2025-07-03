@@ -21,6 +21,7 @@ const GenerateWebAppOutputSchema = z.object({
     filePath: z.string().describe('The full path of the file within the project (e.g., "src/app/page.tsx").'),
     fileContent: z.string().describe('The complete source code or content for the file.'),
   })).describe('An array of files representing the generated web application structure.'),
+  previewHtml: z.string().describe('A simple, self-contained HTML representation of the main page for previewing purposes. It should include styles from globals.css inside a <style> tag.'),
 });
 
 export type GenerateWebAppInput = z.infer<typeof GenerateWebAppInputSchema>;
@@ -44,14 +45,14 @@ const prompt = ai.definePrompt({
 
     **CRITICAL INSTRUCTIONS:**
 
-    Generate the file content for the following file structure. The generated code must be high-quality, clean, and follow modern best practices.
+    Generate the file content for a standard file structure. The generated code must be high-quality, clean, and follow modern best practices.
 
     **FILE STRUCTURE TO GENERATE:**
 
     1.  **package.json**:
         -   Use the provided \`{{{appName}}}\` for the "name" field.
         -   Include these exact dependencies: "next", "react", "react-dom", "tailwindcss", "@genkit-ai/googleai", "genkit", "zod", "lucide-react", "clsx", "tailwind-merge", "tailwindcss-animate", and ShadCN UI component packages like "@radix-ui/react-slot".
-        -   Include dev dependencies: "typescript", "@types/react", "@types/node", "postcss", "autoprefixer".
+        -   Include dev dependencies: "typescript", "@types/react", "@types/node", "postcss".
         -   Include standard scripts for "dev", "build", "start", "lint".
 
     2.  **tailwind.config.ts**:
@@ -77,15 +78,23 @@ const prompt = ai.definePrompt({
         -   Use ShadCN UI components (like \`<Card>\`, \`<Button>\`, \`<Input>\`) and Tailwind CSS for styling.
         -   Make the design professional, clean, and modern. Include a header, a hero section with a call-to-action, and a features section that reflects the app's purpose.
 
-    6.  **src/app/ai.ts**:
+    6.  **src/ai.ts**:
         -   Create a Genkit flow file.
         -   Define a simple Genkit flow related to the \`{{{appDescription}}}\`.
         -   For example, if the app is a "recipe generator", the flow should take ingredients as input and return a recipe.
         -   Use Zod for input and output schemas.
         -   Include the Genkit initialization code: \`import { genkit } from 'genkit'; import { googleAI } from '@genkit-ai/googleai'; ...\`
 
+    **ADDITIONAL CRITICAL INSTRUCTION:**
+
+    7.  **Generate \`previewHtml\`**: After generating all the files above, you MUST create one additional piece of data: \`previewHtml\`. This will be a single, self-contained HTML string. It should represent a static preview of the \`src/app/page.tsx\` file. To do this:
+        -   Take the CSS from \`src/app/globals.css\` and put it inside a \`<style>\` tag in the HTML's \`<head>\`.
+        -   Take the JSX from the \`<body>\` of the component in \`src/app/page.tsx\` and convert it into plain HTML. Replace any dynamic React components with static HTML representations.
+        -   The goal is to create a reasonable visual preview that can be rendered in an iframe, without needing to compile React.
+        -   Include a link to the Tailwind CDN in the head to make the utility classes work: \`<script src="https://cdn.tailwindcss.com"></script>\`.
+
     **OUTPUT FORMAT:**
-    Return a single JSON object matching the output schema. The \`files\` array must contain an object for each of the 6 files listed above, with the correct \`fileName\`, \`filePath\`, and the complete \`fileContent\` as a string. The code inside \`fileContent\` MUST be properly escaped for a JSON string.
+    Return a single JSON object matching the output schema. The \`files\` array must contain an object for each of the 6 files listed above. The \`previewHtml\` field must also be populated. The code inside \`fileContent\` and \`previewHtml\` MUST be properly escaped for a JSON string.
   `,
 });
 

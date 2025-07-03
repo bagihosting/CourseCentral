@@ -15,6 +15,7 @@ import { generateImage as generateImageFlow, GenerateImageInput, GenerateImageOu
 import { generateAppPrototype as generateAppPrototypeFlow, GenerateAppPrototypeInput, GenerateAppPrototypeOutput } from '@/ai/flows/generate-app-prototype';
 import { generateSoapFormula as generateSoapFormulaFlow, GenerateSoapFormulaInput, GenerateSoapFormulaOutput } from '@/ai/flows/generate-soap-formula';
 import { generateWebApp as generateWebAppFlow, GenerateWebAppInput, GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
+import { editWebApp as editWebAppFlow, EditWebAppInput, EditWebAppOutput } from '@/ai/flows/edit-web-app';
 
 
 export async function generateThumbnailAction(
@@ -250,5 +251,21 @@ export async function generateWebAppAction(
   } catch (error) {
     console.error('Error generating web app:', error);
     return { error: 'Gagal membuat boilerplate aplikasi. Silakan coba lagi.' };
+  }
+}
+
+export async function editWebAppAction(
+  input: EditWebAppInput
+): Promise<EditWebAppOutput | { error: string }> {
+  if (!input.files || input.files.length === 0 || !input.editRequest) {
+    return { error: 'File yang ada dan permintaan edit tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await editWebAppFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error editing web app:', error);
+    return { error: 'Gagal mengedit boilerplate aplikasi. Silakan coba lagi.' };
   }
 }
