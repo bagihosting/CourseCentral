@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import YouTube from 'react-youtube';
+import DOMPurify from 'isomorphic-dompurify';
 
 
 function getYouTubeVideoId(url: string): string | null {
@@ -122,11 +123,13 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
           </div>
         );
       case 'text':
+        // Sanitize the HTML content before rendering to prevent XSS attacks
+        const cleanHtml = DOMPurify.sanitize(lesson.content || '');
         return (
             <>
                 <div
                     className="prose dark:prose-invert max-w-none p-6 bg-muted/30 rounded-lg border"
-                    dangerouslySetInnerHTML={{ __html: lesson.content || '' }}
+                    dangerouslySetInnerHTML={{ __html: cleanHtml }}
                 />
                 {!isCompleted && <Progress value={textProgress} className="w-full h-2 mt-4" />}
             </>
