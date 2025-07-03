@@ -16,7 +16,7 @@ const GenerateTitleSuffixInputSchema = z.object({
 });
 
 const GenerateTitleSuffixOutputSchema = z.object({
-  titleSuffix: z.string().describe('An SEO-optimized title suffix, starting with a separator like " | " or " - ", under 60 characters total, designed to rank high with low competition.'),
+  titleSuffix: z.string().max(60).describe('An SEO-optimized title suffix, starting with a separator like " | " or " - ", with a maximum length of 60 characters, designed to rank high with low competition.'),
 });
 
 export type GenerateTitleSuffixInput = z.infer<typeof GenerateTitleSuffixInputSchema>;
@@ -42,16 +42,16 @@ const prompt = ai.definePrompt({
 
     1.  **Analyze Core Identity**: First, deeply analyze the platform's name and description to understand its primary topic, target audience, and unique value proposition.
     2.  **Keyword Brainstorming**: Based on the core identity, brainstorm a list of potential keywords. Include:
-        -   **Broad Keywords**: General terms (e.g., "kursus online").
+        -   **Broad Keywords**: General terms (e.g., "kursus online", "belajar coding").
         -   **Long-Tail Keywords**: Specific phrases that users are likely to search for (e.g., "kursus online sertifikat untuk profesional").
-        -   **LSI Keywords**: Related terms that provide context (e.g., "e-learning", "skill digital", "webinar").
+        -   **LSI Keywords**: Related terms that provide context (e.g., if the topic is "React", include "hooks", "state management", "Next.js").
     3.  **Strategic Selection**: From your brainstormed list, identify the keyword phrase that has the best balance of high search volume and low competition. This is the key to ranking success. Think like a user trying to solve a problem that the platform addresses.
     4.  **Craft the Suffix**: Construct the final suffix using the selected keyword phrase.
         -   It MUST start with a separator character, like " | " or " - ".
         -   It MUST include the platform name \`{{{platformName}}}\`.
         -   It MUST incorporate the high-potential keyword phrase you identified.
     5.  **Strict Constraints**:
-        -   The entire output string (including the separator) MUST be under 60 characters.
+        -   The entire output string (including the separator) MUST be no more than 60 characters long. This is a critical SEO requirement. Do not exceed this limit under any circumstances.
         -   The language MUST be Bahasa Indonesia.
 
     **Example Thinking Process:**
