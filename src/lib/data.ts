@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest } from '@/types';
@@ -383,25 +384,21 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
         throw new Error("Pengguna tidak ditemukan.");
     }
 
-    // Get the current user
-    const currentUser = db.users[userIndex];
-    
-    // Create the updated user object by merging current data with new data
-    const updatedUser = {
-        ...currentUser,
-        ...data,
-    };
-    
-    // Sanitize WhatsApp number if it was part of the update
-    if (data.whatsapp !== undefined) {
-        updatedUser.whatsapp = data.whatsapp.replace(/[^0-9]/g, '');
-    }
+    const userToUpdate = db.users[userIndex];
 
-    // Place the updated user back into the array
-    db.users[userIndex] = updatedUser;
-    
+    // Explicitly update fields from the data payload
+    if (data.name !== undefined) userToUpdate.name = data.name;
+    if (data.password !== undefined) userToUpdate.password = data.password;
+    if (data.avatarUrl !== undefined) userToUpdate.avatarUrl = data.avatarUrl;
+    if (data.whatsapp !== undefined) {
+        userToUpdate.whatsapp = data.whatsapp.replace(/[^0-9]/g, '');
+    }
+    if (data.lastLoginAt !== undefined) userToUpdate.lastLoginAt = data.lastLoginAt;
+    if (data.status !== undefined) userToUpdate.status = data.status;
+    if (data.loginCount !== undefined) userToUpdate.loginCount = data.loginCount;
+
     saveDB(db);
-    return updatedUser;
+    return userToUpdate;
 }
 
 export function validateUser(username: string, password: string): User | null {
@@ -848,14 +845,18 @@ export function updateConfirmationContact(contactId: string, data: Partial<Omit<
   if (contactIndex === -1) {
     throw new Error('Kontak tidak ditemukan.');
   }
-  const updatePayload = { ...data };
-  if (typeof updatePayload.whatsapp === 'string') {
-      updatePayload.whatsapp = updatePayload.whatsapp.replace(/[^0-9]/g, '');
+  
+  const contactToUpdate = db.confirmationContacts[contactIndex];
+  
+  if (data.name !== undefined) {
+    contactToUpdate.name = data.name;
   }
-  const updatedContact = { ...db.confirmationContacts[contactIndex], ...updatePayload };
-  db.confirmationContacts[contactIndex] = updatedContact;
+  if (data.whatsapp !== undefined) {
+    contactToUpdate.whatsapp = data.whatsapp.replace(/[^0-9]/g, '');
+  }
+
   saveDB(db);
-  return updatedContact;
+  return contactToUpdate;
 }
 
 export function deleteConfirmationContact(contactId: string): void {
@@ -1058,3 +1059,5 @@ export function awardCertificateToUser(userId: string, courseId: string, certifi
     saveDB(db);
     return newRequest;
 }
+
+    
