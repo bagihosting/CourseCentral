@@ -34,37 +34,6 @@ export async function generateSkripsiChapter(
   return generateSkripsiChapterFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateSkripsiChapterPrompt',
-  input: { schema: GenerateSkripsiChapterInputSchema },
-  output: { schema: GenerateSkripsiChapterOutputSchema },
-  prompt: `
-    Anda adalah seorang asisten akademik ahli yang berspesialisasi dalam penulisan skripsi dan tesis. Tugas Anda adalah membantu mahasiswa dengan membuat draf konten untuk bab-bab skripsi mereka.
-    Gunakan gaya penulisan yang formal, akademis, dan terstruktur dengan baik dalam Bahasa Indonesia.
-
-    Topik Utama Skripsi: "{{{topic}}}"
-    Judul Bab yang Diminta: "{{{chapterTitle}}}"
-
-    **INSTRUKSI PENTING:**
-    1.  **Analisis Permintaan**: Pahami topik utama dan judul bab yang diminta. Hasilkan konten yang relevan dan mendalam sesuai dengan konteks bab tersebut.
-    2.  **Struktur Konten**:
-        -   Jika bab tersebut adalah "BAB I: PENDAHULUAN", konten harus mencakup sub-bagian seperti Latar Belakang, Rumusan Masalah, Tujuan Penelitian, dan Manfaat Penelitian.
-        -   Jika bab tersebut adalah "BAB II: TINJAUAN PUSTAKA", konten harus membahas teori-teori relevan, penelitian terdahulu, dan kerangka berpikir.
-        -   Untuk bab lain, sesuaikan strukturnya dengan standar penulisan ilmiah yang umum.
-    3.  **Gaya Bahasa**: Gunakan Bahasa Indonesia yang baku, formal, dan objektif. Hindari bahasa sehari-hari atau opini pribadi.
-    4.  **Kualitas**: Pastikan teks yang dihasilkan koheren, logis, dan kaya informasi. Buatlah paragraf-paragraf yang terstruktur dengan baik.
-    5.  **Output**: Hasilkan hanya konten untuk bab yang diminta. Jangan menambahkan bab lain atau kesimpulan yang tidak relevan.
-  `,
-  config: {
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_NONE',
-      }
-    ]
-  }
-});
-
 const generateSkripsiChapterFlow = ai.defineFlow(
   {
     name: 'generateSkripsiChapterFlow',
@@ -72,6 +41,37 @@ const generateSkripsiChapterFlow = ai.defineFlow(
     outputSchema: GenerateSkripsiChapterOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateSkripsiChapterPrompt',
+      input: { schema: GenerateSkripsiChapterInputSchema },
+      output: { schema: GenerateSkripsiChapterOutputSchema },
+      prompt: `
+        Anda adalah seorang asisten akademik ahli yang berspesialisasi dalam penulisan skripsi dan tesis. Tugas Anda adalah membantu mahasiswa dengan membuat draf konten untuk bab-bab skripsi mereka.
+        Gunakan gaya penulisan yang formal, akademis, dan terstruktur dengan baik dalam Bahasa Indonesia.
+
+        Topik Utama Skripsi: "{{{topic}}}"
+        Judul Bab yang Diminta: "{{{chapterTitle}}}"
+
+        **INSTRUKSI PENTING:**
+        1.  **Analisis Permintaan**: Pahami topik utama dan judul bab yang diminta. Hasilkan konten yang relevan dan mendalam sesuai dengan konteks bab tersebut.
+        2.  **Struktur Konten**:
+            -   Jika bab tersebut adalah "BAB I: PENDAHULUAN", konten harus mencakup sub-bagian seperti Latar Belakang, Rumusan Masalah, Tujuan Penelitian, dan Manfaat Penelitian.
+            -   Jika bab tersebut adalah "BAB II: TINJAUAN PUSTAKA", konten harus membahas teori-teori relevan, penelitian terdahulu, dan kerangka berpikir.
+            -   Untuk bab lain, sesuaikan strukturnya dengan standar penulisan ilmiah yang umum.
+        3.  **Gaya Bahasa**: Gunakan Bahasa Indonesia yang baku, formal, dan objektif. Hindari bahasa sehari-hari atau opini pribadi.
+        4.  **Kualitas**: Pastikan teks yang dihasilkan koheren, logis, dan kaya informasi. Buatlah paragraf-paragraf yang terstruktur dengan baik.
+        5.  **Output**: Hasilkan hanya konten untuk bab yang diminta. Jangan menambahkan bab lain atau kesimpulan yang tidak relevan.
+      `,
+      config: {
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_NONE',
+          }
+        ]
+      }
+    });
+
     const { output } = await prompt(input);
     
     if (!output) {

@@ -42,36 +42,6 @@ export async function generateDigitalInvitation(
   return generateDigitalInvitationFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateDigitalInvitationPrompt',
-  input: { schema: GenerateDigitalInvitationInputSchema },
-  output: { schema: GenerateDigitalInvitationOutputSchema },
-  prompt: `
-    You are a creative and empathetic digital invitation designer. Your task is to craft compelling, warm, and well-structured content for a digital invitation based on the user's provided details.
-    The language must be Bahasa Indonesia, with a tone that is respectful and appropriate for the event.
-
-    **Event Details:**
-    - Event Type: {{{eventType}}}
-    - Name 1: {{{personOneName}}}
-    {{#if personTwoName}}- Name 2: {{{personTwoName}}}{{/if}}
-    - Date: {{{eventDate}}}
-    - Time: {{{eventTime}}}
-    - Venue: {{{eventVenue}}}
-    - Theme: {{{theme}}}
-
-    **CRITICAL INSTRUCTIONS:**
-    1.  **Craft All Components**: Generate content for all fields in the output schema: \`title\`, \`openingVerse\`, \`bodyText\`, \`eventDetails\`, \`closingText\`, and \`designSuggestion\`.
-    2.  **Tailor the Content**:
-        -   For a **Wedding**, the \`bodyText\` should formally announce the union of \`{{{personOneName}}}\` and \`{{{personTwoName}}}\` and invite the recipient to witness their holy matrimony.
-        -   For a **Birthday**, the tone should be more celebratory and personal.
-        -   For other events, adapt the tone accordingly.
-    3.  **Opening Verse**: Choose or create a short, beautiful verse or quote that matches the event type and theme. For a wedding, it could be a romantic or spiritual quote. For a birthday, something more joyful.
-    4.  **Event Details Formatting**: Combine the date, time, and venue into a single, clearly formatted string. Use line breaks (\\n) for readability. For example: "Sabtu, 28 Desember 2024\\n10:00 WIB - Selesai\\nGrand Ballroom Hotel Indonesia\\nJl. MH Thamrin No. 1, Jakarta".
-    5.  **Closing Text**: Write a warm and sincere closing remark, expressing how much the hosts are looking forward to the guest's presence.
-    6.  **Design Suggestion**: Provide a concise and actionable design concept. Suggest a color palette (2-3 colors) and a font pairing (one for headings, one for body text) that aligns with the specified \`{{{theme}}}\`.
-  `,
-});
-
 const generateDigitalInvitationFlow = ai.defineFlow(
   {
     name: 'generateDigitalInvitationFlow',
@@ -79,6 +49,36 @@ const generateDigitalInvitationFlow = ai.defineFlow(
     outputSchema: GenerateDigitalInvitationOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateDigitalInvitationPrompt',
+      input: { schema: GenerateDigitalInvitationInputSchema },
+      output: { schema: GenerateDigitalInvitationOutputSchema },
+      prompt: `
+        You are a creative and empathetic digital invitation designer. Your task is to craft compelling, warm, and well-structured content for a digital invitation based on the user's provided details.
+        The language must be Bahasa Indonesia, with a tone that is respectful and appropriate for the event.
+
+        **Event Details:**
+        - Event Type: {{{eventType}}}
+        - Name 1: {{{personOneName}}}
+        {{#if personTwoName}}- Name 2: {{{personTwoName}}}{{/if}}
+        - Date: {{{eventDate}}}
+        - Time: {{{eventTime}}}
+        - Venue: {{{eventVenue}}}
+        - Theme: {{{theme}}}
+
+        **CRITICAL INSTRUCTIONS:**
+        1.  **Craft All Components**: Generate content for all fields in the output schema: \`title\`, \`openingVerse\`, \`bodyText\`, \`eventDetails\`, \`closingText\`, and \`designSuggestion\`.
+        2.  **Tailor the Content**:
+            -   For a **Wedding**, the \`bodyText\` should formally announce the union of \`{{{personOneName}}}\` and \`{{{personTwoName}}}\` and invite the recipient to witness their holy matrimony.
+            -   For a **Birthday**, the tone should be more celebratory and personal.
+            -   For other events, adapt the tone accordingly.
+        3.  **Opening Verse**: Choose or create a short, beautiful verse or quote that matches the event type and theme. For a wedding, it could be a romantic or spiritual quote. For a birthday, something more joyful.
+        4.  **Event Details Formatting**: Combine the date, time, and venue into a single, clearly formatted string. Use line breaks (\\n) for readability. For example: "Sabtu, 28 Desember 2024\\n10:00 WIB - Selesai\\nGrand Ballroom Hotel Indonesia\\nJl. MH Thamrin No. 1, Jakarta".
+        5.  **Closing Text**: Write a warm and sincere closing remark, expressing how much the hosts are looking forward to the guest's presence.
+        6.  **Design Suggestion**: Provide a concise and actionable design concept. Suggest a color palette (2-3 colors) and a font pairing (one for headings, one for body text) that aligns with the specified \`{{{theme}}}\`.
+      `,
+    });
+
     const { output } = await prompt(input);
     
     if (!output) {

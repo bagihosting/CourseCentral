@@ -36,28 +36,6 @@ export async function generateUmkmProfile(
   return generateUmkmProfileFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateUmkmProfilePrompt',
-  input: { schema: GenerateUmkmProfileInputSchema },
-  output: { schema: GenerateUmkmProfileOutputSchema },
-  prompt: `
-    You are a branding and marketing consultant specializing in helping new Micro, Small, and Medium Enterprises (UMKM) in Indonesia.
-    Your task is to generate a basic but compelling business identity based on the user's provided details. The tone should be creative, modern, and encouraging.
-
-    **Business Details:**
-    - Business Type: {{{businessType}}}
-    - Target Market: {{{targetMarket}}}
-    - Unique Selling Point: {{{uniqueSellingPoint}}}
-
-    **CRITICAL INSTRUCTIONS:**
-    1.  **Business Name**: Generate 3-5 creative, catchy, and easy-to-remember business name suggestions. Pick the best one for the final output. The name should be suitable for the Indonesian market.
-    2.  **Tagline**: Create a short, punchy tagline that captures the essence of the unique selling point.
-    3.  **Short Description**: Write a concise, one-paragraph description of the business. It should explain what the business does, who it's for, and what makes it special.
-    4.  **Social Media Post Idea**: Write a complete, engaging text for a first social media post (e.g., for Instagram or Facebook). The post should introduce the new business, its main product/service, and include a call-to-action and relevant hashtags.
-    5.  **Language**: All output must be in Bahasa Indonesia.
-  `,
-});
-
 const generateUmkmProfileFlow = ai.defineFlow(
   {
     name: 'generateUmkmProfileFlow',
@@ -65,6 +43,28 @@ const generateUmkmProfileFlow = ai.defineFlow(
     outputSchema: GenerateUmkmProfileOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateUmkmProfilePrompt',
+      input: { schema: GenerateUmkmProfileInputSchema },
+      output: { schema: GenerateUmkmProfileOutputSchema },
+      prompt: `
+        You are a branding and marketing consultant specializing in helping new Micro, Small, and Medium Enterprises (UMKM) in Indonesia.
+        Your task is to generate a basic but compelling business identity based on the user's provided details. The tone should be creative, modern, and encouraging.
+
+        **Business Details:**
+        - Business Type: {{{businessType}}}
+        - Target Market: {{{targetMarket}}}
+        - Unique Selling Point: {{{uniqueSellingPoint}}}
+
+        **CRITICAL INSTRUCTIONS:**
+        1.  **Business Name**: Generate 3-5 creative, catchy, and easy-to-remember business name suggestions. Pick the best one for the final output. The name should be suitable for the Indonesian market.
+        2.  **Tagline**: Create a short, punchy tagline that captures the essence of the unique selling point.
+        3.  **Short Description**: Write a concise, one-paragraph description of the business. It should explain what the business does, who it's for, and what makes it special.
+        4.  **Social Media Post Idea**: Write a complete, engaging text for a first social media post (e.g., for Instagram or Facebook). The post should introduce the new business, its main product/service, and include a call-to-action and relevant hashtags.
+        5.  **Language**: All output must be in Bahasa Indonesia.
+      `,
+    });
+    
     const { output } = await prompt(input);
     
     if (!output) {

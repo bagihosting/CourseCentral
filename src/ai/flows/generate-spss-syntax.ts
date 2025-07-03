@@ -36,24 +36,6 @@ export async function generateSpssSyntax(
   return generateSpssSyntaxFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateSpssSyntaxPrompt',
-  input: { schema: GenerateSpssSyntaxInputSchema },
-  output: { schema: GenerateSpssSyntaxOutputSchema },
-  prompt: `
-    You are an expert statistician and a master of SPSS syntax. Your task is to generate valid SPSS syntax code based on a user's natural language request and provide a clear explanation of what the code does.
-
-    **User's Analysis Request:**
-    "{{{analysisDescription}}}"
-
-    **CRITICAL INSTRUCTIONS:**
-    1.  **Analyze the Request**: Identify the statistical test or procedure requested (e.g., T-Test, ANOVA, Regression, Frequencies, Descriptives). Identify the variables involved based on the user's description. Use placeholder variable names like 'group_variable', 'dependent_variable', 'independent_variable1' if specific names aren't provided.
-    2.  **Generate SPSS Syntax**: Write the complete and correct SPSS syntax to perform the analysis. Use standard commands (e.g., \`T-TEST GROUPS\`, \`ONEWAY\`, \`REGRESSION\`, \`FREQUENCIES\`). End commands with a period (.).
-    3.  **Generate Explanation**: Write a clear, concise, step-by-step explanation of the generated syntax. Explain each command and its main subcommands (e.g., what \`/VARIABLES=\`, \`/GROUP=\`, \`/MISSING=ANALYSIS\` do).
-    4.  **Return Both**: Ensure your output contains both the \`spssSyntax\` and the \`explanation\` fields. Do not just return one or the other.
-  `,
-});
-
 const generateSpssSyntaxFlow = ai.defineFlow(
   {
     name: 'generateSpssSyntaxFlow',
@@ -61,6 +43,24 @@ const generateSpssSyntaxFlow = ai.defineFlow(
     outputSchema: GenerateSpssSyntaxOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateSpssSyntaxPrompt',
+      input: { schema: GenerateSpssSyntaxInputSchema },
+      output: { schema: GenerateSpssSyntaxOutputSchema },
+      prompt: `
+        You are an expert statistician and a master of SPSS syntax. Your task is to generate valid SPSS syntax code based on a user's natural language request and provide a clear explanation of what the code does.
+
+        **User's Analysis Request:**
+        "{{{analysisDescription}}}"
+
+        **CRITICAL INSTRUCTIONS:**
+        1.  **Analyze the Request**: Identify the statistical test or procedure requested (e.g., T-Test, ANOVA, Regression, Frequencies, Descriptives). Identify the variables involved based on the user's description. Use placeholder variable names like 'group_variable', 'dependent_variable', 'independent_variable1' if specific names aren't provided.
+        2.  **Generate SPSS Syntax**: Write the complete and correct SPSS syntax to perform the analysis. Use standard commands (e.g., \`T-TEST GROUPS\`, \`ONEWAY\`, \`REGRESSION\`, \`FREQUENCIES\`). End commands with a period (.).
+        3.  **Generate Explanation**: Write a clear, concise, step-by-step explanation of the generated syntax. Explain each command and its main subcommands (e.g., what \`/VARIABLES=\`, \`/GROUP=\`, \`/MISSING=ANALYSIS\` do).
+        4.  **Return Both**: Ensure your output contains both the \`spssSyntax\` and the \`explanation\` fields. Do not just return one or the other.
+      `,
+    });
+    
     const { output } = await prompt(input);
     
     if (!output) {

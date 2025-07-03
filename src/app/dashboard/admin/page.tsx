@@ -264,7 +264,7 @@ export default function AdminPage() {
                 <DialogTitle>{selectedUser ? `Ubah Pengguna: ${selectedUser.name}` : 'Tambah Member Baru'}</DialogTitle>
                 {selectedUser && (
                      <DialogDescription>
-                        Terdaftar: {new Date(selectedUser.createdAt).toLocaleDateString('id-ID')} | Total Login: {selectedUser.loginCount}
+                        Terdaftar: {format(new Date(selectedUser.createdAt), "dd MMMM yyyy", { locale: id })} | Total Login: {selectedUser.loginCount}
                     </DialogDescription>
                 )}
             </DialogHeader>

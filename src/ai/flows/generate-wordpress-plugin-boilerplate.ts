@@ -40,41 +40,6 @@ export async function generateWordpressPluginBoilerplate(
   return generateWordpressPluginBoilerplateFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateWpPluginBoilerplatePrompt',
-  input: { schema: GenerateWordpressPluginBoilerplateInputSchema },
-  output: { schema: GenerateWordpressPluginBoilerplateOutputSchema },
-  prompt: `
-    You are an expert WordPress developer assistant. Your task is to generate the standard boilerplate files for a new WordPress plugin based on the user's input.
-    You will generate two separate file contents: 'readme.txt' and the main plugin PHP file.
-
-    **Plugin Details:**
-    - Plugin Name: {{{pluginName}}}
-    - Description: {{{description}}}
-    - Author: {{{authorName}}}
-    - Plugin URI: {{{pluginUri}}}
-    - Author URI: {{{authorUri}}}
-
-    **CRITICAL INSTRUCTIONS:**
-
-    1.  **Generate \`readme.txt\` Content**:
-        -   Create a full \`readme.txt\` file content that is compliant with the WordPress.org plugin directory standards.
-        -   The header section must include the plugin name, contributors (use "author" as a placeholder), "Requires at least", "Tested up to", "Stable tag", and "License" fields. Use sensible defaults.
-        -   Include standard sections like "== Description ==", "== Installation ==", "== Frequently Asked Questions ==", and "== Changelog ==".
-        -   Populate the Description section with the user-provided description.
-        -   Fill the other sections with standard, helpful placeholder text.
-
-    2.  **Generate Main PHP File Content**:
-        -   The filename should be based on the plugin name (e.g., "my-awesome-slider.php").
-        -   The file MUST start with a standard WordPress plugin header comment block. This block must include "Plugin Name", "Plugin URI", "Description", "Version" (default to 1.0.0), "Author", "Author URI", and "License" (default to GPLv2 or later).
-        -   After the header, include a basic security check: \`if ( ! defined( 'ABSPATH' ) ) { exit; }\`
-        -   Do NOT generate any complex PHP logic. Only include comments and placeholders to guide the user. For example, add comments like \`// Enqueue scripts and styles here\` or \`// Add plugin hooks here\`.
-        -   This file should serve as a clean, professional starting point for a developer.
-
-    Return the complete content for both files in the specified output format.
-  `,
-});
-
 const generateWordpressPluginBoilerplateFlow = ai.defineFlow(
   {
     name: 'generateWordpressPluginBoilerplateFlow',
@@ -82,6 +47,41 @@ const generateWordpressPluginBoilerplateFlow = ai.defineFlow(
     outputSchema: GenerateWordpressPluginBoilerplateOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateWpPluginBoilerplatePrompt',
+      input: { schema: GenerateWordpressPluginBoilerplateInputSchema },
+      output: { schema: GenerateWordpressPluginBoilerplateOutputSchema },
+      prompt: `
+        You are an expert WordPress developer assistant. Your task is to generate the standard boilerplate files for a new WordPress plugin based on the user's input.
+        You will generate two separate file contents: 'readme.txt' and the main plugin PHP file.
+
+        **Plugin Details:**
+        - Plugin Name: {{{pluginName}}}
+        - Description: {{{description}}}
+        - Author: {{{authorName}}}
+        - Plugin URI: {{{pluginUri}}}
+        - Author URI: {{{authorUri}}}
+
+        **CRITICAL INSTRUCTIONS:**
+
+        1.  **Generate \`readme.txt\` Content**:
+            -   Create a full \`readme.txt\` file content that is compliant with the WordPress.org plugin directory standards.
+            -   The header section must include the plugin name, contributors (use "author" as a placeholder), "Requires at least", "Tested up to", "Stable tag", and "License" fields. Use sensible defaults.
+            -   Include standard sections like "== Description ==", "== Installation ==", "== Frequently Asked Questions ==", and "== Changelog ==".
+            -   Populate the Description section with the user-provided description.
+            -   Fill the other sections with standard, helpful placeholder text.
+
+        2.  **Generate Main PHP File Content**:
+            -   The filename should be based on the plugin name (e.g., "my-awesome-slider.php").
+            -   The file MUST start with a standard WordPress plugin header comment block. This block must include "Plugin Name", "Plugin URI", "Description", "Version" (default to 1.0.0), "Author", "Author URI", and "License" (default to GPLv2 or later).
+            -   After the header, include a basic security check: \`if ( ! defined( 'ABSPATH' ) ) { exit; }\`
+            -   Do NOT generate any complex PHP logic. Only include comments and placeholders to guide the user. For example, add comments like \`// Enqueue scripts and styles here\` or \`// Add plugin hooks here\`.
+            -   This file should serve as a clean, professional starting point for a developer.
+
+        Return the complete content for both files in the specified output format.
+      `,
+    });
+    
     const { output } = await prompt(input);
     
     if (!output) {

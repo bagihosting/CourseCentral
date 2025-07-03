@@ -41,28 +41,6 @@ export async function generateGoogleAds(
   return generateGoogleAdsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateGoogleAdsPrompt',
-  input: { schema: GenerateGoogleAdsInputSchema },
-  output: { schema: GenerateGoogleAdsOutputSchema },
-  prompt: `
-    You are a Google Ads expert and a professional copywriter. Your task is to generate high-converting ad copy based on the provided product information.
-    You must adhere to Google Ads character limits strictly.
-
-    **Product Information:**
-    - Product/Service Name: {{{productName}}}
-    - Target Audience: {{{targetAudience}}}
-    - Key Features/Selling Points: {{{keyFeatures}}}
-
-    **CRITICAL INSTRUCTIONS:**
-    1.  **Headlines**: Generate 3-5 unique, attention-grabbing headlines. Each headline MUST be 30 characters or less.
-    2.  **Descriptions**: Generate 2-3 compelling descriptions that highlight the benefits and include a call-to-action. Each description MUST be 90 characters or less.
-    3.  **Keywords**: Generate a list of 10-15 relevant keywords, including a mix of broad match, phrase match, and long-tail keywords.
-    4.  **Language**: Write all copy in Bahasa Indonesia.
-    5.  **Format**: Return the output in the specified JSON format.
-  `,
-});
-
 const generateGoogleAdsFlow = ai.defineFlow(
   {
     name: 'generateGoogleAdsFlow',
@@ -70,6 +48,28 @@ const generateGoogleAdsFlow = ai.defineFlow(
     outputSchema: GenerateGoogleAdsOutputSchema,
   },
   async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'generateGoogleAdsPrompt',
+      input: { schema: GenerateGoogleAdsInputSchema },
+      output: { schema: GenerateGoogleAdsOutputSchema },
+      prompt: `
+        You are a Google Ads expert and a professional copywriter. Your task is to generate high-converting ad copy based on the provided product information.
+        You must adhere to Google Ads character limits strictly.
+
+        **Product Information:**
+        - Product/Service Name: {{{productName}}}
+        - Target Audience: {{{targetAudience}}}
+        - Key Features/Selling Points: {{{keyFeatures}}}
+
+        **CRITICAL INSTRUCTIONS:**
+        1.  **Headlines**: Generate 3-5 unique, attention-grabbing headlines. Each headline MUST be 30 characters or less.
+        2.  **Descriptions**: Generate 2-3 compelling descriptions that highlight the benefits and include a call-to-action. Each description MUST be 90 characters or less.
+        3.  **Keywords**: Generate a list of 10-15 relevant keywords, including a mix of broad match, phrase match, and long-tail keywords.
+        4.  **Language**: Write all copy in Bahasa Indonesia.
+        5.  **Format**: Return the output in the specified JSON format.
+      `,
+    });
+    
     const { output } = await prompt(input);
     
     if (!output) {
