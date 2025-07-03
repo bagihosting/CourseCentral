@@ -241,8 +241,8 @@ export async function generateSoapFormulaAction(
 export async function generateWebAppAction(
   input: GenerateWebAppInput
 ): Promise<GenerateWebAppOutput | { error: string }> {
-  if (!input.appName || !input.appDescription) {
-    return { error: 'Nama dan deskripsi aplikasi tidak boleh kosong.' };
+  if (!input.appName || (!input.appDescription && !input.cloneUrl)) {
+    return { error: 'Nama aplikasi dan deskripsi atau URL klon tidak boleh kosong.' };
   }
 
   try {

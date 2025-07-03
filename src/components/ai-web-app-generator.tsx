@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Copy, Download, Folder, File, Server, Pencil, BookOpenText } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Download, Folder, File, Server, Pencil, BookOpenText, Link as LinkIcon, Text } from 'lucide-react';
 import { generateWebAppAction, editWebAppAction } from '@/actions/ai';
 import type { GenerateWebAppOutput } from '@/ai/flows/generate-web-app';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type FileItem = GenerateWebAppOutput['files'][0];
 
@@ -40,6 +41,9 @@ function groupFilesByDirectory(files: FileItem[]) {
 export function AiWebAppGenerator() {
   const [appName, setAppName] = useState('');
   const [appDescription, setAppDescription] = useState('');
+  const [cloneUrl, setCloneUrl] = useState('');
+  const [activeTab, setActiveTab] = useState('describe');
+
   const [isLoading, setIsLoading] = useState(false);
   const [output, setOutput] = useState<GenerateWebAppOutput | null>(null);
 
@@ -49,10 +53,10 @@ export function AiWebAppGenerator() {
   const { toast } = useToast();
 
   const handleGenerate = async () => {
-    if (!appName || !appDescription) {
+    if (!appName || (activeTab === 'describe' && !appDescription) || (activeTab === 'clone' && !cloneUrl)) {
       toast({
         title: 'Input Diperlukan',
-        description: 'Silakan isi nama dan deskripsi aplikasi.',
+        description: 'Silakan isi nama aplikasi dan deskripsi atau URL yang ingin dikloning.',
         variant: 'destructive',
       });
       return;
@@ -61,7 +65,11 @@ export function AiWebAppGenerator() {
     setIsLoading(true);
     setOutput(null);
 
-    const result = await generateWebAppAction({ appName, appDescription });
+    const result = await generateWebAppAction({
+        appName,
+        ...(activeTab === 'describe' ? { appDescription } : {}),
+        ...(activeTab === 'clone' ? { cloneUrl } : {}),
+    });
     setIsLoading(false);
 
     if ('error' in result) {
@@ -148,7 +156,7 @@ export function AiWebAppGenerator() {
             AI Web App Generator
         </CardTitle>
         <CardDescription>
-          Jelaskan ide aplikasi Anda, dan biarkan AI membuatkan boilerplate lengkap dengan Next.js, Tailwind, dan Genkit untuk Anda.
+          Jelaskan ide aplikasi Anda atau berikan URL untuk dikloning, dan biarkan AI membuatkan boilerplate lengkap untuk Anda.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -162,19 +170,42 @@ export function AiWebAppGenerator() {
                 disabled={isLoading || isEditing}
             />
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="app-description">Deskripsi Aplikasi</Label>
-            <Textarea
-              id="app-description"
-              value={appDescription}
-              onChange={(e) => setAppDescription(e.target.value)}
-              placeholder="Contoh: Sebuah platform untuk berbagi dan menemukan resep masakan dari seluruh dunia, dengan fitur pencarian berbasis bahan."
-              disabled={isLoading || isEditing}
-              rows={4}
-            />
-        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="describe"><Text className="mr-2" /> Jelaskan Ide</TabsTrigger>
+                <TabsTrigger value="clone"><LinkIcon className="mr-2" /> Kloning dari URL</TabsTrigger>
+            </TabsList>
+            <TabsContent value="describe" className="mt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="app-description">Deskripsi Aplikasi</Label>
+                    <Textarea
+                      id="app-description"
+                      value={appDescription}
+                      onChange={(e) => setAppDescription(e.target.value)}
+                      placeholder="Contoh: Sebuah platform untuk berbagi dan menemukan resep masakan dari seluruh dunia, dengan fitur pencarian berbasis bahan."
+                      disabled={isLoading || isEditing}
+                      rows={4}
+                    />
+                </div>
+            </TabsContent>
+            <TabsContent value="clone" className="mt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="clone-url">URL Website yang Ingin Dikloning</Label>
+                    <Input
+                        id="clone-url"
+                        type="url"
+                        value={cloneUrl}
+                        onChange={(e) => setCloneUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        disabled={isLoading || isEditing}
+                    />
+                     <p className="text-xs text-muted-foreground">AI akan mencoba meniru tata letak visual dan gaya dari URL ini.</p>
+                </div>
+            </TabsContent>
+        </Tabs>
         
-        <Button onClick={handleGenerate} disabled={isLoading || isEditing || !appName || !appDescription} className="w-full">
+        <Button onClick={handleGenerate} disabled={isLoading || isEditing || !appName} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

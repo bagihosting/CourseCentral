@@ -12,7 +12,8 @@ import { z } from 'zod';
 
 const GenerateWebAppInputSchema = z.object({
   appName: z.string().describe('The name of the application, used for package.json (e.g., "my-awesome-app").'),
-  appDescription: z.string().describe('A detailed description of what the application should do.'),
+  appDescription: z.string().optional().describe('A detailed description of what the application should do.'),
+  cloneUrl: z.string().url().optional().describe('The URL of a website to visually clone for the UI.'),
 });
 
 const GenerateWebAppOutputSchema = z.object({
@@ -42,7 +43,11 @@ const prompt = ai.definePrompt({
 
     **User's Request:**
     - App Name: {{{appName}}}
+    {{#if cloneUrl}}
+    - Clone Website URL: "{{{cloneUrl}}}"
+    {{else}}
     - App Description: "{{{appDescription}}}"
+    {{/if}}
 
     **CRITICAL INSTRUCTIONS:**
 
@@ -63,7 +68,10 @@ const prompt = ai.definePrompt({
 
     4.  **\\\`src/app/globals.css\\\`**:
         -   Generate the standard CSS file used by ShadCN UI.
-        -   It MUST define a professional, vibrant, and colorful palette for the HSL CSS variables for both light (\\\`:root\\\`) and dark (\\\`.dark\\\`) themes. Make it look good.
+        -   It MUST define a professional, vibrant, and colorful palette for the HSL CSS variables for both light (\\\`:root\\\`) and dark (\\\`.dark\\\`) themes.
+        {{#if cloneUrl}}
+        -   **IMPORTANT**: Try to match the color palette (primary, background, accent colors) of the website at \\\`{{{cloneUrl}}}\\\`.
+        {{/if}}
 
     5.  **\\\`src/app/layout.tsx\\\`**:
         -   Create the root layout component using TypeScript. Import and apply a standard font like 'Inter' from \\\`next/font/google\\\`.
@@ -105,14 +113,28 @@ const prompt = ai.definePrompt({
 
     7.  **\\\`src/app/page.tsx\\\`**:
         -   This is the main interactive page. It MUST be a client component (\\\`'use client'\\\`).
-        -   Generate a React component that implements a **complete, functional mini-application** based on the user's \\\`{{{appDescription}}}\\\`.
+        {{#if cloneUrl}}
+        -   **CLONE MODE**: Analyze the visual layout, components, and structure of the homepage at \\\`{{{cloneUrl}}}\\\`.
+        -   Recreate a simplified, static, but visually faithful version of that page. Focus on the main sections: header/navigation, hero section, feature lists, call-to-action blocks, and footer.
+        -   Use standard HTML tags and apply Tailwind CSS classes extensively to achieve the look and feel.
+        -   Use placeholder images (\`https://placehold.co/WIDTHxHEIGHT.png\`) where necessary.
+        -   DO NOT implement any JavaScript functionality, state management, or interactivity from the original site. This is a purely visual clone of the static UI.
+        -   Use ShadCN UI components like \\\`<Button>\\\`, \\\`<Card>\\\` where they make sense to replicate the original site's components.
+        {{else}}
+        -   **DESCRIPTION MODE**: Generate a React component that implements a **complete, functional mini-application** based on the user's \\\`{{{appDescription}}}\\\`.
         -   It MUST import and use the \\\`useLocalStorage\\\` hook from \\\`src/hooks/use-local-storage.ts\\\` to manage its primary state (e.g., a list of todos, recipes, notes).
         -   The UI must be interactive. Implement features to **ADD and DELETE** items from the list stored in \\\`localStorage\\\`. Use the \\\`uuid\\\` package for generating unique IDs for new items.
         -   Use a variety of ShadCN UI components like \\\`<Card>\\\`, \\\`<Button>\\\`, \\\`<Input>\\\`, and \\\`<Dialog>\\\` (for adding new items) to build a rich user interface.
         -   The design must be colorful, clean, and modern, using the theme defined in \\\`globals.css\\\`.
+        {{/if}}
 
     8.  **\\\`src/ai.ts\\\`**:
-        -   Create a simple Genkit flow file related to the \\\`{{{appDescription}}}\\\`. For example, if the app is a "recipe generator", the flow could take ingredients as input and return a recipe idea.
+        -   Create a simple Genkit flow file.
+        {{#if cloneUrl}}
+        -   The flow should be related to the content of the cloned site. For example, if it's a "SaaS landing page", create a flow to "generate marketing copy".
+        {{else}}
+        -   The flow should be related to the \\\`{{{appDescription}}}\\\`. For example, if the app is a "recipe generator", the flow could take ingredients as input and return a recipe idea.
+        {{/if}}
         -   DO NOT integrate this flow into the \\\`page.tsx\\\`. This file is for boilerplate demonstration only.
 
     9.  **Generate \\\`previewHtml\\\`**: After generating all files, create the \\\`previewHtml\\\`. This must be a single, self-contained HTML string representing a realistic static preview of \\\`src/app/page.tsx\\\`. To do this, you MUST:
@@ -121,12 +143,18 @@ const prompt = ai.definePrompt({
         c.  In the \`<head>\`, copy the entire content of the generated \`globals.css\` file and place it inside a \`<style>\` tag.
         d.  In the \`<body>\`, convert the JSX from \`page.tsx\` into plain HTML. Use realistic placeholder content for dynamic parts of the UI. This preview is crucial.
 
-    10. **Generate Detailed Explanation**: After generating all files, create the \`explanation\` text. This must be a comprehensive, step-by-step guide formatted in Markdown. Explain how the generated files create a complete application, starting from the foundational files (\`layout.tsx\`, \`globals.css\`) and building up to the interactive components (\`page.tsx\`, \`use-local-storage.ts\`). Describe the role of each file as if you were teaching a beginner how their blank canvas becomes a functional app.
+    10. **Generate Detailed Explanation**: After generating all files, create the \`explanation\` text. This must be a comprehensive, step-by-step guide formatted in Markdown.
+        {{#if cloneUrl}}
+        -   Explain that the code is a visual boilerplate cloned from \\\`{{{cloneUrl}}}\\\`. Describe how \\\`page.tsx\\\` represents the structure and \\\`globals.css\\\` captures the color theme. Then, explain the role of the other boilerplate files.
+        {{else}}
+        -   Explain how the generated files create a complete application, starting from the foundational files (\`layout.tsx\`, \`globals.css\`) and building up to the interactive components (\`page.tsx\`, \`use-local-storage.ts\`). Describe the role of each file as if you were teaching a beginner how their blank canvas becomes a functional app.
+        {{/if}}
 
     **OUTPUT FORMAT:**
     Return a single JSON object matching the output schema. The \\\`files\\\` array must contain an object for each of the 8 files listed above. The \\\`previewHtml\\\` and \\\`explanation\\\` fields must also be populated.
   `,
 });
+
 
 const generateWebAppFlow = ai.defineFlow(
   {
