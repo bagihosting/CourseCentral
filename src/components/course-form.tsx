@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Loader2, Wand2 } from 'lucide-react';
 import { generateThumbnailAction, generateDescriptionAction } from '@/actions/ai';
+import imageCompression from 'browser-image-compression';
 
 interface CourseFormProps {
   course?: Course;
@@ -85,12 +86,51 @@ export function CourseForm({ course }: CourseFormProps) {
     }
     setIsGeneratingThumbnail(true);
     const result = await generateThumbnailAction(title);
-    setIsGeneratingThumbnail(false);
-
+    
     if ('imageUrl' in result && result.imageUrl) {
-      setImageUrl(result.imageUrl);
-      toast({ title: 'Sukses', description: 'Thumbnail berhasil dibuat dengan AI.' });
+        try {
+            const dataURItoFile = (dataURI: string, filename: string): File => {
+                const arr = dataURI.split(',');
+                if (arr.length < 2) throw new Error('Invalid data URI');
+                const mimeMatch = arr[0].match(/:(.*?);/);
+                if (!mimeMatch || mimeMatch.length < 2) throw new Error('Invalid MIME type');
+                const mime = mimeMatch[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new File([u8arr], filename, { type: mime });
+            };
+
+            const imageFile = dataURItoFile(result.imageUrl, 'thumbnail.png');
+            
+            const options = {
+                maxSizeMB: 0.2, // Target kompresi 200KB
+                maxWidthOrHeight: 800,
+                useWebWorker: true,
+                fileType: 'image/jpeg',
+            };
+            const compressedFile = await imageCompression(imageFile, options);
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const compressedDataUrl = reader.result as string;
+                setImageUrl(compressedDataUrl);
+                setIsGeneratingThumbnail(false);
+                toast({ title: 'Sukses', description: 'Thumbnail berhasil dibuat dan dikompres.' });
+            };
+            reader.readAsDataURL(compressedFile);
+
+        } catch (compressionError) {
+            console.error("Compression Error:", compressionError);
+            setImageUrl(result.imageUrl); // Fallback ke gambar asli jika kompresi gagal
+            setIsGeneratingThumbnail(false);
+            toast({ title: 'Sukses', description: 'Thumbnail berhasil dibuat, namun gagal dikompres.', variant: 'default' });
+        }
     } else {
+      setIsGeneratingThumbnail(false);
       const errorMessage = 'error' in result ? result.error : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal', description: errorMessage, variant: 'destructive' });
     }
