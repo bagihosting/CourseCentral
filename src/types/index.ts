@@ -37,3 +37,14 @@ export type Enrollment = {
   userId: string;
   courseId: string;
 };
+
+export type UpgradeRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  bankName: string;
+  accountHolder: string;
+  requestDate: string;
+  status: 'pending' | 'approved';
+};

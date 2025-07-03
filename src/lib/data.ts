@@ -1,6 +1,6 @@
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -10,6 +10,7 @@ interface Database {
   users: User[];
   courses: Course[];
   enrollments: Enrollment[];
+  upgradeRequests: UpgradeRequest[];
 }
 
 // --- Seed Data ---
@@ -99,6 +100,7 @@ function getInitialData(): Database {
           },
         ],
         enrollments: [],
+        upgradeRequests: [],
     };
 }
 
@@ -129,6 +131,7 @@ function getDB(): Database {
         if (!data.users) data.users = [];
         if (!data.courses) data.courses = [];
         if (!data.enrollments) data.enrollments = [];
+        if (!data.upgradeRequests) data.upgradeRequests = [];
 
         // --- Start of robust self-healing logic for admin user ---
         const initialUsersString = JSON.stringify(data.users.sort((a,b) => a.id.localeCompare(b.id)));
@@ -209,23 +212,7 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
     }
 
     const currentUser = db.users[userIndex];
-    const updatedUser = { ...currentUser };
-
-    if (data.name) {
-        updatedUser.name = data.name;
-    }
-
-    if (data.password && data.password.trim() !== '') {
-        updatedUser.password = data.password;
-    }
-    
-    if (data.avatarUrl) {
-        updatedUser.avatarUrl = data.avatarUrl;
-    }
-
-    if (data.whatsapp !== undefined) {
-      updatedUser.whatsapp = data.whatsapp;
-    }
+    const updatedUser = { ...currentUser, ...data };
 
     db.users[userIndex] = updatedUser;
     saveDB(db);
@@ -459,4 +446,75 @@ export function getCompletedCourseCount(userId: string): number {
     }
 
     return completedCount;
+}
+
+// --- Upgrade Request API Functions ---
+
+export function createUpgradeRequest(userId: string, bankName: string, accountHolder: string): UpgradeRequest {
+  const db = getDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  // Prevent duplicate pending requests
+  const existingRequest = db.upgradeRequests.find(r => r.userId === userId && r.status === 'pending');
+  if (existingRequest) {
+    throw new Error('Anda sudah memiliki permintaan upgrade yang sedang ditinjau.');
+  }
+
+  const newRequest: UpgradeRequest = {
+    id: `req_${Date.now()}`,
+    userId: user.id,
+    userName: user.name,
+    userAvatar: user.avatarUrl,
+    bankName,
+    accountHolder,
+    requestDate: new Date().toISOString(),
+    status: 'pending',
+  };
+
+  db.upgradeRequests.push(newRequest);
+  saveDB(db);
+  return newRequest;
+}
+
+export function getUpgradeRequests(): UpgradeRequest[] {
+    const db = getDB();
+    // Return newest requests first
+    return db.upgradeRequests.sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+}
+
+export function getUpgradeRequestByUserId(userId: string): UpgradeRequest | undefined {
+    const db = getDB();
+    // Find the latest request for the user
+    return db.upgradeRequests
+        .filter(r => r.userId === userId)
+        .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())[0];
+}
+
+export function approveUpgrade(requestId: string): void {
+    const db = getDB();
+    const requestIndex = db.upgradeRequests.findIndex(r => r.id === requestId);
+    if (requestIndex === -1) {
+        throw new Error('Permintaan tidak ditemukan.');
+    }
+    
+    const request = db.upgradeRequests[requestIndex];
+    if (request.status === 'approved') {
+        throw new Error('Permintaan ini sudah disetujui.');
+    }
+    
+    const userIndex = db.users.findIndex(u => u.id === request.userId);
+    if (userIndex === -1) {
+        throw new Error('Pengguna terkait dengan permintaan ini tidak ditemukan.');
+    }
+
+    // Update user role to 'pro'
+    db.users[userIndex].role = 'pro';
+    
+    // Update request status to 'approved'
+    db.upgradeRequests[requestIndex].status = 'approved';
+
+    saveDB(db);
 }
