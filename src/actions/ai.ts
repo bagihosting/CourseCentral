@@ -256,7 +256,7 @@ export async function generateWebAppAction(
 
   try {
     const result = await generateWebAppFlow(input);
-    result.previewHtml = DOMPurify.sanitize(result.previewHtml);
+    result.previewHtml = DOMPurify.sanitize(result.previewHtml, { WHOLE_DOCUMENT: true });
     return result;
   } catch (error) {
     console.error('Error generating web app:', error);
@@ -273,7 +273,7 @@ export async function editWebAppAction(
 
   try {
     const result = await editWebAppFlow(input);
-    result.previewHtml = DOMPurify.sanitize(result.previewHtml);
+    result.previewHtml = DOMPurify.sanitize(result.previewHtml, { WHOLE_DOCUMENT: true });
     return result;
   } catch (error) {
     console.error('Error editing web app:', error);
@@ -386,6 +386,7 @@ export async function generateAndApproveCertificateAction(
         completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
         organizerName: seoSettings.platformName || 'Scriptify',
         logoUrl: landingSettings.logoUrl || 'https://placehold.co/200x80.png',
+        courseId: request.courseId,
     };
     
     try {

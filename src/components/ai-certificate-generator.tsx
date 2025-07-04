@@ -60,10 +60,10 @@ export function AiCertificateGenerator() {
   }, [selectedUserId, selectedCourseId]);
 
   const handleGenerate = async () => {
-    if (!participantName || !courseName || !completionDate || !organizerName) {
+    if (!participantName || !courseName || !completionDate || !organizerName || !selectedCourseId) {
       toast({
         title: 'Input Diperlukan',
-        description: 'Harap isi semua kolom untuk membuat sertifikat.',
+        description: 'Harap pilih peserta, kursus, dan isi semua kolom untuk membuat sertifikat.',
         variant: 'destructive',
       });
       return;
@@ -78,6 +78,7 @@ export function AiCertificateGenerator() {
       completionDate: format(completionDate, 'dd MMMM yyyy', { locale: id }),
       organizerName,
       logoUrl,
+      courseId: selectedCourseId
     });
     setIsLoading(false);
 
