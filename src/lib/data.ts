@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp } from '@/types';
@@ -312,7 +313,7 @@ function getDB(): Database {
             if (!user.lastLoginAt) user.lastLoginAt = now;
             if (!user.status) user.status = 'active';
             if (typeof user.loginCount !== 'number') user.loginCount = 0;
-            if (!user.referralCode) user.referralCode = `${user.username.replace(/\s/g, '')}${Date.now().toString(36)}`;
+            if (!user.referralCode) user.referralCode = `${(user.username || 'user').replace(/\s/g, '')}${Date.now().toString(36)}`;
             if (typeof user.affiliateBalance !== 'number') user.affiliateBalance = 0;
             if (typeof user.affiliatePaid !== 'number') user.affiliatePaid = 0;
         });
@@ -817,8 +818,8 @@ export function approveUpgrade(requestId: string): void {
         const referrerIndex = db.users.findIndex(u => u.referralCode === upgradedUser.referredBy);
         if (referrerIndex !== -1) {
             const referrer = db.users[referrerIndex];
-            const successfulReferrals = db.users.filter(u => u.referredBy === referrer.referralCode && u.role === 'pro');
-            const successfulReferralsCount = successfulReferrals.length;
+            const successfulReferrals = db.users.filter(u => u.referredBy === referrer.referralCode && u.role === 'pro').length;
+            const successfulReferralsCount = successfulReferrals;
 
             if (referrer.role === 'member') {
                 if (successfulReferralsCount === 5) {
