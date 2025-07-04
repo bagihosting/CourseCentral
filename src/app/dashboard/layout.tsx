@@ -83,6 +83,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
 
+  useEffect(() => {
+    // This effect runs once on mount to clean up old localStorage keys.
+    const cleanupFlag = 'v1_cleanup_webapp_generator_done';
+    if (typeof window !== 'undefined' && !localStorage.getItem(cleanupFlag)) {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('ai_webapp_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      localStorage.setItem(cleanupFlag, 'true');
+    }
+  }, []);
+
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
