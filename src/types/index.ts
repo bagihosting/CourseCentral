@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -97,6 +98,12 @@ export type Testimonial = {
   createdAt: string;
 };
 
+export type FAQItem = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
 export type LandingPageSettings = {
   heroHeadline: string;
   heroSubheadline: string;
@@ -112,4 +119,5 @@ export type LandingPageSettings = {
   contactEmail: string;
   contactPhone: string;
   contactAddress: string;
+  faqs: FAQItem[];
 };

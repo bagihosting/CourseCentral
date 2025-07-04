@@ -14,6 +14,7 @@ import type { Course, LandingPageSettings, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import DOMPurify from 'isomorphic-dompurify';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const featureIcons: { [key: string]: React.ElementType } = {
   ShieldCheck,
@@ -116,6 +117,7 @@ function LandingPage() {
           <Link href="#courses" className="text-sm font-medium hover:text-primary transition-colors">Kursus</Link>
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Fitur</Link>
           <Link href="#testimonials" className="text-sm font-medium hover:text-primary transition-colors">Testimoni</Link>
+          <Link href="#faq" className="text-sm font-medium hover:text-primary transition-colors">FAQ</Link>
         </nav>
         <Button asChild>
           <Link href="/login">Masuk / Daftar</Link>
@@ -247,6 +249,30 @@ function LandingPage() {
                         ))}
                      </div>
                  )}
+            </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faq" className="py-20 md:py-28 bg-muted/30">
+            <div className="container mx-auto px-4 max-w-4xl">
+                <div className="text-center space-y-4 mb-12">
+                    <h2 className="text-3xl md:text-4xl font-bold">Pertanyaan yang Sering Diajukan</h2>
+                    <p className="text-muted-foreground">Tidak menemukan jawaban yang Anda cari? <Link href="/contact" className="text-primary underline">Hubungi kami</Link>.</p>
+                </div>
+                {settings.faqs && settings.faqs.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full space-y-2">
+                        {settings.faqs.map((faq) => (
+                            <AccordionItem value={faq.id} key={faq.id} className="border rounded-lg bg-background shadow-sm px-4">
+                                <AccordionTrigger className="text-left font-semibold text-lg hover:no-underline">{faq.question}</AccordionTrigger>
+                                <AccordionContent className="text-base text-muted-foreground pb-4">
+                                    {faq.answer}
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                ) : (
+                     <p className="text-center text-muted-foreground">Tidak ada FAQ untuk ditampilkan saat ini.</p>
+                )}
             </div>
         </section>
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/lib/data';
-import type { LandingPageSettings, Testimonial } from '@/types';
+import type { LandingPageSettings, Testimonial, FAQItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Star, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Image from 'next/image';
@@ -23,6 +24,7 @@ export default function LandingPageSettingsPage() {
     const [settings, setSettings] = useState<LandingPageSettings | null>(null);
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [featuredIds, setFeaturedIds] = useState<string[]>([]);
+    const [faqs, setFaqs] = useState<FAQItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isGeneratingHero, setIsGeneratingHero] = useState(false);
@@ -33,6 +35,7 @@ export default function LandingPageSettingsPage() {
         setSettings(settingsData);
         setFeaturedIds(settingsData.featuredTestimonialIds || []);
         setTestimonials(getAllTestimonials());
+        setFaqs(settingsData.faqs || []);
         setLoading(false);
     }, []);
 
@@ -120,12 +123,25 @@ export default function LandingPageSettingsPage() {
             toast({ title: 'Sukses', description: 'Gambar hero berhasil dibuat, namun gagal dikompres.', variant: 'default' });
         }
     };
+    
+    const handleFaqChange = (id: string, field: 'question' | 'answer', value: string) => {
+        setFaqs(faqs.map(faq => faq.id === id ? { ...faq, [field]: value } : faq));
+    };
+
+    const handleAddFaq = () => {
+        setFaqs([...faqs, { id: `faq_${Date.now()}`, question: '', answer: '' }]);
+    };
+
+    const handleDeleteFaq = (id: string) => {
+        setFaqs(faqs.filter(faq => faq.id !== id));
+    };
+
 
     const handleSave = () => {
         if (!settings) return;
         setIsSaving(true);
         try {
-            updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds });
+            updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds, faqs });
             toast({ title: 'Sukses', description: 'Pengaturan halaman depan berhasil disimpan.' });
             refreshData();
         } catch (error) {
@@ -400,6 +416,62 @@ export default function LandingPageSettingsPage() {
                         </div>
                     )) : (
                         <p className="text-center text-muted-foreground py-4">Belum ada testimoni yang dikirim oleh member.</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-start justify-between">
+                    <div>
+                        <CardTitle>Manajemen FAQ</CardTitle>
+                        <CardDescription>Atur pertanyaan yang sering muncul di halaman depan.</CardDescription>
+                    </div>
+                    <Button onClick={handleAddFaq} size="sm">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah FAQ
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {faqs.length > 0 ? (
+                        <div className="space-y-4">
+                            {faqs.map((faq, index) => (
+                                <Card key={faq.id} className="p-4 bg-muted/30">
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`faq-q-${index}`}>Pertanyaan</Label>
+                                        <Input
+                                            id={`faq-q-${index}`}
+                                            value={faq.question}
+                                            onChange={(e) => handleFaqChange(faq.id, 'question', e.target.value)}
+                                            placeholder="Tulis pertanyaan..."
+                                        />
+                                    </div>
+                                    <div className="space-y-2 mt-4">
+                                        <Label htmlFor={`faq-a-${index}`}>Jawaban</Label>
+                                        <Textarea
+                                            id={`faq-a-${index}`}
+                                            value={faq.answer}
+                                            onChange={(e) => handleFaqChange(faq.id, 'answer', e.target.value)}
+                                            placeholder="Tulis jawaban..."
+                                            rows={3}
+                                        />
+                                    </div>
+                                    <div className="flex justify-end mt-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => handleDeleteFaq(faq.id)}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Hapus
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-4">Belum ada FAQ yang ditambahkan.</p>
                     )}
                 </CardContent>
             </Card>

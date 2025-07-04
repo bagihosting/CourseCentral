@@ -2,7 +2,7 @@
 
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -151,7 +151,7 @@ function getInitialData(): Database {
               {
                 icon: 'Clock',
                 title: 'Akses Belajar Fleksibel',
-                description: 'Dapatkan akses seumur hidup ke semua materi kursus. Belajar kapan saja sesuai kecepatan Anda.',
+                description: 'Dapatkan akses seumur hidup ke semua materi kursus. Belajar kapan saja sesuai kecepatan dan kenyamanan Anda.',
               },
               {
                 icon: 'Users',
@@ -165,6 +165,23 @@ function getInitialData(): Database {
             contactEmail: 'support@scriptify.com',
             contactPhone: '(021) 123-4567',
             contactAddress: 'Jl. Jend. Sudirman Kav. 52-53, Jakarta Selatan, Indonesia 12190',
+            faqs: [
+              {
+                id: 'faq_1',
+                question: 'Apakah saya akan mendapatkan sertifikat?',
+                answer: 'Tentu saja! Setelah menyelesaikan semua materi kursus, Anda akan mendapatkan sertifikat kelulusan yang dapat Anda unduh dan lampirkan di profil profesional Anda.'
+              },
+              {
+                id: 'faq_2',
+                question: 'Apakah ada batasan waktu untuk menyelesaikan kursus?',
+                answer: 'Tidak ada. Dengan sekali bayar, Anda mendapatkan akses seumur hidup ke materi kursus. Anda bisa belajar kapan saja sesuai dengan kecepatan dan kenyamanan Anda.'
+              },
+              {
+                id: 'faq_3',
+                question: 'Bagaimana cara menjadi anggota Pro?',
+                answer: 'Anda dapat meng-upgrade akun Anda ke Pro melalui halaman "Upgrade ke Pro" di dasbor Anda. Prosesnya melibatkan transfer manual dan konfirmasi melalui WhatsApp dengan admin kami.'
+              }
+            ],
         },
         testimonials: [
           {
@@ -261,6 +278,9 @@ function getDB(): Database {
         }
         if (!data.landingPageSettings.contactAddress) {
             data.landingPageSettings.contactAddress = getInitialData().landingPageSettings.contactAddress;
+        }
+        if (!data.landingPageSettings.faqs) {
+            data.landingPageSettings.faqs = getInitialData().landingPageSettings.faqs;
         }
         if (!data.registeredDeviceIds) {
             data.registeredDeviceIds = [];
