@@ -59,10 +59,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
     { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
-    { href: '/dashboard/admin/certificate-management', icon: Award, label: 'Generator Sertifikat' },
+    { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
     { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
     { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
-    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
