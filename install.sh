@@ -11,7 +11,7 @@
 # 3. Memasang Node.js (versi LTS) dan PM2.
 # 4. Mengkonfigurasi Nginx sebagai reverse proxy untuk aplikasi Next.js.
 # 5. Menyiapkan firewall dengan UFW.
-# 6. Membuat file .env untuk variabel lingkungan.
+# 6. Membuat file .env.local untuk variabel lingkungan.
 # 7. Membangun dan memulai aplikasi menggunakan PM2 agar berjalan di latar belakang.
 #
 # Penggunaan:
@@ -159,17 +159,21 @@ echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_U
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
 
-# --- 6. Siapkan Variabel Lingkungan (.env) ---
-echo_info "Membuat file .env..."
-if [ ! -f "$PROJECT_DIR/.env" ]; then
-  # Hanya membuat jika tidak ada
-  touch "$PROJECT_DIR/.env"
-  echo "GEMINI_API_KEY=" >> "$PROJECT_DIR/.env"
-  chown $RUN_USER:$RUN_USER "$PROJECT_DIR/.env"
-  echo_success "File .env telah dibuat."
-  echo_warn "PENTING: Harap edit file .env dan tambahkan GEMINI_API_KEY Anda agar fitur AI berfungsi."
+# --- 6. Siapkan Variabel Lingkungan (.env.local) ---
+echo_info "Membuat file .env.local..."
+ENV_FILE="$PROJECT_DIR/.env.local"
+if [ ! -f "$ENV_FILE" ]; then
+  # Hanya membuat jika tidak ada. Next.js secara otomatis memuat .env.local di lingkungan produksi.
+  touch "$ENV_FILE"
+  echo "GEMINI_API_KEY=" >> "$ENV_FILE"
+  chown $RUN_USER:$RUN_USER "$ENV_FILE"
+  echo_success "File .env.local telah dibuat."
+  echo_warn "=========================================================="
+  echo_warn "PENTING: Aplikasi Anda tidak akan berjalan tanpa API Key!"
+  echo_warn "Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda agar fitur AI berfungsi."
+  echo_warn "=========================================================="
 else
-  echo_info "File .env sudah ada, tidak ada perubahan."
+  echo_info "File .env.local sudah ada, tidak ada perubahan."
 fi
 
 
@@ -216,7 +220,7 @@ server {
 # Buat file konfigurasi Nginx
 echo "$NGINX_CONFIG" > /etc/nginx/sites-available/$APP_NAME
 
-# Hapus konfigurasi Nginx default dan aktifkan konfigurasi aplikasi kita
+# Hapus konfigurasi Nginx default dan aktifkan konfigurasi kita
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
 
@@ -252,5 +256,5 @@ echo "Nginx dikonfigurasi untuk melayani aplikasi Anda di port 80."
 echo "Arahkan record A domain Anda ke alamat IP server ini."
 echo ""
 echo_warn "Untuk HTTPS (disarankan), jalankan 'sudo certbot --nginx' setelah mengatur domain Anda."
-echo_warn "JANGAN LUPA: Edit file .env Anda dan tambahkan GEMINI_API_KEY."
+echo_warn "JANGAN LUPA: Edit file .env.local Anda dan tambahkan GEMINI_API_KEY."
 echo "--------------------------------------------------"
