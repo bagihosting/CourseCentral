@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BookOpenCheck, Mail, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
