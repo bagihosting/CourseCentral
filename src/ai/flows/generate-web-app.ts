@@ -72,7 +72,7 @@ const generateWebAppFlow = ai.defineFlow(
             1.  **Generate \`page.tsx\` Content**:
                 - The file MUST start with \`'use client'\`.
                 - It must implement the core logic from the user's \`appDescription\`. For example, for a "todo list", create an input field, an "Add" button, and a list to display todos.
-                - It MUST use the \`useLocalStorage\` hook to persist the application's state. For example: \`const [todos, setTodos] = useLocalStorage('todos', []);\`.
+                - It MUST use the \`useLocalStorage\` hook to persist the application's state. The hook should be imported from \`@/hooks/use-local-storage\`. For example: \`import { useLocalStorage } from '@/hooks/use-local-storage';\` followed by \`const [todos, setTodos] = useLocalStorage('todos', []);\`.
                 - The UI MUST be built using ShadCN UI components.
                 - Return the **ENTIRE, final content** for the \`src/app/page.tsx\` file.
 
@@ -301,3 +301,5 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
     };
   }
 );
+
+  

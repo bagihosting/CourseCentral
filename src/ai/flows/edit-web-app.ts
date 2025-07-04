@@ -64,7 +64,7 @@ const editWebAppFlow = ai.defineFlow(
 
             1.  **Analyze Request**: Understand the user's goal. This could involve UI changes, adding new state, handling user input, or integrating a new feature.
             2.  **Apply Changes Logically**: Modify the provided files to implement the request. You can change existing files, but **you must not add or remove files**.
-            3.  **Maintain Stack Integrity**: Ensure the code remains within the specified tech stack: Next.js (App Router), React (with Hooks), TypeScript, ShadCN UI components, Tailwind CSS. Use \`useLocalStorage\` for any state that needs to be persisted.
+            3.  **Maintain Stack Integrity**: Ensure the code remains within the specified tech stack: Next.js (App Router), React (with Hooks), TypeScript, ShadCN UI components, Tailwind CSS. Use the \`useLocalStorage\` hook (imported from \`@/hooks/use-local-storage\`) for any state that needs to be persisted.
             4.  **Full File Content**: For each file you modify, you MUST return its **ENTIRE, final content**. Do not provide diffs or partial snippets. If a file is unchanged, you must return its original, full content.
             5.  **Generate New Preview**: Create an updated, self-contained HTML preview of the main page (\`src/app/page.tsx\`). This HTML must:
                 - Be a single file.
@@ -91,3 +91,5 @@ const editWebAppFlow = ai.defineFlow(
     return output;
   }
 );
+
+  
