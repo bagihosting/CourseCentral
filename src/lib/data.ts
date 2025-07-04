@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem } from '@/types';
@@ -473,7 +472,7 @@ export function deleteUser(userId: string): void {
     
     const testimonialToDelete = db.testimonials.find(t => t.userId === userId);
     if (testimonialToDelete) {
-      db.testimonials = db.testimonials.filter(t => t.userId !== testimonialToDelete.id);
+      db.testimonials = db.testimonials.filter(t => t.id !== testimonialToDelete.id);
       db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialToDelete.id);
     }
     
@@ -978,14 +977,16 @@ export function addOrUpdateTestimonial(testimonialData: {userId: string; quote: 
 export function deleteTestimonial(testimonialId: string): void {
     const db = getDB();
     const initialLength = db.testimonials.length;
+    
     db.testimonials = db.testimonials.filter(t => t.id !== testimonialId);
     
-    // Also remove from featured list if present
-    db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialId);
-
     if (db.testimonials.length === initialLength) {
         throw new Error("Gagal menghapus testimoni, ID tidak ditemukan.");
     }
+
+    // Also remove from featured list if present
+    db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialId);
+
     saveDB(db);
 }
 
@@ -1092,5 +1093,3 @@ export function awardCertificateToUser(userId: string, courseId: string, certifi
     saveDB(db);
     return newRequest;
 }
-
-    

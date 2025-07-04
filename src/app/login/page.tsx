@@ -184,7 +184,7 @@ function RegisterForm() {
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Saya setuju dengan{' '}
-            <Link href="#" className="underline hover:text-primary">
+            <Link href="/terms-conditions" className="underline hover:text-primary">
               Syarat & Ketentuan
             </Link>
           </label>
