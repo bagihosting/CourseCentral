@@ -44,7 +44,48 @@ const editWebAppFlow = ai.defineFlow(
     outputSchema: EditWebAppOutputSchema,
   },
   async (input) => {
-    // This feature is temporarily disabled for security reasons.
+    // This feature is a proof-of-concept and is disabled by default for security.
+    // Executing AI-generated code, especially code that can modify file systems or
+    // interact with external services, carries significant risks. To enable this,
+    // you must have a robust sandboxing environment and security reviews.
+    // For now, we throw an error to prevent accidental execution.
     throw new Error('Fitur "AI Web App Generator" dinonaktifkan sementara untuk alasan keamanan.');
+    
+    const prompt = ai.definePrompt({
+        name: 'editWebAppPrompt',
+        input: { schema: EditWebAppInputSchema },
+        output: { schema: EditWebAppOutputSchema },
+        prompt: `
+            You are an expert full-stack developer specializing in Next.js, React, ShadCN, Genkit, and Tailwind CSS.
+            Your task is to modify an existing web application boilerplate based on a user's request. You must adhere to best practices for modern web development.
+
+            **User's Edit Request:**
+            "{{{editRequest}}}"
+
+            **Current Application Files:**
+            \`\`\`json
+            {{{json files}}}
+            \`\`\`
+
+            **CRITICAL INSTRUCTIONS:**
+            1.  **Analyze the Request**: Understand the user's goal. This could involve UI changes, adding new state, handling user input, or integrating a new feature.
+            2.  **Apply Changes Logically**: Modify the provided files to implement the request. You can change existing files, but do not add or remove files.
+            3.  **Maintain Stack Integrity**: Ensure the code remains within the specified tech stack: Next.js (App Router), React (with Hooks), TypeScript, ShadCN UI components, Tailwind CSS, and Genkit for any AI-related tasks.
+            4.  **Full File Content**: For each file you modify, you MUST return its ENTIRE, final content. Do not provide diffs or partial snippets. If a file is unchanged, return its original content.
+            5.  **Generate New Preview**: Create an updated, self-contained HTML preview of the main page ('src/app/page.tsx'). This HTML must:
+                -   Be a single file.
+                -   Include Tailwind CSS via the CDN script: \`<script src="https://cdn.tailwindcss.com"></script>\`.
+                -   Inject the CSS from 'src/app/globals.css' into a \`<style>\` tag in the \`<head>\`.
+                -   Render the JSX from 'src/app/page.tsx' inside the \`<body>\`.
+            6.  **Update Explanation**: Rewrite the 'explanation' to describe the changes you made, why you made them, and how the new code works. This should be in Markdown format.
+        `,
+    });
+    
+    const { output } = await prompt(input);
+    
+    if (!output) {
+      throw new Error('Gagal mengedit aplikasi. Model AI tidak mengembalikan output yang valid.');
+    }
+    return output;
   }
 );
