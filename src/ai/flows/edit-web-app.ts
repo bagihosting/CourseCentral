@@ -72,6 +72,14 @@ const editWebAppFlow = ai.defineFlow(
                 -   Render the JSX from 'src/app/page.tsx' inside the \`<body>\`.
             6.  **Update Explanation**: Rewrite the 'explanation' to describe the changes you made, why you made them, and how the new code works. This should be in Markdown format.
         `,
+        config: {
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_NONE',
+              },
+            ],
+        },
     });
     
     const { output } = await prompt(input);
