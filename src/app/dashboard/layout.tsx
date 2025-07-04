@@ -26,6 +26,7 @@ import {
   LayoutTemplate,
   Award,
   FileClock,
+  ToggleRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -56,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
     { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
     { href: '/dashboard/admin/certificate-management', icon: Award, label: 'Generator Sertifikat' },
-    { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
+    { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },

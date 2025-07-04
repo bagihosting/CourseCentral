@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -181,6 +182,19 @@ function getInitialData(): Database {
                 answer: 'Anda dapat meng-upgrade akun Anda ke Pro melalui halaman "Upgrade ke Pro" di dasbor Anda. Prosesnya melibatkan transfer manual dan konfirmasi melalui WhatsApp dengan admin kami.'
               }
             ],
+            aiApps: [
+              { id: 'blogger', title: 'AI Template Blogger', description: 'Buat template Blogger yang responsif dan dapat disesuaikan secara instan.', icon: 'Bot', enabled: true },
+              { id: 'skripsi', title: 'AI Asisten Skripsi', description: 'Hasilkan draf untuk bab skripsi Anda dengan bantuan AI.', icon: 'FileText', enabled: true },
+              { id: 'wordpress', title: 'Plugin Wordpress', description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.', icon: 'Plug', enabled: true },
+              { id: 'google-ads', title: 'AI Google Ads Copy', description: 'Buat teks iklan (headlines & descriptions) untuk kampanye Google Ads.', icon: 'Megaphone', enabled: true },
+              { id: 'digital-invitation', title: 'AI Undangan Digital', description: 'Buat teks dan konsep desain untuk undangan digital Anda.', icon: 'Mail', enabled: true },
+              { id: 'umkm', title: 'AI Asisten UMKM', description: 'Buat nama, slogan, dan deskripsi singkat untuk bisnis Anda.', icon: 'Briefcase', enabled: true },
+              { id: 'spss', title: 'AI Asisten SPSS', description: 'Buat sintaks SPSS dan dapatkan penjelasan untuk analisis statistik Anda.', icon: 'BarChart', enabled: true },
+              { id: 'image', title: 'AI Image Generator', description: 'Buat gambar dari teks menggunakan Gemini Flash.', icon: 'ImageIcon', enabled: true },
+              { id: 'prototype', title: 'AI App Prototyper', description: 'Buat rencana MVP terstruktur dari ide aplikasi mentah Anda.', icon: 'LayoutTemplate', enabled: true },
+              { id: 'soap-formula', title: 'AI Formula Sabun', description: 'Hasilkan formula dasar untuk produk sabun cair dan sampo.', icon: 'FlaskConical', enabled: true },
+              { id: 'web-app', title: 'AI Web App Generator', description: 'Buat boilerplate aplikasi web lengkap dengan Next.js & Genkit.', icon: 'Server', enabled: true },
+            ],
         },
         testimonials: [
           {
@@ -280,6 +294,9 @@ function getDB(): Database {
         }
         if (!data.landingPageSettings.faqs) {
             data.landingPageSettings.faqs = getInitialData().landingPageSettings.faqs;
+        }
+        if (!data.landingPageSettings.aiApps) {
+            data.landingPageSettings.aiApps = getInitialData().landingPageSettings.aiApps;
         }
         if (!data.registeredDeviceIds) {
             data.registeredDeviceIds = [];

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, Image as ImageIcon, LayoutTemplate, FlaskConical, Server } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, ImageIcon as ImageIconLucide, LayoutTemplate, FlaskConical, Server } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
 import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
@@ -18,85 +18,55 @@ import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
 import Link from 'next/link';
+import { getLandingPageSettings } from '@/lib/data';
+import type { AiApp } from '@/types';
 
+type AppComponent = React.FC;
+type AppId = AiApp['id'];
+
+const appComponentMap: Record<AppId, AppComponent> = {
+  'blogger': AiBloggerTemplateGenerator,
+  'skripsi': AiSkripsiGenerator,
+  'wordpress': AiWordpressPluginGenerator,
+  'google-ads': AiGoogleAdsGenerator,
+  'digital-invitation': AiDigitalInvitationGenerator,
+  'umkm': AiUmkmProfileGenerator,
+  'spss': AiSpssAssistant,
+  'image': AiImageGenerator,
+  'prototype': AiAppPrototypeGenerator,
+  'soap-formula': AiSoapFormulaGenerator,
+  'web-app': AiWebAppGenerator,
+};
+
+const appIconMap: Record<string, React.ReactNode> = {
+  Bot: <Bot className="h-10 w-10 text-primary" />,
+  FileText: <FileText className="h-10 w-10 text-primary" />,
+  Plug: <Plug className="h-10 w-10 text-primary" />,
+  Megaphone: <Megaphone className="h-10 w-10 text-primary" />,
+  Mail: <Mail className="h-10 w-10 text-primary" />,
+  Briefcase: <Briefcase className="h-10 w-10 text-primary" />,
+  BarChart: <BarChart className="h-10 w-10 text-primary" />,
+  ImageIcon: <ImageIconLucide className="h-10 w-10 text-primary" />,
+  LayoutTemplate: <LayoutTemplate className="h-10 w-10 text-primary" />,
+  FlaskConical: <FlaskConical className="h-10 w-10 text-primary" />,
+  Server: <Server className="h-10 w-10 text-primary" />,
+};
 
 function ProFeatures() {
-  const [activeApp, setActiveApp] = useState<'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype' | 'soap-formula' | 'web-app' | null>(null);
+  const [activeApp, setActiveApp] = useState<AppId | null>(null);
+  const [availableApps, setAvailableApps] = useState<AiApp[]>([]);
 
-  const handleAppSelect = (app: 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype' | 'soap-formula' | 'web-app') => {
-    setActiveApp(app);
+  useEffect(() => {
+    const settings = getLandingPageSettings();
+    setAvailableApps(settings.aiApps?.filter(app => app.enabled) || []);
+  }, []);
+
+  const handleAppSelect = (appId: AppId) => {
+    setActiveApp(appId);
   };
 
-  const apps = [
-    {
-      id: 'blogger',
-      title: 'AI Template Blogger',
-      description: 'Buat template Blogger yang responsif dan dapat disesuaikan secara instan.',
-      icon: <Bot className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'skripsi',
-      title: 'AI Asisten Skripsi',
-      description: 'Hasilkan draf untuk bab skripsi Anda dengan bantuan AI.',
-      icon: <FileText className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'wordpress',
-      title: 'Plugin Wordpress',
-      description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.',
-      icon: <Plug className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'google-ads',
-      title: 'AI Google Ads Copy',
-      description: 'Buat teks iklan (headlines & descriptions) untuk kampanye Google Ads.',
-      icon: <Megaphone className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'digital-invitation',
-      title: 'AI Undangan Digital',
-      description: 'Buat teks dan konsep desain untuk undangan digital Anda.',
-      icon: <Mail className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'umkm',
-      title: 'AI Asisten UMKM',
-      description: 'Buat nama, slogan, dan deskripsi singkat untuk bisnis Anda.',
-      icon: <Briefcase className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'spss',
-      title: 'AI Asisten SPSS',
-      description: 'Buat sintaks SPSS dan dapatkan penjelasan untuk analisis statistik Anda.',
-      icon: <BarChart className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'image',
-      title: 'AI Image Generator',
-      description: 'Buat gambar dari teks menggunakan Gemini Flash.',
-      icon: <ImageIcon className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'prototype',
-      title: 'AI App Prototyper',
-      description: 'Buat rencana MVP terstruktur dari ide aplikasi mentah Anda.',
-      icon: <LayoutTemplate className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'soap-formula',
-      title: 'AI Formula Sabun',
-      description: 'Hasilkan formula dasar untuk produk sabun cair dan sampo.',
-      icon: <FlaskConical className="h-10 w-10 text-primary" />,
-    },
-    {
-      id: 'web-app',
-      title: 'AI Web App Generator',
-      description: 'Buat boilerplate aplikasi web lengkap dengan Next.js & Genkit.',
-      icon: <Server className="h-10 w-10 text-primary" />,
-    }
-  ];
-
-  const selectedApp = apps.find(a => a.id === activeApp);
+  const selectedApp = availableApps.find(a => a.id === activeApp);
+  const ActiveComponent = activeApp ? appComponentMap[activeApp] : null;
 
   return (
     <div className="space-y-8">
@@ -109,15 +79,15 @@ function ProFeatures() {
 
       {activeApp === null ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-          {apps.map((app) => (
+          {availableApps.map((app) => (
             <Card
               key={app.id}
-              onClick={() => handleAppSelect(app.id as 'blogger' | 'skripsi' | 'wordpress' | 'google-ads' | 'digital-invitation' | 'umkm' | 'spss' | 'image' | 'prototype' | 'soap-formula' | 'web-app')}
+              onClick={() => handleAppSelect(app.id as AppId)}
               className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
             >
               <CardContent className="flex flex-col items-center text-center gap-4 p-6">
                 <div className="rounded-full bg-primary/10 p-4 group-hover:bg-primary/20 transition-colors">
-                    {app.icon}
+                    {appIconMap[app.icon] || <Sparkles className="h-10 w-10 text-primary" />}
                 </div>
                 <div className="space-y-1">
                   <CardTitle>{app.title}</CardTitle>
@@ -134,17 +104,7 @@ function ProFeatures() {
             Kembali ke Pilihan Aplikasi
           </Button>
 
-          {activeApp === 'blogger' && <AiBloggerTemplateGenerator />}
-          {activeApp === 'skripsi' && <AiSkripsiGenerator />}
-          {activeApp === 'wordpress' && <AiWordpressPluginGenerator />}
-          {activeApp === 'google-ads' && <AiGoogleAdsGenerator />}
-          {activeApp === 'digital-invitation' && <AiDigitalInvitationGenerator />}
-          {activeApp === 'umkm' && <AiUmkmProfileGenerator />}
-          {activeApp === 'spss' && <AiSpssAssistant />}
-          {activeApp === 'image' && <AiImageGenerator />}
-          {activeApp === 'prototype' && <AiAppPrototypeGenerator />}
-          {activeApp === 'soap-formula' && <AiSoapFormulaGenerator />}
-          {activeApp === 'web-app' && <AiWebAppGenerator />}
+          {ActiveComponent && <ActiveComponent />}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -104,6 +105,14 @@ export type FAQItem = {
   answer: string;
 };
 
+export type AiApp = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  enabled: boolean;
+};
+
 export type LandingPageSettings = {
   heroHeadline: string;
   heroSubheadline: string;
@@ -120,4 +129,5 @@ export type LandingPageSettings = {
   contactPhone: string;
   contactAddress: string;
   faqs: FAQItem[];
+  aiApps: AiApp[];
 };
