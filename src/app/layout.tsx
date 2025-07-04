@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   useEffect(() => {
-    // This sets a default title and meta tags.
+    // SEO and Schema Markup Logic
     const seoSettings = getSeoSettings();
     const landingSettings = getLandingPageSettings();
     const testimonials = getAllTestimonials();
@@ -39,8 +39,7 @@ export default function RootLayout({
       }
       metaKeywords.setAttribute('content', seoSettings.metaKeywords || '');
     }
-
-    // --- Schema Markup Logic ---
+    
     const organizationSchema: any = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
@@ -67,13 +66,28 @@ export default function RootLayout({
         document.head.appendChild(schemaScript);
     }
     schemaScript.textContent = JSON.stringify(organizationSchema);
-    // --- End Schema Markup Logic ---
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('PWA Service Worker registered: ', registration);
+        }).catch(registrationError => {
+          console.log('PWA Service Worker registration failed: ', registrationError);
+        });
+      });
+    }
 
   }, []);
 
   return (
     <html lang="id" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#6a2cf5" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+      </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <AuthProvider>
           {children}
