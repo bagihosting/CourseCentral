@@ -11,9 +11,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/lib/data';
 import type { LandingPageSettings, Testimonial } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Star } from 'lucide-react';
+import { Loader2, Trash2, Star, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import Image from 'next/image';
+import { generateHeroImageAction } from '@/actions/ai';
+import imageCompression from 'browser-image-compression';
+
 
 export default function LandingPageSettingsPage() {
     const [settings, setSettings] = useState<LandingPageSettings | null>(null);
@@ -21,6 +25,7 @@ export default function LandingPageSettingsPage() {
     const [featuredIds, setFeaturedIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isGeneratingHero, setIsGeneratingHero] = useState(false);
     const { toast } = useToast();
 
     const refreshData = useCallback(() => {
@@ -56,6 +61,63 @@ export default function LandingPageSettingsPage() {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
             toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
+        }
+    };
+
+    const handleGenerateHeroImage = async () => {
+        if (!settings?.heroHeadline) {
+            toast({ title: 'Gagal', description: 'Judul utama (headline) harus diisi untuk membuat gambar.', variant: 'destructive'});
+            return;
+        }
+        setIsGeneratingHero(true);
+        const result = await generateHeroImageAction({ headline: settings.heroHeadline });
+        
+        if ('error' in result) {
+            toast({ title: 'Gagal Membuat Gambar', description: result.error, variant: 'destructive' });
+            setIsGeneratingHero(false);
+            return;
+        }
+
+        try {
+            const dataURItoFile = (dataURI: string, filename: string): File => {
+                const arr = dataURI.split(',');
+                if (arr.length < 2) throw new Error('Invalid data URI');
+                const mimeMatch = arr[0].match(/:(.*?);/);
+                if (!mimeMatch || mimeMatch.length < 2) throw new Error('Invalid MIME type');
+                const mime = mimeMatch[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new File([u8arr], filename, { type: mime });
+            };
+
+            const imageFile = dataURItoFile(result.imageUrl, 'hero.png');
+            
+            const options = {
+                maxSizeMB: 0.3,
+                maxWidthOrHeight: 1280,
+                useWebWorker: true,
+                fileType: 'image/jpeg',
+            };
+            const compressedFile = await imageCompression(imageFile, options);
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const compressedDataUrl = reader.result as string;
+                setSettings(prev => prev ? {...prev, heroImageUrl: compressedDataUrl} : null);
+                setIsGeneratingHero(false);
+                toast({ title: 'Sukses', description: 'Gambar hero berhasil dibuat dan dikompres.' });
+            };
+            reader.readAsDataURL(compressedFile);
+
+        } catch (compressionError) {
+            console.error("Compression Error:", compressionError);
+            setSettings(prev => prev ? {...prev, heroImageUrl: result.imageUrl} : null);
+            setIsGeneratingHero(false);
+            toast({ title: 'Sukses', description: 'Gambar hero berhasil dibuat, namun gagal dikompres.', variant: 'default' });
         }
     };
 
@@ -182,6 +244,52 @@ export default function LandingPageSettingsPage() {
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Gambar Hero</CardTitle>
+                    <CardDescription>Atur gambar utama yang tampil di bagian hero halaman depan.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Pratinjau Gambar</Label>
+                        <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted w-full max-w-sm">
+                            <Image src={settings.heroImageUrl} alt="Pratinjau Hero" fill className="object-cover" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="heroImageUrl">URL Gambar Hero</Label>
+                        <Input 
+                            id="heroImageUrl" 
+                            value={settings.heroImageUrl || ''}
+                            onChange={(e) => setSettings({...settings, heroImageUrl: e.target.value})}
+                            placeholder="https://example.com/hero.png"
+                            disabled={isGeneratingHero}
+                        />
+                    </div>
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-card px-2 text-muted-foreground">Atau</span>
+                        </div>
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={handleGenerateHeroImage}
+                        disabled={isGeneratingHero || !settings.heroHeadline}
+                    >
+                        {isGeneratingHero ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Wand2 className="mr-2 h-4 w-4" />
+                        )}
+                        Buat Gambar Hero dengan AI
+                    </Button>
+                </CardContent>
+            </Card>
+
              <Card>
                 <CardHeader>
                     <CardTitle>Bagian Fitur</CardTitle>
@@ -267,7 +375,7 @@ export default function LandingPageSettingsPage() {
             </Card>
 
             <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button onClick={handleSave} disabled={isSaving || isGeneratingHero}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Simpan Semua Perubahan
                 </Button>

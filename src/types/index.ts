@@ -100,6 +100,7 @@ export type Testimonial = {
 export type LandingPageSettings = {
   heroHeadline: string;
   heroSubheadline: string;
+  heroImageUrl: string;
   features: {
     icon: string;
     title: string;

@@ -22,6 +22,7 @@ import { generateTitleSuffix as generateTitleSuffixFlow, type GenerateTitleSuffi
 import { generateMetaDescription as generateMetaDescriptionFlow, type GenerateMetaDescriptionInput, type GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 import { generateMetaKeywords as generateMetaKeywordsFlow, type GenerateMetaKeywordsInput, type GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 import { generateCertificate as generateCertificateFlow, type GenerateCertificateInput, type GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
+import { generateHeroImage as generateHeroImageFlow, type GenerateHeroImageInput, type GenerateHeroImageOutput } from '@/ai/flows/generate-hero-image';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -358,5 +359,21 @@ export async function generateCertificateAction(
     console.error('Error generating certificate:', error);
     const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
     return { error: `Gagal membuat sertifikat: ${errorMessage}` };
+  }
+}
+
+export async function generateHeroImageAction(
+  input: GenerateHeroImageInput
+): Promise<GenerateHeroImageOutput | { error: string }> {
+  if (!input.headline) {
+    return { error: 'Judul utama tidak boleh kosong untuk membuat gambar.' };
+  }
+
+  try {
+    const result = await generateHeroImageFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating hero image:', error);
+    return { error: 'Gagal membuat gambar hero. Silakan coba lagi.' };
   }
 }

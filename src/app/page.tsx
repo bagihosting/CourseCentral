@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -148,7 +149,7 @@ function LandingPage() {
               </div>
             </div>
             <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl mx-auto w-full max-w-lg">
-                <Image src="https://placehold.co/600x400.png" alt="Siswa sedang belajar kursus online bersertifikat" fill className="object-cover" data-ai-hint="online learning students" priority />
+                <Image src={settings.heroImageUrl} alt="Siswa sedang belajar kursus online bersertifikat" fill className="object-cover" data-ai-hint="online learning students" priority />
             </div>
           </div>
         </section>

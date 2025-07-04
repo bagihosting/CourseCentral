@@ -141,6 +141,7 @@ function getInitialData(): Database {
         landingPageSettings: {
             heroHeadline: '<h1>Kursus Online Bersertifikat untuk <span class="text-primary">Meningkatkan Karir Anda</span></h1>',
             heroSubheadline: 'Temukan kursus online terbaik untuk meningkatkan skill Anda. Belajar dari nol menjadi ahli dengan materi terstruktur dari instruktur profesional dan dapatkan sertifikasi online terpercaya.',
+            heroImageUrl: 'https://placehold.co/600x400.png',
             features: [
               {
                 icon: 'ShieldCheck',
@@ -245,6 +246,9 @@ function getDB(): Database {
         }
         if (!data.landingPageSettings) {
             data.landingPageSettings = getInitialData().landingPageSettings;
+        }
+        if (!data.landingPageSettings.heroImageUrl) {
+            data.landingPageSettings.heroImageUrl = getInitialData().landingPageSettings.heroImageUrl;
         }
         if (!data.registeredDeviceIds) {
             data.registeredDeviceIds = [];
