@@ -27,7 +27,6 @@ import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalah
 import { generatePromoThumbnail as generatePromoThumbnailFlow, type GeneratePromoThumbnailOutput } from '@/ai/flows/generate-promo-thumbnail';
 import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
 import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
-import { generateInstantApp as generateInstantAppFlow, type GenerateInstantAppInput, type GenerateInstantAppOutput } from '@/ai/flows/generate-instant-app';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -432,20 +431,5 @@ export async function generateAppTopologyAction(
   } catch (error) {
     console.error('Error generating app topology:', error);
     return { error: 'Gagal membuat topologi aplikasi. Silakan coba lagi.' };
-  }
-}
-
-export async function generateInstantAppAction(
-  input: GenerateInstantAppInput
-): Promise<GenerateInstantAppOutput | { error: string }> {
-  if (!input.appDescription) {
-    return { error: 'Deskripsi aplikasi tidak boleh kosong.' };
-  }
-  try {
-    const result = await generateInstantAppFlow(input);
-    return result;
-  } catch (error) {
-    console.error('Error generating instant app:', error);
-    return { error: 'Gagal membuat aplikasi instan. Silakan coba lagi.' };
   }
 }
