@@ -6,30 +6,25 @@
 # Disesuaikan untuk: CourseCentral
 #
 # Skrip ini akan:
-# 1. Mengkloning repositori dari GitHub (termasuk repositori pribadi via Deploy Key).
+# 1. Mengasumsikan Anda menjalankannya dari dalam direktori proyek Anda.
 # 2. Memperbarui sistem dan memasang paket yang diperlukan (Nginx, Git).
 # 3. Memasang Node.js (versi LTS) dan PM2.
 # 4. Mengkonfigurasi Nginx sebagai reverse proxy untuk aplikasi Next.js.
 # 5. Menyiapkan firewall dengan UFW.
-# 6. Membuat file .env.local untuk variabel lingkungan.
+# 6. Membuat file .env.local untuk variabel lingkungan jika belum ada.
 # 7. Membangun dan memulai aplikasi menggunakan PM2 agar berjalan di latar belakang.
 #
 # Penggunaan:
-# 1. Letakkan skrip ini di direktori home pengguna Anda di VPS (misal: /home/ubuntu).
-# 2. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
-# 3. Jalankan dengan sudo: sudo ./install.sh
+# 1. Unggah folder proyek Anda ke VPS (misalnya ke /home/ubuntu/nama-proyek).
+# 2. Pindahkan skrip ini ke dalam direktori proyek tersebut.
+# 3. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
+# 4. Jalankan dengan sudo: sudo ./install.sh
 # =================================================================
 
 # --- Berhenti jika ada kesalahan ---
 set -e
 
 # --- Konfigurasi ---
-# GANTI DENGAN URL KLONING SSH REPOSITORI PRIBADI ANDA
-# Contoh: git@github.com:username/nama-repo.git
-GITHUB_SSH_URL="git@github.com:username/your-private-repo.git"
-# Ekstrak nama direktori dari URL untuk digunakan nanti
-REPO_NAME=$(basename -s .git "$GITHUB_SSH_URL")
-
 # Port tempat aplikasi Next.js Anda akan berjalan. `next start` default-nya 3000.
 APP_PORT=3000
 # Nama untuk proses PM2 Anda.
@@ -37,8 +32,8 @@ APP_NAME="CourseCentral"
 # Pengguna yang menjalankan skrip (bukan root)
 RUN_USER=$(logname)
 RUN_HOME=$(eval echo ~$RUN_USER)
-# Direktori proyek akan diatur setelah kloning
-PROJECT_DIR="$RUN_HOME/$REPO_NAME"
+# Direktori proyek adalah direktori tempat skrip ini dijalankan
+PROJECT_DIR=$(pwd)
 
 
 # --- Fungsi Gaya ---
@@ -65,53 +60,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 echo_info "Memulai proses instalasi untuk $APP_NAME..."
-
-# --- 0. Penyiapan dan Kloning dari GitHub ---
-echo_info "Memeriksa konfigurasi untuk kloning dari GitHub..."
-if [[ "$GITHUB_SSH_URL" == "git@github.com:username/your-private-repo.git" ]]; then
-    echo_error "KESALAHAN: Anda harus mengedit skrip ini dan mengatur variabel GITHUB_SSH_URL."
-    echo_warn "Silakan isi dengan URL Kloning SSH dari repositori GitHub Anda."
-    exit 1
-fi
-
-echo_info "Tutorial: Cara Mengkloning dari Repositori GitHub Pribadi"
-echo "==================================================================="
-echo "Untuk mengkloning dari repositori pribadi, Anda memerlukan 'Deploy Key' SSH."
-echo "Ikuti langkah-langkah ini jika Anda belum melakukannya:"
-echo "  1. DI VPS ANDA, jalankan perintah ini untuk membuat kunci SSH baru:"
-echo "     ssh-keygen -t ed25519 -C \"email@anda.com\""
-echo "     (Tekan Enter untuk semua pertanyaan yang muncul, jangan atur kata sandi)"
-echo ""
-echo "  2. Tampilkan kunci publik Anda dengan menjalankan:"
-echo "     cat ~/.ssh/id_ed25519.pub"
-echo ""
-echo "  3. Salin seluruh output dari perintah di atas (mulai dari 'ssh-ed25519' sampai akhir)."
-echo ""
-echo "  4. DI GITHUB, buka repositori pribadi Anda, lalu navigasi ke:"
-echo "     'Settings' > 'Deploy Keys' (di sidebar kiri) > 'Add deploy key'."
-echo ""
-echo "  5. Beri judul (misal: 'VPS Produksi'), tempel kunci yang sudah Anda salin,"
-echo "     JANGAN centang 'Allow write access', lalu klik 'Add key'."
-echo "==================================================================="
-echo ""
-read -p "Tekan [Enter] untuk melanjutkan setelah Anda menambahkan Deploy Key ke GitHub..."
-
-# Pindah ke direktori home pengguna untuk kloning
-cd "$RUN_HOME"
-
-# Hapus direktori lama jika ada
-if [ -d "$REPO_NAME" ]; then
-    echo_warn "Menghapus direktori repositori lama yang mungkin ada: $REPO_NAME"
-    rm -rf "$REPO_NAME"
-fi
-
-echo_info "Mengkloning repositori dari $GITHUB_SSH_URL..."
-# Jalankan git clone sebagai pengguna non-root untuk memastikan izin file yang benar
-sudo -u "$RUN_USER" git clone "$GITHUB_SSH_URL"
-
-# Pindah ke direktori proyek yang baru dikloning
-cd "$PROJECT_DIR"
-echo_info "Berpindah ke direktori proyek: $PROJECT_DIR"
+echo_info "Direktori proyek diatur ke: $PROJECT_DIR"
 
 
 # --- 1. Pembaruan Sistem dan Pemasangan Dependensi ---
