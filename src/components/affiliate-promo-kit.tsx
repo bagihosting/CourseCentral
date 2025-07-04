@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generatePromoThumbnailAction, generateAffiliatePromoAction } from '@/actions/ai';
 import { Loader2, Sparkles, Copy, Download } from 'lucide-react';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const SocialIcon = ({ type, text, url }: { type: 'facebook' | 'twitter' | 'whatsapp' | 'telegram', text: string, url: string }) => {
     const encodedUrl = encodeURIComponent(url);
@@ -151,7 +152,7 @@ export function AffiliatePromoKit({ referralLink }: { referralLink: string }) {
           </Card>
 
           <Alert>
-              <CardTitle>Tips untuk Instagram & TikTok</CardTitle>
+              <AlertTitle>Tips untuk Instagram & TikTok</AlertTitle>
               <AlertDescription>
                 Unduh gambar di atas dan salin salah satu teks promosi. Buat postingan baru di Instagram atau TikTok, unggah gambarnya, dan tempelkan teksnya di caption Anda. Pastikan link referral Anda ada di bio!
               </AlertDescription>
