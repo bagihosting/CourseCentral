@@ -46,42 +46,49 @@ const generateWebAppFlow = ai.defineFlow(
       input: { schema: GenerateWebAppInputSchema },
       output: { schema: GenerateWebAppOutputSchema },
       prompt: `
-        You are an expert full-stack developer tasked with generating a complete, production-ready web application boilerplate.
-        The application must be built using the following modern tech stack:
-        -   **Framework**: Next.js (App Router)
-        -   **Language**: TypeScript
-        -   **UI**: React, ShadCN UI Components
-        -   **Styling**: Tailwind CSS
-        -   **AI Integration**: Genkit
-        -   **Validation**: Zod
-        -   **Data Persistence**: Client-side localStorage
+        You are an expert Next.js developer. Your task is to generate a complete boilerplate for a simple web application based on the user's request.
+        You MUST adhere strictly to the provided tech stack and file structure.
+
+        **Tech Stack:**
+        - Next.js (App Router, Client Component for \`page.tsx\`)
+        - React (with Hooks)
+        - TypeScript
+        - ShadCN UI Components
+        - Tailwind CSS
+        - Client-side \`localStorage\` for state persistence.
 
         **User's Request:**
-        -   App Name: {{{appName}}}
-        {{#if appDescription}}-   App Description: "{{{appDescription}}}"{{/if}}
-        {{#if cloneUrl}}-   Clone UI from: {{{cloneUrl}}}{{/if}}
+        - App Name: \`{{{appName}}}\`
+        - App Description: "{{{appDescription}}}"
+        {{#if cloneUrl}}- Visually clone the UI from: {{{cloneUrl}}}{{/if}}
 
-        **CRITICAL INSTRUCTIONS:**
+        **Boilerplate Files to Generate:**
 
-        1.  **Generate Core Files**: You MUST generate the following files with complete, valid code:
-            -   \`package.json\`: Include dependencies for next, react, react-dom, tailwindcss, shadcn components (e.g., @radix-ui/react-slot, class-variance-authority, clsx, tailwind-merge, lucide-react), genkit, @genkit-ai/googleai, zod.
-            -   \`tailwind.config.ts\`: A standard Tailwind config for Next.js.
-            -   \`src/app/globals.css\`: The standard ShadCN UI global stylesheet with CSS variables for a theme.
-            -   \`src/app/page.tsx\`: The main application page. This should be a client component (\`'use client'\`) to handle state and localStorage. It should implement the core logic of the user's request. Use React Hooks (useState, useEffect) for state management.
-            -   \`src/lib/utils.ts\`: The standard \`cn\` utility function for Tailwind CSS class merging.
-            -   \`src/hooks/use-local-storage.ts\`: A custom hook for abstracting localStorage logic.
-            -   (Optional) If AI is needed based on the description: \`src/ai/flows/example-flow.ts\`. This should be a Genkit flow using Zod for schemas.
+        You MUST generate the content for the following files. Do NOT add, remove, or rename any files from this list.
 
-        2.  **Code Quality**: All code must be clean, well-structured, and follow modern best practices. Use functional components and hooks. Ensure TypeScript types are used correctly.
+        1.  **\`package.json\`**:
+            -   Set the "name" to \`{{{appName}}}\`.
+            -   Include these exact dependencies: \`next\`, \`react\`, \`react-dom\`, \`tailwindcss\`, \`class-variance-authority\`, \`clsx\`, \`tailwind-merge\`, \`lucide-react\`, \`zod\`, \`genkit\`, \`@genkit-ai/googleai\`.
+            -   Use standard \`dev\`, \`build\`, \`start\` scripts.
+        2.  **\`tailwind.config.ts\`**:
+            -   A standard Tailwind config for a Next.js App Router project.
+        3.  **\`src/app/globals.css\`**:
+            -   The standard ShadCN UI global stylesheet with CSS variables for a theme. Use a professional, modern theme.
+        4.  **\`src/lib/utils.ts\`**:
+            -   The standard \`cn\` utility function for Tailwind CSS class merging.
+        5.  **\`src/hooks/use-local-storage.ts\`**:
+            -   A generic React hook \`useLocalStorage\` to manage state with \`localStorage\`. It should handle getting/setting values and parsing JSON.
+        6.  **\`src/app/page.tsx\`**:
+            -   This MUST be a client component (\`'use client'\`).
+            -   It must implement the core logic from the user's \`appDescription\`. If the description is simple, create a basic interactive UI. For example, for a "todo list", create an input field, an "Add" button, and a list to display todos.
+            -   Use the \`useLocalStorage\` hook to persist the application's state.
+            -   Use ShadCN UI components (\`Card\`, \`Button\`, \`Input\`, \`Label\`) for the UI.
 
-        3.  **UI/UX**: Design a clean, modern, and intuitive user interface using ShadCN UI components (e.g., \`Card\`, \`Button\`, \`Input\`, \`Label\`, \`Textarea\`).
+        **Output Requirements:**
 
-        4.  **Generate Preview HTML**: Create a single, self-contained HTML file that represents the main page (\`src/app/page.tsx\`). This HTML must:
-            -   Include a Tailwind CSS CDN script: \`<script src="https://cdn.tailwindcss.com"></script>\`.
-            -   Inject the full CSS from your generated \`src/app/globals.css\` into a \`<style>\` tag in the \`<head>\`.
-            -   Render the JSX from \`src/app/page.tsx\` inside the \`<body>\`.
-
-        5.  **Generate Explanation**: Write a detailed, step-by-step explanation in Markdown. Explain the purpose of each generated file, how they are connected, and provide a guide on how the user can run and extend the application.
+        -   **\`files\`**: An array of objects, each containing \`fileName\`, \`filePath\`, and the complete \`fileContent\`. Ensure you provide the full content for ALL files listed above.
+        -   **\`previewHtml\`**: A self-contained HTML preview of \`src/app/page.tsx\`. It MUST include Tailwind via CDN (\`<script src="https://cdn.tailwindcss.com"></script>\`) and the CSS from \`globals.css\` in a \`<style>\` tag.
+        -   **\`explanation\`**: A Markdown explanation of the generated code, focusing on how \`page.tsx\` uses \`useLocalStorage\` to manage state.
       `,
       config: {
         safetySettings: [

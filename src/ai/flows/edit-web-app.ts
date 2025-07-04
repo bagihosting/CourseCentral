@@ -49,8 +49,8 @@ const editWebAppFlow = ai.defineFlow(
         input: { schema: EditWebAppInputSchema },
         output: { schema: EditWebAppOutputSchema },
         prompt: `
-            You are an expert full-stack developer specializing in Next.js, React, ShadCN, Genkit, and Tailwind CSS.
-            Your task is to modify an existing web application boilerplate based on a user's request. You must adhere to best practices for modern web development.
+            You are an expert full-stack developer specializing in Next.js, React, ShadCN, and Tailwind CSS.
+            Your task is to modify an existing web application boilerplate based on a user's request.
 
             **User's Edit Request:**
             "{{{editRequest}}}"
@@ -61,16 +61,17 @@ const editWebAppFlow = ai.defineFlow(
             \`\`\`
 
             **CRITICAL INSTRUCTIONS:**
-            1.  **Analyze the Request**: Understand the user's goal. This could involve UI changes, adding new state, handling user input, or integrating a new feature.
-            2.  **Apply Changes Logically**: Modify the provided files to implement the request. You can change existing files, but do not add or remove files.
-            3.  **Maintain Stack Integrity**: Ensure the code remains within the specified tech stack: Next.js (App Router), React (with Hooks), TypeScript, ShadCN UI components, Tailwind CSS, and Genkit for any AI-related tasks.
-            4.  **Full File Content**: For each file you modify, you MUST return its ENTIRE, final content. Do not provide diffs or partial snippets. If a file is unchanged, return its original content.
-            5.  **Generate New Preview**: Create an updated, self-contained HTML preview of the main page ('src/app/page.tsx'). This HTML must:
-                -   Be a single file.
-                -   Include Tailwind CSS via the CDN script: \`<script src="https://cdn.tailwindcss.com"></script>\`.
-                -   Inject the CSS from 'src/app/globals.css' into a \`<style>\` tag in the \`<head>\`.
-                -   Render the JSX from 'src/app/page.tsx' inside the \`<body>\`.
-            6.  **Update Explanation**: Rewrite the 'explanation' to describe the changes you made, why you made them, and how the new code works. This should be in Markdown format.
+
+            1.  **Analyze Request**: Understand the user's goal. This could involve UI changes, adding new state, handling user input, or integrating a new feature.
+            2.  **Apply Changes Logically**: Modify the provided files to implement the request. You can change existing files, but **you must not add or remove files**.
+            3.  **Maintain Stack Integrity**: Ensure the code remains within the specified tech stack: Next.js (App Router), React (with Hooks), TypeScript, ShadCN UI components, Tailwind CSS. Use \`useLocalStorage\` for any state that needs to be persisted.
+            4.  **Full File Content**: For each file you modify, you MUST return its **ENTIRE, final content**. Do not provide diffs or partial snippets. If a file is unchanged, you must return its original, full content.
+            5.  **Generate New Preview**: Create an updated, self-contained HTML preview of the main page (\`src/app/page.tsx\`). This HTML must:
+                - Be a single file.
+                - Include Tailwind CSS via the CDN script: \`<script src="https://cdn.tailwindcss.com"></script>\`.
+                - Inject the CSS from \`src/app/globals.css\` into a \`<style>\` tag in the \`<head>\`.
+                - Render the JSX from \`src/app/page.tsx\` inside the \`<body>\`.
+            6.  **Update Explanation**: Rewrite the \`explanation\` to describe the changes you made, why you made them, and how the new code works. This should be in Markdown format.
         `,
         config: {
             safetySettings: [
