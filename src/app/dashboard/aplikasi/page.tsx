@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, ImageIcon as ImageIconLucide, LayoutTemplate, FlaskConical, Server } from 'lucide-react';
+import { Sparkles, Lock, FileText, Bot, ArrowLeft, Plug, Megaphone, Mail, Briefcase, BarChart, ImageIcon as ImageIconLucide, LayoutTemplate, FlaskConical, Server, BookCopy } from 'lucide-react';
 import { AiBloggerTemplateGenerator } from '@/components/ai-blogger-template-generator';
 import { AiSkripsiGenerator } from '@/components/ai-skripsi-generator';
 import { AiWordpressPluginGenerator } from '@/components/ai-wordpress-plugin-generator';
@@ -17,6 +17,7 @@ import { AiImageGenerator } from '@/components/ai-image-generator';
 import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator';
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
+import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
 import Link from 'next/link';
 import { getLandingPageSettings } from '@/lib/data';
 import type { AiApp } from '@/types';
@@ -36,6 +37,7 @@ const appComponentMap: Record<AppId, AppComponent> = {
   'prototype': AiAppPrototypeGenerator,
   'soap-formula': AiSoapFormulaGenerator,
   'web-app': AiWebAppGenerator,
+  'makalah': AiMakalahGenerator,
 };
 
 const appIconMap: Record<string, React.ReactNode> = {
@@ -50,6 +52,7 @@ const appIconMap: Record<string, React.ReactNode> = {
   LayoutTemplate: <LayoutTemplate className="h-10 w-10 text-primary" />,
   FlaskConical: <FlaskConical className="h-10 w-10 text-primary" />,
   Server: <Server className="h-10 w-10 text-primary" />,
+  BookCopy: <BookCopy className="h-10 w-10 text-primary" />,
 };
 
 function ProFeatures() {

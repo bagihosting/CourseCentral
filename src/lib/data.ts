@@ -3,6 +3,7 @@
 
 
 
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp } from '@/types';
@@ -186,6 +187,7 @@ function getInitialData(): Database {
               }
             ],
             aiApps: [
+              { id: 'makalah', title: 'AI Generator Makalah', description: 'Buat makalah perkuliahan lengkap dengan judul, isi, dan daftar pustaka.', icon: 'BookCopy', enabled: true },
               { id: 'blogger', title: 'AI Template Blogger', description: 'Buat template Blogger yang responsif dan dapat disesuaikan secara instan.', icon: 'Bot', enabled: true },
               { id: 'skripsi', title: 'AI Asisten Skripsi', description: 'Hasilkan draf untuk bab skripsi Anda dengan bantuan AI.', icon: 'FileText', enabled: true },
               { id: 'wordpress', title: 'Plugin Wordpress', description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.', icon: 'Plug', enabled: true },

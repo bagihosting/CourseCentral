@@ -23,6 +23,9 @@ import { generateMetaDescription as generateMetaDescriptionFlow, type GenerateMe
 import { generateMetaKeywords as generateMetaKeywordsFlow, type GenerateMetaKeywordsInput, type GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 import { generateCertificate as generateCertificateFlow, type GenerateCertificateInput, type GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
 import { generateHeroImage as generateHeroImageFlow, type GenerateHeroImageInput, type GenerateHeroImageOutput } from '@/ai/flows/generate-hero-image';
+import { suggestMakalahTitles as suggestMakalahTitlesFlow, type SuggestMakalahTitlesInput, type SuggestMakalahTitlesOutput } from '@/ai/flows/suggest-makalah-titles';
+import { generateMakalah as generateMakalahFlow, type GenerateMakalahInput, type GenerateMakalahOutput } from '@/ai/flows/generate-makalah';
+import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalahOutput } from '@/ai/flows/edit-makalah';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -375,5 +378,50 @@ export async function generateHeroImageAction(
   } catch (error) {
     console.error('Error generating hero image:', error);
     return { error: 'Gagal membuat gambar hero. Silakan coba lagi.' };
+  }
+}
+
+export async function suggestMakalahTitlesAction(
+  input: SuggestMakalahTitlesInput
+): Promise<SuggestMakalahTitlesOutput | { error: string }> {
+  if (!input.major) {
+    return { error: 'Jurusan tidak boleh kosong.' };
+  }
+  try {
+    const result = await suggestMakalahTitlesFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error suggesting paper titles:', error);
+    return { error: 'Gagal memberikan saran judul makalah.' };
+  }
+}
+
+export async function generateMakalahAction(
+  input: GenerateMakalahInput
+): Promise<GenerateMakalahOutput | { error: string }> {
+  if (!input.title || !input.major || !input.pageCount) {
+    return { error: 'Judul, jurusan, dan jumlah halaman harus diisi.' };
+  }
+  try {
+    const result = await generateMakalahFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating paper:', error);
+    return { error: 'Gagal membuat draf makalah.' };
+  }
+}
+
+export async function editMakalahAction(
+  input: EditMakalahInput
+): Promise<EditMakalahOutput | { error: string }> {
+  if (!input.currentContent || !input.editRequest) {
+    return { error: 'Konten makalah dan permintaan edit tidak boleh kosong.' };
+  }
+  try {
+    const result = await editMakalahFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error editing paper:', error);
+    return { error: 'Gagal mengedit makalah.' };
   }
 }
