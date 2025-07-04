@@ -19,7 +19,6 @@ import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
 import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
-import { AiPromoThumbnailGenerator } from '@/components/ai-promo-thumbnail-generator';
 import Link from 'next/link';
 import { getLandingPageSettings } from '@/lib/data';
 import type { AiApp } from '@/types';
@@ -27,7 +26,7 @@ import type { AiApp } from '@/types';
 type AppComponent = React.FC;
 type AppId = AiApp['id'];
 
-const appComponentMap: Record<AppId, AppComponent> = {
+const appComponentMap: Record<AppId, AppComponent | null> = {
   'blogger': AiBloggerTemplateGenerator,
   'skripsi': AiSkripsiGenerator,
   'wordpress': AiWordpressPluginGenerator,
@@ -40,7 +39,7 @@ const appComponentMap: Record<AppId, AppComponent> = {
   'soap-formula': AiSoapFormulaGenerator,
   'web-app': AiWebAppGenerator,
   'makalah': AiMakalahGenerator,
-  'promo-thumbnail': AiPromoThumbnailGenerator,
+  'promo-thumbnail': null, // This is now handled in the affiliate page
 };
 
 const appIconMap: Record<string, React.ReactNode> = {
@@ -86,21 +85,23 @@ function ProFeatures() {
       {activeApp === null ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {availableApps.map((app) => (
-            <Card
-              key={app.id}
-              onClick={() => handleAppSelect(app.id as AppId)}
-              className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
-            >
-              <CardContent className="flex flex-col items-center text-center gap-4 p-6">
-                <div className="rounded-full bg-primary/10 p-4 group-hover:bg-primary/20 transition-colors">
-                    {appIconMap[app.icon] || <Sparkles className="h-10 w-10 text-primary" />}
-                </div>
-                <div className="space-y-1">
-                  <CardTitle>{app.title}</CardTitle>
-                  <CardDescription>{app.description}</CardDescription>
-                </div>
-              </CardContent>
-            </Card>
+             appComponentMap[app.id as AppId] && (
+              <Card
+                key={app.id}
+                onClick={() => handleAppSelect(app.id as AppId)}
+                className="cursor-pointer hover:border-primary hover:shadow-xl transition-all group"
+              >
+                <CardContent className="flex flex-col items-center text-center gap-4 p-6">
+                  <div className="rounded-full bg-primary/10 p-4 group-hover:bg-primary/20 transition-colors">
+                      {appIconMap[app.icon] || <Sparkles className="h-10 w-10 text-primary" />}
+                  </div>
+                  <div className="space-y-1">
+                    <CardTitle>{app.title}</CardTitle>
+                    <CardDescription>{app.description}</CardDescription>
+                  </div>
+                </CardContent>
+              </Card>
+            )
           ))}
         </div>
       ) : (

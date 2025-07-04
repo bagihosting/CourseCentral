@@ -8,13 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, Copy, CheckCircle, Users, Link as LinkIcon, Gift } from 'lucide-react';
+import { DollarSign, Copy, CheckCircle, Users, Link as LinkIcon, Gift, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
+import { AffiliatePromoKit } from '@/components/affiliate-promo-kit';
 
 export default function AffiliatePage() {
   const { user, loading: userLoading } = useAuth();
@@ -134,6 +135,16 @@ export default function AffiliatePage() {
         </Card>
       )}
 
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Wand2/> Alat Promosi Afiliasi AI</CardTitle>
+            <CardDescription>Gunakan AI untuk membuat gambar dan teks promosi yang menarik, lengkap dengan link referral Anda.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <AffiliatePromoKit referralLink={referralLink} />
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
             <CardTitle>Daftar Pengguna yang Anda Referensikan</CardTitle>
