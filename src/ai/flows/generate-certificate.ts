@@ -55,26 +55,21 @@ const generateCertificateFlow = ai.defineFlow(
           Generate a complete, self-contained HTML document for a Certificate of Completion.
           The design must be MODERN, ELEGANT, and PROFESSIONAL, suitable for printing on A4 landscape paper.
 
-          **Data to Use:**
-          - Participant: {{{participantName}}}
-          - Course: {{{courseName}}}
-          - Date: {{{completionDate}}}
-          - Organizer: {{{organizerName}}}
-          - NIP: {{{nip}}}
-          - Logo: <img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />
-          - QR Code: <img src="{{{barcodeDataUri}}}" alt="QR Code" style="height: 60px; width: 60px;" />
-          - Signature: <img src="{{{signatureDataUri}}}" alt="Signature" style="height: 50px; mix-blend-mode: darken;" />
-
           **CRITICAL DESIGN INSTRUCTIONS:**
-          1.  **Full HTML Document**: The output MUST be a complete HTML document from <!DOCTYPE html> to </html>.
+          1.  **Full HTML Document**: The output MUST be a complete HTML document from \`<!DOCTYPE html>\` to \`</html>\`.
           2.  **Layout**: Design for A4 landscape (approx. 1123px by 794px). The layout must be balanced, formal, and visually appealing with good use of whitespace.
           3.  **Decorative Frame**: Create a beautiful, modern, and intricate certificate border or frame. **You MUST use inline SVG for the frame** to create elegant patterns, guilloche, or geometric designs in the corners and/or along the edges. Do not use a simple CSS border. The frame should look sophisticated and premium. Use a color palette based on a deep, professional blue (#0A2240) and gold accents (#D4AF37) for the frame.
           4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
-          5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "[Participant Name]", "has successfully completed the course", "[Course Name]", "on [Date]".
-          6.  **Signature Area**: Below the main content, create a centered signature block. It should contain the signature image, the organizer's name below it, and the NIP below that.
-          7.  **QR Code & Serial**: Place the QR code image and the text "Serial No: [Serial Number]" in a corner (e.g., bottom-left). It should be discreet but readable.
-          8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in <style> tags or as inline SVG. No external files.
-          9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center.
+          5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "{{{participantName}}}", "has successfully completed the course", "{{{courseName}}}", "on {{{completionDate}}}".
+          6.  **Signature Area**: Below the main content, create a centered signature block. It MUST contain:
+              - An image for the signature. Render it as \`<img src="{{{signatureDataUri}}}" alt="Signature" style="height: 50px; mix-blend-mode: darken;" />\`.
+              - The organizer's name: \`{{{organizerName}}}\`.
+              - The NIP number below the name: \`{{{nip}}}\`.
+          7.  **QR Code & Serial**: Place this in a corner (e.g., bottom-left). It MUST contain:
+              - An image for the QR code. Render it as \`<img src="{{{barcodeDataUri}}}" alt="QR Code" style="height: 60px; width: 60px;" />\`.
+              - The text "Serial No: {{{serialNumber}}}" next to or below the QR code.
+          8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in \`<style>\` tags or as inline SVG. No external files.
+          9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center. Use this URL for the logo: \`{{{logoUrl}}}\`. Render it as \`<img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />\`.
         `,
     });
 
