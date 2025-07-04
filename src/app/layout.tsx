@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Inter } from 'next/font/google';
@@ -88,7 +89,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
-      <body className={`${inter.variable} font-body antialiased`}>
+      <body className={`${inter.variable} font-body antialiased`} suppressHydrationWarning>
         <AuthProvider>
           {children}
           <Toaster />
