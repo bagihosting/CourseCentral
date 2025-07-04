@@ -83,6 +83,14 @@ const generateWebAppFlow = ai.defineFlow(
 
         5.  **Generate Explanation**: Write a detailed, step-by-step explanation in Markdown. Explain the purpose of each generated file, how they are connected, and provide a guide on how the user can run and extend the application.
       `,
+      config: {
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_NONE',
+          },
+        ],
+      },
     });
     
     const { output } = await prompt(input);
