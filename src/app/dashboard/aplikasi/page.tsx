@@ -17,7 +17,6 @@ import { AiSpssAssistant } from '@/components/ai-spss-assistant';
 import { AiImageGenerator } from '@/components/ai-image-generator';
 import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator';
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
-import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
 import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
 import Link from 'next/link';
 import { getLandingPageSettings } from '@/lib/data';
@@ -37,7 +36,6 @@ const appComponentMap: Record<AppId, AppComponent | null> = {
   'image': AiImageGenerator,
   'prototype': AiAppPrototypeGenerator,
   'soap-formula': AiSoapFormulaGenerator,
-  'web-app': AiWebAppGenerator,
   'makalah': AiMakalahGenerator,
   'promo-thumbnail': null, // This is now handled in the affiliate page
 };

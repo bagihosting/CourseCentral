@@ -8,6 +8,7 @@
 
 
 
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
@@ -204,7 +205,6 @@ function getInitialData(): Database {
               { id: 'image', title: 'AI Image Generator', description: 'Buat gambar dari teks menggunakan Gemini Flash.', icon: 'ImageIcon', enabled: true },
               { id: 'prototype', title: 'AI App Prototyper', description: 'Buat rencana MVP terstruktur dari ide aplikasi mentah Anda.', icon: 'LayoutTemplate', enabled: true },
               { id: 'soap-formula', title: 'AI Formula Sabun', description: 'Hasilkan formula dasar untuk produk sabun cair dan sampo.', icon: 'FlaskConical', enabled: true },
-              { id: 'web-app', title: 'AI Web App Generator', description: 'Buat boilerplate aplikasi web lengkap dengan Next.js & Genkit.', icon: 'Server', enabled: true },
               { id: 'promo-thumbnail', title: 'AI Thumbnail Promosi', description: 'Buat gambar promosi menarik untuk Scriptify dengan AI.', icon: 'ImageIcon', enabled: false },
             ],
         },

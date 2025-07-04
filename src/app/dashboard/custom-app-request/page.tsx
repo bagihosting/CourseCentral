@@ -19,7 +19,6 @@ import { generateAppTopologyAction } from '@/actions/ai';
 import { Sparkles, Loader2, Rocket, Banknote, ChevronRight, Send, CheckCircle, Clock, Link as LinkIcon, Server } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
 
 const CUSTOM_APP_FEE = 100000;
 
@@ -178,11 +177,7 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
         )
     }
 
-    const latestRequest = userRequests[0];
-    const showGenerator = latestRequest && (latestRequest.status === 'pending_approval' || latestRequest.status === 'in_progress');
-
-
-    if (pageState === 'submitted' || (userRequests.length > 0 && pageState !== 'payment' && !showGenerator)) {
+    if (pageState === 'submitted' || (userRequests.length > 0 && pageState !== 'payment')) {
         return (
             <div className="space-y-6">
                 <Alert variant="default" className="border-green-500/50 text-green-700 dark:text-green-400 [&>svg]:text-green-600">
@@ -200,102 +195,84 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
 
     return (
         <div className="space-y-6">
-            {showGenerator && (
-                <div className="space-y-6">
-                    <Alert>
-                        <Rocket className="h-4 w-4" />
-                        <AlertTitle>Permintaan Anda Sedang Diproses!</AlertTitle>
-                        <AlertDescription>
-                           Terima kasih atas pembayaran Anda. Tim kami sedang meninjau atau mengerjakan permintaan aplikasi kustom Anda. Sambil menunggu, Anda mendapatkan akses eksklusif ke AI Web App Generator di bawah ini untuk bereksperimen!
-                        </AlertDescription>
-                    </Alert>
-                    <RequestHistory requests={userRequests} />
-                    <AiWebAppGenerator />
-                </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Rocket className="text-primary"/> Permintaan Aplikasi Kustom</CardTitle>
+                    <CardDescription>
+                    Isi formulir untuk mendapatkan topologi aplikasi dari AI, kemudian ajukan ke Admin untuk pengembangan. Biaya per permintaan: Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="app-name">Nama Aplikasi yang Diinginkan</Label>
+                        <Input id="app-name" value={appName} onChange={e => setAppName(e.target.value)} placeholder="Contoh: Manajer Tanaman Pintar" disabled={isLoading || pageState === 'payment'} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="app-keywords">Jelaskan Ide/Kata Kunci Aplikasi</Label>
+                        <Textarea id="app-keywords" value={appKeywords} onChange={e => setAppKeywords(e.target.value)} placeholder="Contoh: aplikasi merawat tanaman, pengingat siram, deteksi penyakit, panduan pupuk" rows={4} disabled={isLoading || pageState === 'payment'} />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleGenerateTopology} disabled={isLoading || pageState === 'payment'}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                        Hasilkan Topologi dengan AI
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            {pageState === 'payment' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Langkah 2: Pembayaran & Konfirmasi</CardTitle>
+                        <CardDescription>Topologi berhasil dibuat. Lakukan pembayaran untuk mengajukan permintaan ini ke Admin.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <Alert>
+                            <Banknote className="h-4 w-4" />
+                            <AlertTitle className="font-semibold">Lakukan Pembayaran</AlertTitle>
+                            <AlertDescription>
+                                <p>Silakan transfer sejumlah <strong>Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}</strong> ke salah satu rekening berikut:</p>
+                                <div className="mt-2 space-y-3">
+                                    {paymentAccounts.map((account) => (
+                                        <div key={account.id} className="p-3 border rounded-md bg-muted/30">
+                                            <p className="font-semibold">{account.bankName}</p>
+                                            <p>No. Rekening: <span className="font-mono">{account.accountNumber}</span></p>
+                                            <p>Atas Nama: <span className="font-mono">{account.accountHolder}</span></p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AlertDescription>
+                        </Alert>
+
+                        <Alert>
+                            <ChevronRight className="h-4 w-4" />
+                            <AlertTitle className="font-semibold">Konfirmasi Pembayaran</AlertTitle>
+                            <AlertDescription>
+                            Isi formulir di bawah ini setelah transfer, lalu klik tombol untuk konfirmasi via WhatsApp.
+                            </AlertDescription>
+                        </Alert>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="bankName">Bank Pengirim</Label>
+                                <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} required placeholder="Contoh: Bank Mandiri" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="accountHolder">Nama Pemilik Rekening</Label>
+                                <Input id="accountHolder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} required placeholder="Contoh: Budi Sanjaya" />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={handlePaymentConfirmation} disabled={isSubmitting || !bankName || !accountHolder}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                            Ajukan Permintaan & Konfirmasi
+                        </Button>
+                    </CardFooter>
+                </Card>
             )}
 
-            {!showGenerator && (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Rocket className="text-primary"/> Permintaan Aplikasi Kustom</CardTitle>
-                            <CardDescription>
-                            Isi formulir untuk mendapatkan topologi aplikasi dari AI, kemudian ajukan ke Admin untuk pengembangan. Biaya per permintaan: Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="app-name">Nama Aplikasi yang Diinginkan</Label>
-                                <Input id="app-name" value={appName} onChange={e => setAppName(e.target.value)} placeholder="Contoh: Manajer Tanaman Pintar" disabled={isLoading || pageState === 'payment'} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="app-keywords">Jelaskan Ide/Kata Kunci Aplikasi</Label>
-                                <Textarea id="app-keywords" value={appKeywords} onChange={e => setAppKeywords(e.target.value)} placeholder="Contoh: aplikasi merawat tanaman, pengingat siram, deteksi penyakit, panduan pupuk" rows={4} disabled={isLoading || pageState === 'payment'} />
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button onClick={handleGenerateTopology} disabled={isLoading || pageState === 'payment'}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                Hasilkan Topologi dengan AI
-                            </Button>
-                        </CardFooter>
-                    </Card>
-
-                    {pageState === 'payment' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Langkah 2: Pembayaran & Konfirmasi</CardTitle>
-                                <CardDescription>Topologi berhasil dibuat. Lakukan pembayaran untuk mengajukan permintaan ini ke Admin.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <Alert>
-                                    <Banknote className="h-4 w-4" />
-                                    <AlertTitle className="font-semibold">Lakukan Pembayaran</AlertTitle>
-                                    <AlertDescription>
-                                        <p>Silakan transfer sejumlah <strong>Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}</strong> ke salah satu rekening berikut:</p>
-                                        <div className="mt-2 space-y-3">
-                                            {paymentAccounts.map((account) => (
-                                                <div key={account.id} className="p-3 border rounded-md bg-muted/30">
-                                                    <p className="font-semibold">{account.bankName}</p>
-                                                    <p>No. Rekening: <span className="font-mono">{account.accountNumber}</span></p>
-                                                    <p>Atas Nama: <span className="font-mono">{account.accountHolder}</span></p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </AlertDescription>
-                                </Alert>
-
-                                <Alert>
-                                    <ChevronRight className="h-4 w-4" />
-                                    <AlertTitle className="font-semibold">Konfirmasi Pembayaran</AlertTitle>
-                                    <AlertDescription>
-                                    Isi formulir di bawah ini setelah transfer, lalu klik tombol untuk konfirmasi via WhatsApp.
-                                    </AlertDescription>
-                                </Alert>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bankName">Bank Pengirim</Label>
-                                        <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} required placeholder="Contoh: Bank Mandiri" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="accountHolder">Nama Pemilik Rekening</Label>
-                                        <Input id="accountHolder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} required placeholder="Contoh: Budi Sanjaya" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button onClick={handlePaymentConfirmation} disabled={isSubmitting || !bankName || !accountHolder}>
-                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                                    Ajukan Permintaan & Konfirmasi
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    )}
-
-                    {userRequests.length > 0 && pageState === 'form' && (
-                        <RequestHistory requests={userRequests} />
-                    )}
-                </>
+            {userRequests.length > 0 && pageState === 'form' && (
+                <RequestHistory requests={userRequests} />
             )}
         </div>
     );
