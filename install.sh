@@ -131,9 +131,9 @@ echo_info "Memulai aplikasi dengan PM2..."
 # PM2 adalah manajer proses yang akan menjaga aplikasi tetap berjalan di latar belakang.
 # Hapus instance yang ada untuk memastikan awal yang baru
 sudo -u "$RUN_USER" pm2 delete "$APP_NAME" || true
-# `pm2 start` secara otomatis menjalankan aplikasi di latar belakang.
-# Menjalankan sebagai pengguna non-root dan secara eksplisit mengatur direktori kerja (CWD)
-sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start -p "$APP_PORT"
+# Menjalankan `npm start` tanpa argumen port tambahan untuk stabilitas yang lebih baik.
+# PM2 akan menjalankan `next start` yang secara default menggunakan port 3000, sesuai dengan konfigurasi Nginx.
+sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start
 
 
 # --- 8. Konfigurasi Nginx ---
