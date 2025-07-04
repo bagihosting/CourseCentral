@@ -22,9 +22,6 @@ import { generateTitleSuffix as generateTitleSuffixFlow, type GenerateTitleSuffi
 import { generateMetaDescription as generateMetaDescriptionFlow, type GenerateMetaDescriptionInput, type GenerateMetaDescriptionOutput } from '@/ai/flows/generate-meta-description';
 import { generateMetaKeywords as generateMetaKeywordsFlow, type GenerateMetaKeywordsInput, type GenerateMetaKeywordsOutput } from '@/ai/flows/generate-meta-keywords';
 import { generateCertificate as generateCertificateFlow, type GenerateCertificateInput, type GenerateCertificateOutput } from '@/ai/flows/generate-certificate';
-import { approveCertificateRequest, getCertificateRequests, awardCertificateToUser, getSeoSettings, getLandingPageSettings } from '@/lib/data';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -363,59 +360,3 @@ export async function generateCertificateAction(
     return { error: `Gagal membuat sertifikat: ${errorMessage}` };
   }
 }
-
-export async function generateAndApproveCertificateAction(
-    requestId: string
-): Promise<{ success: boolean } | { error: string }> {
-    const allRequests = getCertificateRequests();
-    const request = allRequests.find(r => r.id === requestId);
-
-    if (!request) {
-        return { error: 'Permintaan tidak ditemukan.' };
-    }
-    if (request.status !== 'pending') {
-        return { error: 'Permintaan ini sudah diproses.'}
-    }
-
-    const seoSettings = getSeoSettings();
-    const landingSettings = getLandingPageSettings();
-
-    const generationInput: GenerateCertificateInput = {
-        participantName: request.userName,
-        courseName: request.courseTitle,
-        completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
-        organizerName: seoSettings.platformName || 'Scriptify',
-        logoUrl: landingSettings.logoUrl || 'https://placehold.co/200x80.png',
-        courseId: request.courseId,
-    };
-    
-    try {
-        const generationResult = await generateCertificateFlow(generationInput);
-        // Sanitize the generated HTML before saving it
-        const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml, { WHOLE_DOCUMENT: true });
-        approveCertificateRequest(requestId, cleanHtml);
-        return { success: true };
-    } catch (error) {
-        console.error('Error approving certificate:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
-        return { error: `Gagal menyetujui sertifikat: ${errorMessage}` };
-    }
-}
-
-export async function awardCertificateAction(
-    userId: string,
-    courseId: string,
-    certificateHtml: string
-): Promise<{ success: boolean } | { error: string }> {
-    try {
-        // Sanitize the HTML before saving it
-        const cleanHtml = DOMPurify.sanitize(certificateHtml, { WHOLE_DOCUMENT: true });
-        awardCertificateToUser(userId, courseId, cleanHtml);
-        return { success: true };
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
-        return { error: `Gagal menyimpan sertifikat: ${errorMessage}` };
-    }
-}
-
-    

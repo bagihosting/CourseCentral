@@ -8,14 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, Printer, Award, Download, Save } from 'lucide-react';
-import { generateCertificateAction, awardCertificateAction } from '@/actions/ai';
+import { generateCertificateAction } from '@/actions/ai';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAllCourses, getSeoSettings, getAllUsers, getLandingPageSettings } from '@/lib/data';
+import { getAllCourses, getSeoSettings, getAllUsers, getLandingPageSettings, awardCertificateToUser } from '@/lib/data';
 import type { Course, User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -103,20 +103,22 @@ export function AiCertificateGenerator() {
       return;
     }
     setIsSaving(true);
-    const result = await awardCertificateAction(selectedUserId, selectedCourseId, outputHtml);
-    setIsSaving(false);
-
-    if ('error' in result) {
-      toast({
-        title: 'Gagal Menyimpan',
-        description: result.error,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Sukses!',
-        description: 'Sertifikat telah disimpan untuk member dan akan muncul di halaman "Sertifikat Saya" mereka.',
-      });
+    try {
+        const cleanHtml = DOMPurify.sanitize(outputHtml, { WHOLE_DOCUMENT: true });
+        awardCertificateToUser(selectedUserId, selectedCourseId, cleanHtml);
+        toast({
+            title: 'Sukses!',
+            description: 'Sertifikat telah disimpan untuk member dan akan muncul di halaman "Sertifikat Saya" mereka.',
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+        toast({
+            title: 'Gagal Menyimpan',
+            description: errorMessage,
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSaving(false);
     }
   };
   

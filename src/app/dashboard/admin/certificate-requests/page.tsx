@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,11 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, Loader2, Sparkles, FileClock } from 'lucide-react';
-import { getCertificateRequests, PopulatedCertificateRequest } from '@/lib/data';
-import { generateAndApproveCertificateAction } from '@/actions/ai';
-import { formatDistanceToNow } from 'date-fns';
+import { getCertificateRequests, PopulatedCertificateRequest, getSeoSettings, getLandingPageSettings, approveCertificateRequest } from '@/lib/data';
+import { generateCertificateAction } from '@/actions/ai';
+import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GenerateCertificateInput } from '@/ai/flows/generate-certificate';
+import DOMPurify from 'isomorphic-dompurify';
 
 export default function CertificateRequestsPage() {
   const [requests, setRequests] = useState<PopulatedCertificateRequest[]>([]);
@@ -31,21 +34,53 @@ export default function CertificateRequestsPage() {
 
   const handleApprove = async (requestId: string) => {
     setApprovingId(requestId);
-    const result = await generateAndApproveCertificateAction(requestId);
-    setApprovingId(null);
+    
+    try {
+        const allRequests = getCertificateRequests();
+        const request = allRequests.find(r => r.id === requestId);
 
-    if (result && 'error' in result) {
-        toast({
-            title: 'Gagal Menyetujui',
-            description: result.error,
-            variant: 'destructive',
-        });
-    } else {
+        if (!request) {
+            throw new Error('Permintaan tidak ditemukan.');
+        }
+        if (request.status !== 'pending') {
+            throw new Error('Permintaan ini sudah diproses.');
+        }
+
+        const seoSettings = getSeoSettings();
+        const landingSettings = getLandingPageSettings();
+
+        const generationInput: GenerateCertificateInput = {
+            participantName: request.userName,
+            courseName: request.courseTitle,
+            completionDate: format(new Date(), 'dd MMMM yyyy', { locale: id }),
+            organizerName: seoSettings.platformName || 'Scriptify',
+            logoUrl: landingSettings.logoUrl || 'https://placehold.co/200x80.png',
+            courseId: request.courseId,
+        };
+
+        const generationResult = await generateCertificateAction(generationInput);
+        
+        if ('error' in generationResult) {
+            throw new Error(`Gagal membuat sertifikat: ${generationResult.error}`);
+        }
+        
+        const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml, { WHOLE_DOCUMENT: true });
+        approveCertificateRequest(requestId, cleanHtml);
+
         toast({
             title: 'Sukses',
             description: 'Sertifikat telah dibuat dan disetujui. Member dapat mengunduhnya sekarang.',
         });
         refreshRequests();
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
+        toast({
+            title: 'Gagal Menyetujui',
+            description: errorMessage,
+            variant: 'destructive',
+        });
+    } finally {
+        setApprovingId(null);
     }
   };
   
