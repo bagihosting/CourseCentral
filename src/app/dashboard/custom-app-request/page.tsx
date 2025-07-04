@@ -205,7 +205,7 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Rocket className="text-primary"/> Permintaan Aplikasi Kustom</CardTitle>
                     <CardDescription>
-                    Isi formulir untuk mendapatkan topologi aplikasi dari AI, kemudian ajukan ke Admin untuk pengembangan. Biaya per permintaan: Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}.
+                    Isi formulir untuk mendapatkan topologi aplikasi dari AI, kemudian ajukan ke Admin untuk pengembangan. Biaya per permintaan: Rp${CUSTOM_APP_FEE.toLocaleString('id-ID')}.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -237,7 +237,7 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
                             <Banknote className="h-4 w-4" />
                             <AlertTitle className="font-semibold">Lakukan Pembayaran</AlertTitle>
                             <AlertDescription>
-                                <p>Silakan transfer sejumlah <strong>Rp{CUSTOM_APP_FEE.toLocaleString('id-ID')}</strong> ke salah satu rekening berikut:</p>
+                                <p>Silakan transfer sejumlah <strong>Rp${CUSTOM_APP_FEE.toLocaleString('id-ID')}</strong> ke salah satu rekening berikut:</p>
                                 <div className="mt-2 space-y-3">
                                     {paymentAccounts.map((account) => (
                                         <div key={account.id} className="p-3 border rounded-md bg-muted/30">
