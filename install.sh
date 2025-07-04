@@ -64,7 +64,15 @@ apt-get update
 apt-get upgrade -y
 apt-get install -y nginx curl git build-essential
 
-# --- 2. Pasang Node.js ---
+# --- 2. Pasang Database (Opsional, Placeholder) ---
+echo_info "Memeriksa Opsi Database..."
+echo_warn "CATATAN: Aplikasi ini secara default menggunakan localStorage browser. Untuk penggunaan produksi dengan database terpusat, Anda perlu memodifikasi kode aplikasi di 'src/lib/data.ts'."
+echo_warn "Skrip ini menyediakan placeholder untuk memasang MariaDB (pengganti MySQL) jika Anda berencana untuk melakukan migrasi."
+# Untuk memasang MariaDB, hapus tanda komentar di baris berikut:
+# apt-get install -y mariadb-server
+# echo_info "Setelah instalasi, jalankan 'sudo mysql_secure_installation' untuk mengamankan database Anda."
+
+# --- 3. Pasang Node.js ---
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null; then
     echo_info "Memasang Node.js v20 LTS..."
@@ -74,7 +82,7 @@ else
     echo_info "Node.js sudah terpasang."
 fi
 
-# --- 3. Pasang PM2 ---
+# --- 4. Pasang PM2 ---
 if ! command -v pm2 &> /dev/null; then
     echo_info "Memasang PM2 secara global..."
     npm install -g pm2
@@ -83,7 +91,7 @@ else
 fi
 
 
-# --- 4. Bangun Aplikasi ---
+# --- 5. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file ke pengguna $RUN_USER..."
 chown -R $RUN_USER:$RUN_USER $PROJECT_DIR
 
@@ -95,7 +103,7 @@ echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_U
 sudo -u $RUN_USER npm run build
 
 
-# --- 5. Siapkan Variabel Lingkungan (.env) ---
+# --- 6. Siapkan Variabel Lingkungan (.env) ---
 echo_info "Membuat file .env..."
 if [ ! -f "$PROJECT_DIR/.env" ]; then
   # Hanya membuat jika tidak ada
@@ -109,7 +117,7 @@ else
 fi
 
 
-# --- 6. Mulai Aplikasi dengan PM2 ---
+# --- 7. Mulai Aplikasi dengan PM2 ---
 echo_info "Memulai aplikasi dengan PM2..."
 # PM2 adalah manajer proses yang akan menjaga aplikasi tetap berjalan di latar belakang.
 # Hapus instance yang ada untuk memastikan awal yang baru
@@ -119,7 +127,7 @@ sudo -u $RUN_USER pm2 delete "$APP_NAME" || true
 sudo -u $RUN_USER pm2 start npm --name "$APP_NAME" -- start -p $APP_PORT
 
 
-# --- 7. Konfigurasi Nginx ---
+# --- 8. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 
 # Tentukan konten konfigurasi Nginx
@@ -162,14 +170,14 @@ nginx -t
 systemctl restart nginx
 
 
-# --- 8. Konfigurasi Firewall (UFW) ---
+# --- 9. Konfigurasi Firewall (UFW) ---
 echo_info "Mengkonfigurasi firewall dengan UFW..."
 ufw allow 'Nginx Full' # Mengizinkan HTTP dan HTTPS
 ufw allow 'OpenSSH'
 ufw --force enable
 
 
-# --- 9. Atur PM2 untuk memulai saat boot ---
+# --- 10. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 # `pm2 startup` menghasilkan perintah untuk dijalankan. Kita menangkap dan menjalankannya.
 # Menjalankan sebagai pengguna saat ini untuk menghindari masalah izin
@@ -190,4 +198,5 @@ echo ""
 echo_warn "Untuk HTTPS (disarankan), jalankan 'sudo certbot --nginx' setelah mengatur domain Anda."
 echo_warn "JANGAN LUPA: Edit file .env Anda dan tambahkan GEMINI_API_KEY."
 echo "--------------------------------------------------"
+
 
