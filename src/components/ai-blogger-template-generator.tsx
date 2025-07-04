@@ -53,6 +53,11 @@ export function AiBloggerTemplateGenerator() {
             cssContent = cssContent.replace(varAsRegex, defaultValue);
         }
         
+        // Security: Sanitize CSS to prevent XSS via url() or expression()
+        cssContent = cssContent
+          .replace(/url\((?:'|")?javascript:[^)]+\)/gi, 'url()')
+          .replace(/expression\([^)]+\)/gi, '');
+
         // Create the final style tag
         styleTag = `<style type="text/css">${cssContent}</style>`;
     }
