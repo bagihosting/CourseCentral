@@ -41,13 +41,6 @@ const generateWebAppFlow = ai.defineFlow(
     outputSchema: GenerateWebAppOutputSchema,
   },
   async (input) => {
-    // This feature is a proof-of-concept and is disabled by default for security.
-    // Executing AI-generated code, especially code that can modify file systems or
-    // interact with external services, carries significant risks. To enable this,
-    // you must have a robust sandboxing environment and security reviews.
-    // For now, we throw an error to prevent accidental execution.
-    throw new Error('Fitur "AI Web App Generator" dinonaktifkan sementara untuk alasan keamanan.');
-
     const prompt = ai.definePrompt({
       name: 'generateWebAppPrompt',
       input: { schema: GenerateWebAppInputSchema },
