@@ -1,6 +1,22 @@
 
 'use client';
 
+// ====================================================================
+// PENTING: PEMBERITAHUAN TENTANG PENYIMPANAN DATA
+// ====================================================================
+// Aplikasi ini menggunakan Local Storage browser Anda sebagai database.
+// Ini berarti semua data (pengguna, kursus, dll.) HANYA tersimpan di
+// perangkat dan browser yang Anda gunakan saat ini.
+//
+// AKIBATNYA:
+// - Data TIDAK akan sinkron antar perangkat (misal: laptop dan ponsel).
+// - Membersihkan cache browser Anda akan MENGHAPUS SEMUA DATA.
+//
+// Ini adalah perilaku yang wajar untuk aplikasi prototipe. Untuk membuat
+// data menjadi real-time dan sinkron, diperlukan migrasi ke database
+// terpusat seperti Firebase Firestore.
+// ====================================================================
+
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
 
 const DB_KEY = 'course_app_data';
