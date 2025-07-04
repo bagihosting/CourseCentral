@@ -266,7 +266,12 @@ function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-muted/30 border-t">
-          <div className="container mx-auto py-8 px-4 text-center text-muted-foreground">
+          <div className="container mx-auto py-8 px-4 text-center text-muted-foreground space-y-4">
+             <div className="flex justify-center gap-4 md:gap-6">
+                <Link href="/privacy-policy" className="text-sm hover:text-primary transition-colors">Kebijakan Privasi</Link>
+                <Link href="/terms-conditions" className="text-sm hover:text-primary transition-colors">Syarat & Ketentuan</Link>
+                <Link href="/contact" className="text-sm hover:text-primary transition-colors">Kontak</Link>
+             </div>
              <p>&copy; {new Date().getFullYear()} {platformName}. {settings.footerText}</p>
           </div>
       </footer>
