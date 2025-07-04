@@ -26,6 +26,7 @@ import { generateHeroImage as generateHeroImageFlow, type GenerateHeroImageInput
 import { suggestMakalahTitles as suggestMakalahTitlesFlow, type SuggestMakalahTitlesInput, type SuggestMakalahTitlesOutput } from '@/ai/flows/suggest-makalah-titles';
 import { generateMakalah as generateMakalahFlow, type GenerateMakalahInput, type GenerateMakalahOutput } from '@/ai/flows/generate-makalah';
 import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalahOutput } from '@/ai/flows/edit-makalah';
+import { generatePromoThumbnail as generatePromoThumbnailFlow, type GeneratePromoThumbnailOutput } from '@/ai/flows/generate-promo-thumbnail';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -423,5 +424,15 @@ export async function editMakalahAction(
   } catch (error) {
     console.error('Error editing paper:', error);
     return { error: 'Gagal mengedit makalah.' };
+  }
+}
+
+export async function generatePromoThumbnailAction(): Promise<GeneratePromoThumbnailOutput | { error: string }> {
+  try {
+    const result = await generatePromoThumbnailFlow();
+    return { imageUrl: result.imageUrl };
+  } catch (error) {
+    console.error('Error generating promo thumbnail:', error);
+    return { error: 'Gagal membuat thumbnail promosi. Silakan coba lagi.' };
   }
 }

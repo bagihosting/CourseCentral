@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -18,6 +19,7 @@ import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiWebAppGenerator } from '@/components/ai-web-app-generator';
 import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
+import { AiPromoThumbnailGenerator } from '@/components/ai-promo-thumbnail-generator';
 import Link from 'next/link';
 import { getLandingPageSettings } from '@/lib/data';
 import type { AiApp } from '@/types';
@@ -38,6 +40,7 @@ const appComponentMap: Record<AppId, AppComponent> = {
   'soap-formula': AiSoapFormulaGenerator,
   'web-app': AiWebAppGenerator,
   'makalah': AiMakalahGenerator,
+  'promo-thumbnail': AiPromoThumbnailGenerator,
 };
 
 const appIconMap: Record<string, React.ReactNode> = {
