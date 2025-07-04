@@ -18,6 +18,7 @@ import { AiImageGenerator } from '@/components/ai-image-generator';
 import { AiAppPrototypeGenerator } from '@/components/ai-app-prototype-generator';
 import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
+import { AiGenkitAppFactory } from '@/components/ai-genkit-app-factory';
 import Link from 'next/link';
 import { getLandingPageSettings } from '@/lib/data';
 import type { AiApp } from '@/types';
@@ -37,7 +38,7 @@ const appComponentMap: Record<AppId, AppComponent | null> = {
   'prototype': AiAppPrototypeGenerator,
   'soap-formula': AiSoapFormulaGenerator,
   'makalah': AiMakalahGenerator,
-  'promo-thumbnail': null, // This is now handled in the affiliate page
+  'genkit-app': AiGenkitAppFactory,
 };
 
 const appIconMap: Record<string, React.ReactNode> = {

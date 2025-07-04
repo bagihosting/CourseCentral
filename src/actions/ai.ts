@@ -27,6 +27,7 @@ import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalah
 import { generatePromoThumbnail as generatePromoThumbnailFlow, type GeneratePromoThumbnailOutput } from '@/ai/flows/generate-promo-thumbnail';
 import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
 import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
+import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput, type GenerateGenkitAppOutput } from '@/ai/flows/generate-genkit-app';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -431,5 +432,21 @@ export async function generateAppTopologyAction(
   } catch (error) {
     console.error('Error generating app topology:', error);
     return { error: 'Gagal membuat topologi aplikasi. Silakan coba lagi.' };
+  }
+}
+
+export async function generateGenkitAppAction(
+  input: GenerateGenkitAppInput
+): Promise<GenerateGenkitAppOutput | { error: string }> {
+  if (!input.appName || !input.appDescription) {
+    return { error: 'Nama dan deskripsi aplikasi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateGenkitAppFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating Genkit app:', error);
+    return { error: 'Gagal membuat aplikasi Genkit. Silakan coba lagi.' };
   }
 }
