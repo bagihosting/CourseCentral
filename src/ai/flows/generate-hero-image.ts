@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating hero images for a website.
@@ -41,13 +42,24 @@ const generateHeroImageFlow = ai.defineFlow(
   },
   async (input) => {
     const prompt = `
-      Generate a professional and inspiring hero image for an online learning platform's main landing page.
-      The image should be visually appealing, modern, high-quality, and suitable for a website's main banner.
-      The theme of the image should reflect the platform's headline: "${input.headline}".
-      Depict concepts like learning, technology, personal growth, collaboration, and success.
-      The image should be abstract or conceptual, and feature a vibrant, professional color palette.
-      **Crucially, do NOT add any text, words, or letters to the image.**
-      The style should be a clean, 3D render.
+      You are a creative director and 3D artist specializing in creating culturally rich and inviting brand imagery.
+      Your task is to generate a stunning hero image for the main landing page of an online learning platform.
+      The image should reflect the platform's headline: "${input.headline}".
+
+      **Image Requirements:**
+      
+      1.  **Character**:
+          *   **Style**: Must be a friendly and engaging 3D animated character with distinct Indonesian features.
+          *   **Attire**: The character should wear stylish, modern Indonesian traditional attire (e.g., a modern batik shirt, a sleek kebaya) and one or two subtle but recognizable accessories from a specific Indonesian region (e.g., a Dayak beaded necklace, a Balinese udeng, a Javanese blangkon).
+          *   **Pose**: The character should have an inviting pose, looking towards the viewer as if to welcome them to start their learning journey.
+
+      2.  **Background & Composition**:
+          *   The background must be clean, abstract, and professional. It should use a vibrant yet soft color palette that would complement a modern website design, evoking a sense of learning and technology.
+          *   The overall composition should be visually appealing, modern, and suitable for a website's main banner.
+
+      3.  **CRITICAL RULE**:
+          *   The image MUST NOT contain any text, words, or letters.
+          *   The final output should be a high-quality, polished 3D render.
     `;
 
     const { media } = await ai.generate({
