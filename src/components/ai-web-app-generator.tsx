@@ -1,22 +1,31 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Loader2, Server, Globe, FileCode, Eye, ShieldAlert } from 'lucide-react';
+import { Sparkles, Loader2, Server, Globe, FileCode, Eye, Lock } from 'lucide-react';
 import { generateWebAppAction, editWebAppAction } from '@/actions/ai';
 import type { GenerateWebAppOutput, EditWebAppOutput } from '@/ai/flows/generate-web-app';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
+import { useAuth } from '@/contexts/auth-context';
+import { getCustomAppRequestsForUser } from '@/lib/data';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
+
 type AppFile = GenerateWebAppOutput['files'][0];
 
 export function AiWebAppGenerator() {
+  const { user } = useAuth();
+  const [hasAccess, setHasAccess] = useState(false);
+  const [loadingAccess, setLoadingAccess] = useState(true);
+
   const [appName, setAppName] = useLocalStorage('ai_webapp_appName', 'my-awesome-app');
   const [appDescription, setAppDescription] = useLocalStorage('ai_webapp_appDescription', '');
   const [cloneUrl, setCloneUrl] = useLocalStorage('ai_webapp_cloneUrl', '');
@@ -31,6 +40,20 @@ export function AiWebAppGenerator() {
   const [editRequest, setEditRequest] = useLocalStorage('ai_webapp_editRequest', '');
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        setHasAccess(true);
+      } else {
+        const requests = getCustomAppRequestsForUser(user.id);
+        const latestRequest = requests[0];
+        const hasPendingOrInProgressRequest = latestRequest && (latestRequest.status === 'pending_approval' || latestRequest.status === 'in_progress');
+        setHasAccess(!!hasPendingOrInProgressRequest);
+      }
+    }
+    setLoadingAccess(false);
+  }, [user]);
 
   // --- Main Generation ---
   const handleGenerate = async () => {
@@ -108,6 +131,43 @@ export function AiWebAppGenerator() {
     }
   };
 
+  if (loadingAccess) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="text-primary" />
+            AI Web App Generator
+          </CardTitle>
+          <CardDescription>
+            Jelaskan ide aplikasi Anda atau berikan URL untuk dikloning, dan biarkan AI membuatkan boilerplate lengkap untuk Anda.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <Lock className="h-4 w-4" />
+            <AlertTitle>Fitur Eksklusif</AlertTitle>
+            <AlertDescription>
+              Fitur ini hanya dapat diakses oleh member Pro yang telah mengajukan permintaan pembuatan aplikasi kustom.
+              <Button asChild variant="link" className="p-0 h-auto ml-1">
+                <Link href="/dashboard/custom-app-request">Ajukan permintaan di sini.</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
