@@ -19,6 +19,7 @@ import { generateAppTopologyAction } from '@/actions/ai';
 import { Sparkles, Loader2, Rocket, Banknote, ChevronRight, Send, CheckCircle, Clock, Link as LinkIcon, Server } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { AiInstantAppGenerator } from '@/components/ai-instant-app-generator';
 
 const CUSTOM_APP_FEE = 100000;
 
@@ -178,8 +179,10 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
     }
 
     if (pageState === 'submitted' || (userRequests.length > 0 && pageState !== 'payment')) {
+        const hasPendingRequest = userRequests.some(req => req.status === 'pending_approval' || req.status === 'in_progress');
         return (
             <div className="space-y-6">
+                 {hasPendingRequest && <AiInstantAppGenerator />}
                 <Alert variant="default" className="border-green-500/50 text-green-700 dark:text-green-400 [&>svg]:text-green-600">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Permintaan Anda Telah Terkirim!</AlertTitle>
@@ -192,9 +195,12 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
         );
     }
     
+    const hasActiveRequest = userRequests.some(req => req.status === 'pending_approval' || req.status === 'in_progress');
 
     return (
         <div className="space-y-6">
+            {hasActiveRequest && <AiInstantAppGenerator />}
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Rocket className="text-primary"/> Permintaan Aplikasi Kustom</CardTitle>
