@@ -162,6 +162,9 @@ function getInitialData(): Database {
             logoUrl: '',
             footerText: 'Semua Hak Cipta Dilindungi.',
             featuredTestimonialIds: ['testimonial_1', 'testimonial_2'],
+            contactEmail: 'support@scriptify.com',
+            contactPhone: '(021) 123-4567',
+            contactAddress: 'Jl. Jend. Sudirman Kav. 52-53, Jakarta Selatan, Indonesia 12190',
         },
         testimonials: [
           {
@@ -249,6 +252,15 @@ function getDB(): Database {
         }
         if (!data.landingPageSettings.heroImageUrl) {
             data.landingPageSettings.heroImageUrl = getInitialData().landingPageSettings.heroImageUrl;
+        }
+        if (!data.landingPageSettings.contactEmail) {
+            data.landingPageSettings.contactEmail = getInitialData().landingPageSettings.contactEmail;
+        }
+        if (!data.landingPageSettings.contactPhone) {
+            data.landingPageSettings.contactPhone = getInitialData().landingPageSettings.contactPhone;
+        }
+        if (!data.landingPageSettings.contactAddress) {
+            data.landingPageSettings.contactAddress = getInitialData().landingPageSettings.contactAddress;
         }
         if (!data.registeredDeviceIds) {
             data.registeredDeviceIds = [];

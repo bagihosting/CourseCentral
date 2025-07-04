@@ -109,4 +109,7 @@ export type LandingPageSettings = {
   logoUrl: string;
   footerText: string;
   featuredTestimonialIds: string[];
+  contactEmail: string;
+  contactPhone: string;
+  contactAddress: string;
 };

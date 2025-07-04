@@ -191,8 +191,8 @@ export default function LandingPageSettingsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Pengaturan Umum</CardTitle>
-                    <CardDescription>Atur logo dan teks footer.</CardDescription>
+                    <CardTitle>Pengaturan Umum & Kontak</CardTitle>
+                    <CardDescription>Atur logo, footer, dan informasi yang ditampilkan di halaman Kontak.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
@@ -211,6 +211,36 @@ export default function LandingPageSettingsPage() {
                             id="footerText" 
                             value={settings.footerText}
                             onChange={(e) => setSettings({...settings, footerText: e.target.value})}
+                        />
+                    </div>
+                    <div className="pt-4 border-t">
+                        <div className="space-y-2">
+                            <Label htmlFor="contactEmail">Email Kontak</Label>
+                            <Input 
+                                id="contactEmail" 
+                                value={settings.contactEmail || ''}
+                                onChange={(e) => setSettings({...settings, contactEmail: e.target.value})}
+                                placeholder="support@example.com"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="contactPhone">Telepon Kontak</Label>
+                        <Input 
+                            id="contactPhone" 
+                            value={settings.contactPhone || ''}
+                            onChange={(e) => setSettings({...settings, contactPhone: e.target.value})}
+                            placeholder="(021) 123-4567"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="contactAddress">Alamat Kontak</Label>
+                        <Textarea 
+                            id="contactAddress" 
+                            value={settings.contactAddress || ''}
+                            onChange={(e) => setSettings({...settings, contactAddress: e.target.value})}
+                            rows={3}
+                            placeholder="Jl. Sudirman No. 1, Jakarta"
                         />
                     </div>
                 </CardContent>
