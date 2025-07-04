@@ -8,12 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle, Clock, Loader2, Rocket, Eye } from 'lucide-react';
-import { getCustomAppRequests, approveCustomAppRequest, PopulatedCustomAppRequest } from '@/lib/data';
+import { User, CheckCircle, Clock, Loader2, Rocket, Eye, Link as LinkIcon } from 'lucide-react';
+import { getCustomAppRequests, approveCustomAppRequest, completeCustomAppRequest, PopulatedCustomAppRequest } from '@/lib/data';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
 
 function RequestDetailsDialog({ request }: { request: PopulatedCustomAppRequest }) {
     const topology = request.topology;
@@ -60,10 +64,62 @@ function RequestDetailsDialog({ request }: { request: PopulatedCustomAppRequest 
     )
 }
 
+function CompleteRequestDialog({ request, onComplete }: { request: PopulatedCustomAppRequest, onComplete: () => void }) {
+    const [resultLink, setResultLink] = useState('');
+    const [adminNotes, setAdminNotes] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
+
+    const handleSubmit = () => {
+        if (!resultLink) {
+            toast({ title: 'Error', description: 'Link hasil aplikasi wajib diisi.', variant: 'destructive' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            completeCustomAppRequest(request.id, resultLink, adminNotes);
+            toast({ title: 'Sukses!', description: 'Permintaan telah ditandai sebagai selesai.' });
+            onComplete();
+        } catch (e: any) {
+            toast({ title: 'Gagal', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Selesaikan Permintaan: {request.appName}</DialogTitle>
+                <DialogDescription>Masukkan link hasil aplikasi dan catatan untuk member.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="resultLink">Link Hasil Aplikasi (GitHub/URL Demo)</Label>
+                    <Input id="resultLink" value={resultLink} onChange={e => setResultLink(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="adminNotes">Catatan untuk Member (Opsional)</Label>
+                    <Textarea id="adminNotes" value={adminNotes} onChange={e => setAdminNotes(e.target.value)} />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Batal</Button></DialogClose>
+                <Button onClick={handleSubmit} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Tandai Selesai'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    )
+}
+
+
 export default function CustomAppRequestsPage() {
   const [requests, setRequests] = useState<PopulatedCustomAppRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [selectedRequestForCompletion, setSelectedRequestForCompletion] = useState<PopulatedCustomAppRequest | null>(null);
+
   const { toast } = useToast();
 
   const refreshRequests = () => {
@@ -125,6 +181,7 @@ export default function CustomAppRequestsPage() {
   }
 
   return (
+    <>
     <div className="grid gap-6">
       <Card>
         <CardHeader>
@@ -186,6 +243,16 @@ export default function CustomAppRequestsPage() {
                           Approve
                         </Button>
                       )}
+                      {req.status === 'in_progress' && (
+                        <Button size="sm" variant="secondary" onClick={() => setSelectedRequestForCompletion(req)}>
+                           <CheckCircle className="mr-2 h-4 w-4" /> Selesaikan
+                        </Button>
+                      )}
+                       {req.status === 'completed' && req.resultLink && (
+                        <Button size="sm" variant="ghost" asChild>
+                           <a href={req.resultLink} target="_blank" rel="noopener noreferrer"><LinkIcon className="mr-2 h-4 w-4" />Lihat Hasil</a>
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -195,5 +262,11 @@ export default function CustomAppRequestsPage() {
         </CardContent>
       </Card>
     </div>
+    
+    <Dialog open={!!selectedRequestForCompletion} onOpenChange={(isOpen) => !isOpen && setSelectedRequestForCompletion(null)}>
+      {selectedRequestForCompletion && <CompleteRequestDialog request={selectedRequestForCompletion} onComplete={() => { setSelectedRequestForCompletion(null); refreshRequests(); }} />}
+    </Dialog>
+
+    </>
   );
 }

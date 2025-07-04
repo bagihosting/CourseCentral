@@ -7,6 +7,7 @@
 
 
 
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
@@ -423,7 +424,7 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string, ref
     lastLoginAt: now,
     status: 'active',
     loginCount: 1, // Registration counts as the first login activity
-    referralCode: `${data.username.replace(/\s/g, '')}${Date.now().toString(36)}`,
+    referralCode: `${(data.username || 'user').replace(/\s/g, '')}${Date.now().toString(36)}`,
     referredBy: data.referredBy,
     affiliateBalance: 0,
     affiliatePaid: 0,
@@ -1257,5 +1258,17 @@ export function approveCustomAppRequest(requestId: string): void {
     if (request.status !== 'pending_approval') throw new Error('Permintaan ini tidak dalam status menunggu persetujuan.');
 
     request.status = 'in_progress';
+    saveDB(db);
+}
+
+export function completeCustomAppRequest(requestId: string, resultLink: string, adminNotes?: string): void {
+    const db = getDB();
+    const request = db.customAppRequests.find(r => r.id === requestId);
+    if (!request) throw new Error('Permintaan tidak ditemukan.');
+    if (request.status !== 'in_progress') throw new Error('Hanya permintaan yang sedang dikerjakan yang dapat diselesaikan.');
+    
+    request.status = 'completed';
+    request.resultLink = resultLink;
+    request.adminNotes = adminNotes;
     saveDB(db);
 }

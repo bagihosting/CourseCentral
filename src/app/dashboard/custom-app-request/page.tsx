@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { getPaymentSettings, getConfirmationContacts, createCustomAppRequest, getCustomAppRequestsForUser } from '@/lib/data';
 import type { PaymentAccount, ConfirmationContact, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
 import { generateAppTopologyAction } from '@/actions/ai';
-import { Sparkles, Loader2, Rocket, Banknote, ChevronRight, Send, CheckCircle, Clock } from 'lucide-react';
+import { Sparkles, Loader2, Rocket, Banknote, ChevronRight, Send, CheckCircle, Clock, Link as LinkIcon } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -51,6 +51,17 @@ function RequestHistory({ requests }: { requests: CustomAppRequest[] }) {
                             </div>
                             {getStatusBadge(req.status)}
                         </div>
+                        {req.status === 'completed' && req.resultLink && (
+                            <div className="mt-3 pt-3 border-t">
+                                <h5 className="font-semibold text-sm">Aplikasi Anda Selesai!</h5>
+                                {req.adminNotes && <p className="text-xs text-muted-foreground mb-2 italic">Catatan Admin: "{req.adminNotes}"</p>}
+                                <Button asChild size="sm">
+                                    <a href={req.resultLink} target="_blank" rel="noopener noreferrer">
+                                        <LinkIcon className="mr-2 h-4 w-4" /> Lihat Hasil Aplikasi
+                                    </a>
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ))}
             </CardContent>
