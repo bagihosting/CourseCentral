@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAllCourses, getEnrolledCoursesForUser } from '@/lib/data';
+import { getAllCourses, getApprovedCertificatesForUser } from '@/lib/data';
 import { Download, FileText, Film, Archive, Lock, Sparkles, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { Course, Lesson } from '@/types';
@@ -63,31 +63,17 @@ export default function DownloadsPage() {
   useEffect(() => {
     if (!userLoading && user && (user.role === 'admin' || user.role === 'pro')) {
       const allCoursesData = getAllCourses();
-      const enrolledCourses = getEnrolledCoursesForUser(user.id);
       
-      const isCourseCompleted = (course: Course): boolean => {
-        if (!user) return false;
-        const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
-        if (totalLessons === 0) return false;
-        
-        const progressString = localStorage.getItem(`progress_${user.id}_${course.id}`);
-        if (!progressString) return false;
+      // Get all approved certificates for the user to determine which text lessons are downloadable as PDF
+      const approvedCertificates = getApprovedCertificatesForUser(user.id);
+      const completedCourseIds = new Set(approvedCertificates.map(cert => cert.courseId));
+      const coursesWithPdfAccess = allCoursesData.filter(course => completedCourseIds.has(course.id));
 
-        try {
-          const completedLessons: string[] = JSON.parse(progressString);
-          return new Set(completedLessons).size >= totalLessons;
-        } catch (e) {
-          return false;
-        }
-      };
-
-      const completedCourses = enrolledCourses.filter(isCourseCompleted);
-
-      // Regular downloadable files (ZIP, etc.) from ALL courses for Pro/Admin
+      // Regular downloadable files (ZIP, etc.) are available for ALL courses for Pro/Admin
       const regularDownloads = allCoursesData.flatMap(course => 
         course.modules.flatMap(module => 
           module.lessons
-            .filter(lesson => lesson.downloadable && lesson.contentUrl)
+            .filter(lesson => lesson.downloadable && lesson.type !== 'text' && lesson.contentUrl)
             .map(lesson => ({
               courseTitle: course.title,
               lessonTitle: lesson.title,
@@ -98,8 +84,8 @@ export default function DownloadsPage() {
         )
       );
 
-      // Text lessons from COMPLETED courses become downloadable PDFs
-      const pdfDownloads = completedCourses.flatMap(course => 
+      // Text lessons from COMPLETED courses (i.e., certificate awarded) become downloadable PDFs
+      const pdfDownloads = coursesWithPdfAccess.flatMap(course => 
         course.modules.flatMap(module => 
           module.lessons
             .filter(lesson => lesson.type === 'text' && lesson.content)
@@ -231,7 +217,7 @@ export default function DownloadsPage() {
             <CardTitle>Materi Kursus</CardTitle>
             <CardDescription>
               {allDownloads.length > 0
-                ? 'Berikut adalah daftar semua materi yang dapat Anda unduh. Materi teks dari kursus yang sudah selesai akan tersedia sebagai PDF.'
+                ? 'Berikut adalah daftar semua materi yang dapat Anda unduh. Materi teks dari kursus yang sertifikatnya sudah Anda terima akan tersedia sebagai PDF.'
                 : 'Tidak ada materi yang tersedia untuk diunduh saat ini.'}
             </CardDescription>
           </CardHeader>
@@ -280,7 +266,7 @@ export default function DownloadsPage() {
               </Table>
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                Saat Anda mendaftar kursus dengan materi yang dapat diunduh, materi tersebut akan muncul di sini. Selesaikan kursus untuk mengunduh materi teks sebagai PDF.
+                Saat Anda mendaftar kursus dengan materi yang dapat diunduh, materi tersebut akan muncul di sini. Selesaikan kursus dan dapatkan sertifikat untuk mengunduh materi teks sebagai PDF.
               </div>
             )}
           </CardContent>

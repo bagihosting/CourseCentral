@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -132,10 +133,10 @@ export default function DownloadManagementPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Award className="h-6 w-6 text-primary" />
-                        Berikan Sertifikat Manual
+                        Kirim Unduhan & Sertifikat Manual
                     </CardTitle>
                     <CardDescription>
-                        Gunakan alat ini untuk membuat dan memberikan sertifikat kelulusan kepada peserta secara manual. Ini berguna untuk kasus khusus atau jika member tidak mengajukan permintaan secara otomatis.
+                        Gunakan alat ini untuk memberikan akses unduhan dan sertifikat kepada member secara manual. Dengan memberikan sertifikat untuk suatu kursus, member tersebut akan otomatis bisa mengunduh semua materi terkait dari halaman 'Unduhan' mereka. Ini berguna untuk kasus khusus atau untuk memberikan akses tanpa menunggu penyelesaian kursus.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
