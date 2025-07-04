@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -135,4 +136,35 @@ export type LandingPageSettings = {
   contactAddress: string;
   faqs: FAQItem[];
   aiApps: AiApp[];
+};
+
+export type GenerateAppTopologyOutput = {
+  appNameSuggestion: string;
+  taglineSuggestion: string;
+  coreFeatures: {
+    feature: string;
+    description: string;
+  }[];
+  techStack: string[];
+  dataModel: {
+    modelName: string;
+    fields: string[];
+  }[];
+  userFlow: string;
+};
+
+export type CustomAppRequest = {
+  id: string;
+  userId: string;
+  appName: string;
+  appKeywords: string;
+  topology: GenerateAppTopologyOutput;
+  requestDate: string;
+  status: 'pending_approval' | 'in_progress' | 'completed' | 'rejected';
+  paymentDetails: {
+    bankName: string;
+    accountHolder: string;
+  };
+  adminNotes?: string;
+  resultLink?: string;
 };

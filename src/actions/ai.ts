@@ -28,6 +28,7 @@ import { generateMakalah as generateMakalahFlow, type GenerateMakalahInput, type
 import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalahOutput } from '@/ai/flows/edit-makalah';
 import { generatePromoThumbnail as generatePromoThumbnailFlow, type GeneratePromoThumbnailOutput } from '@/ai/flows/generate-promo-thumbnail';
 import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
+import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -450,5 +451,21 @@ export async function generateAffiliatePromoAction(
   } catch (error) {
     console.error('Error generating affiliate promo text:', error);
     return { error: 'Gagal membuat teks promosi afiliasi.' };
+  }
+}
+
+export async function generateAppTopologyAction(
+  input: GenerateAppTopologyInput
+): Promise<GenerateAppTopologyOutput | { error: string }> {
+  if (!input.appKeywords) {
+    return { error: 'Kata kunci ide aplikasi tidak boleh kosong.' };
+  }
+
+  try {
+    const result = await generateAppTopologyFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating app topology:', error);
+    return { error: 'Gagal membuat topologi aplikasi. Silakan coba lagi.' };
   }
 }

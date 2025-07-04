@@ -6,9 +6,10 @@
 
 
 
+
 'use client';
 
-import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp } from '@/types';
+import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
 
 const DB_KEY = 'course_app_data';
 
@@ -26,6 +27,7 @@ interface Database {
   landingPageSettings: LandingPageSettings;
   testimonials: Testimonial[];
   registeredDeviceIds: string[];
+  customAppRequests: CustomAppRequest[];
 }
 
 // --- Seed Data ---
@@ -122,6 +124,7 @@ function getInitialData(): Database {
         enrollments: [],
         upgradeRequests: [],
         certificateRequests: [],
+        customAppRequests: [],
         paymentSettings: [
           {
             id: 'default_bca_1',
@@ -273,6 +276,7 @@ function getDB(): Database {
         if (!data.testimonials) data.testimonials = [];
         if (!data.confirmationContacts) data.confirmationContacts = [];
         if (!data.registeredDeviceIds) data.registeredDeviceIds = [];
+        if (!data.customAppRequests) data.customAppRequests = [];
 
         // Migrate PaymentSettings if it's in the old format
         if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
@@ -1188,5 +1192,70 @@ export function processPayout(userId: string): void {
 
     user.affiliatePaid += user.affiliateBalance;
     user.affiliateBalance = 0;
+    saveDB(db);
+}
+
+// --- Custom App Request API Functions ---
+export type PopulatedCustomAppRequest = CustomAppRequest & {
+  userName: string;
+  userAvatar: string;
+};
+
+export function getCustomAppRequests(): PopulatedCustomAppRequest[] {
+    const db = getDB();
+    return db.customAppRequests
+        .map(req => {
+            const user = db.users.find(u => u.id === req.userId);
+            return {
+                ...req,
+                userName: user?.name || 'N/A',
+                userAvatar: user?.avatarUrl || '',
+            };
+        })
+        .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+}
+
+export function getCustomAppRequestsForUser(userId: string): CustomAppRequest[] {
+    const db = getDB();
+    return db.customAppRequests
+        .filter(req => req.userId === userId)
+        .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+}
+
+export function createCustomAppRequest(
+  userId: string, 
+  appName: string, 
+  appKeywords: string, 
+  topology: GenerateAppTopologyOutput, 
+  paymentDetails: { bankName: string, accountHolder: string }
+): CustomAppRequest {
+  const db = getDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) throw new Error('Pengguna tidak ditemukan.');
+  if (user.role !== 'pro' && user.role !== 'admin') throw new Error('Hanya member Pro yang dapat mengajukan permintaan ini.');
+
+  const newRequest: CustomAppRequest = {
+    id: `custom_app_${Date.now()}`,
+    userId,
+    appName,
+    appKeywords,
+    topology,
+    paymentDetails,
+    requestDate: new Date().toISOString(),
+    status: 'pending_approval',
+  };
+
+  db.customAppRequests.push(newRequest);
+  saveDB(db);
+  return newRequest;
+}
+
+export function approveCustomAppRequest(requestId: string): void {
+    const db = getDB();
+    const request = db.customAppRequests.find(r => r.id === requestId);
+    if (!request) throw new Error('Permintaan tidak ditemukan.');
+    if (request.status !== 'pending_approval') throw new Error('Permintaan ini tidak dalam status menunggu persetujuan.');
+
+    request.status = 'in_progress';
     saveDB(db);
 }

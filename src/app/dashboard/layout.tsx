@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -29,6 +30,7 @@ import {
   FileClock,
   ToggleRight,
   DollarSign,
+  Rocket,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -48,6 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
     { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
     { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
+    { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
     { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
     { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
@@ -59,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
     { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
+    { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
     { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
     { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
     { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
@@ -95,7 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (item.label === 'Upgrade ke Pro') {
           return user.role === 'member'; // Only show for regular members
         }
-        if (item.label === 'Unduhan') {
+        if (item.label === 'Unduhan' || item.label === 'Request Aplikasi') {
           return user.role === 'pro'; // Only show for pro members
         }
         return true;
