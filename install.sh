@@ -1,33 +1,39 @@
 #!/bin/bash
 #
 # =================================================================
-# Auto Installer for Next.js App on Ubuntu 24
+# Pemasang Otomatis untuk Aplikasi Next.js di Ubuntu 24.04
 #
-# Creator: Tirta Sadewa
+# Disesuaikan untuk: CourseCentral
 #
-# This script will:
-# 1. Update the system and install necessary packages (Nginx, Git).
-# 2. Install Node.js (LTS version) and PM2.
-# 3. Configure Nginx as a reverse proxy for the Next.js app.
-# 4. Set up the firewall with UFW.
-# 5. Build and start the application using PM2 to run in the background.
+# Skrip ini akan:
+# 1. Memperbarui sistem dan memasang paket yang diperlukan (Nginx, Git).
+# 2. Memasang Node.js (versi LTS) dan PM2.
+# 3. Mengkonfigurasi Nginx sebagai reverse proxy untuk aplikasi Next.js.
+# 4. Menyiapkan firewall dengan UFW.
+# 5. Membuat file .env untuk variabel lingkungan.
+# 6. Membangun dan memulai aplikasi menggunakan PM2 agar berjalan di latar belakang.
 #
-# Usage:
-# 1. Place this script in the root of your Next.js project.
-# 2. Make it executable: chmod +x install.sh
-# 3. Run it with sudo: sudo ./install.sh
+# Penggunaan:
+# 1. Letakkan skrip ini di root proyek Next.js Anda.
+# 2. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
+# 3. Jalankan dengan sudo: sudo ./install.sh
 # =================================================================
 
-# --- Stop on any error ---
+# --- Berhenti jika ada kesalahan ---
 set -e
 
-# --- Configuration ---
-# The port your Next.js app will run on. `next start` defaults to 3000.
+# --- Konfigurasi ---
+# Port tempat aplikasi Next.js Anda akan berjalan. `next start` default-nya 3000.
 APP_PORT=3000
-# The name for your PM2 process.
-APP_NAME="nextjs-app"
+# Nama untuk proses PM2 Anda.
+APP_NAME="CourseCentral"
+# Direktori proyek (diasumsikan skrip berada di root proyek)
+PROJECT_DIR=$(pwd)
+# Pengguna yang menjalankan skrip (bukan root)
+RUN_USER=$(logname)
+RUN_HOME=$(eval echo ~$RUN_USER)
 
-# --- Style Functions ---
+# --- Fungsi Gaya ---
 echo_info() {
     echo -e "\033[1;34m[INFO]\033[0m $1"
 }
@@ -37,62 +43,94 @@ echo_success() {
 }
 
 echo_warn() {
-    echo -e "\033[1;33m[WARNING]\033[0m $1"
+    echo -e "\033[1;33m[PERINGATAN]\033[0m $1"
 }
 
+echo_error() {
+    echo -e "\033[1;31m[ERROR]\033[0m $1"
+}
 
-# --- Ensure the script is run as root ---
+# --- Memastikan skrip dijalankan sebagai root ---
 if [ "$(id -u)" -ne 0 ]; then
-  echo_warn "This script must be run as root. Please use sudo."
+  echo_error "Skrip ini harus dijalankan sebagai root. Silakan gunakan sudo."
   exit 1
 fi
 
-echo_info "Starting the installation process..."
+echo_info "Memulai proses instalasi untuk $APP_NAME..."
 
-# --- 1. System Update and Dependency Installation ---
-echo_info "Updating system packages and installing dependencies (nginx, curl, git)..."
+# --- 1. Pembaruan Sistem dan Pemasangan Dependensi ---
+echo_info "Memperbarui paket sistem dan memasang dependensi (nginx, curl, git)..."
 apt-get update
 apt-get upgrade -y
 apt-get install -y nginx curl git build-essential
 
-# --- 2. Install Node.js ---
-# Using NodeSource repository for Node.js 20.x (LTS)
-echo_info "Installing Node.js v20 LTS..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-apt-get install -y nodejs
+# --- 2. Pasang Node.js ---
+# Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
+if ! command -v node &> /dev/null; then
+    echo_info "Memasang Node.js v20 LTS..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    apt-get install -y nodejs
+else
+    echo_info "Node.js sudah terpasang."
+fi
 
-# --- 3. Install PM2 ---
-echo_info "Installing PM2 globally..."
-npm install -g pm2
+# --- 3. Pasang PM2 ---
+if ! command -v pm2 &> /dev/null; then
+    echo_info "Memasang PM2 secara global..."
+    npm install -g pm2
+else
+    echo_info "PM2 sudah terpasang."
+fi
 
-# --- 4. Build the Application ---
-# This script assumes it's located in the project root.
-echo_info "Installing project dependencies..."
-npm install
 
-echo_info "Building the Next.js application for production..."
-npm run build
+# --- 4. Bangun Aplikasi ---
+echo_info "Mengatur kepemilikan file ke pengguna $RUN_USER..."
+chown -R $RUN_USER:$RUN_USER $PROJECT_DIR
 
-# --- 5. Start the App with PM2 ---
-echo_info "Starting the application with PM2..."
-# PM2 is a process manager that will keep the app running in the background.
-# Check if the app is already running and delete it to ensure a fresh start
-pm2 delete "$APP_NAME" || true
-# The `pm2 start` command automatically runs the app in the background.
-pm2 start npm --name "$APP_NAME" -- start -p $APP_PORT
+# Menjalankan npm install dan build sebagai pengguna non-root
+echo_info "Memasang dependensi proyek (menjalankan sebagai $RUN_USER)..."
+sudo -u $RUN_USER npm install
 
-# --- 6. Configure Nginx ---
-echo_info "Configuring Nginx as a reverse proxy..."
+echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
+sudo -u $RUN_USER npm run build
 
-# Define the Nginx config content
+
+# --- 5. Siapkan Variabel Lingkungan (.env) ---
+echo_info "Membuat file .env..."
+if [ ! -f "$PROJECT_DIR/.env" ]; then
+  # Hanya membuat jika tidak ada
+  touch "$PROJECT_DIR/.env"
+  echo "GEMINI_API_KEY=" >> "$PROJECT_DIR/.env"
+  chown $RUN_USER:$RUN_USER "$PROJECT_DIR/.env"
+  echo_success "File .env telah dibuat."
+  echo_warn "PENTING: Harap edit file .env dan tambahkan GEMINI_API_KEY Anda agar fitur AI berfungsi."
+else
+  echo_info "File .env sudah ada, tidak ada perubahan."
+fi
+
+
+# --- 6. Mulai Aplikasi dengan PM2 ---
+echo_info "Memulai aplikasi dengan PM2..."
+# PM2 adalah manajer proses yang akan menjaga aplikasi tetap berjalan di latar belakang.
+# Hapus instance yang ada untuk memastikan awal yang baru
+sudo -u $RUN_USER pm2 delete "$APP_NAME" || true
+# `pm2 start` secara otomatis menjalankan aplikasi di latar belakang.
+# Menjalankan sebagai pengguna non-root untuk keamanan
+sudo -u $RUN_USER pm2 start npm --name "$APP_NAME" -- start -p $APP_PORT
+
+
+# --- 7. Konfigurasi Nginx ---
+echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
+
+# Tentukan konten konfigurasi Nginx
 NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
 
-    server_name _; # Replace _ with your domain name
+    server_name _; # Ganti _ dengan nama domain Anda
 
-    # Handle ACME-challenge for Let's Encrypt
+    # Menangani ACME-challenge untuk Let's Encrypt
     location /.well-known/acme-challenge/ {
         root /var/www/html;
     }
@@ -111,40 +149,45 @@ server {
 }
 "
 
-# Create the Nginx config file
+# Buat file konfigurasi Nginx
 echo "$NGINX_CONFIG" > /etc/nginx/sites-available/$APP_NAME
 
-# Remove the default Nginx config and enable our app's config
+# Hapus konfigurasi Nginx default dan aktifkan konfigurasi aplikasi kita
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
 
-# Test Nginx configuration and restart
-echo_info "Testing and restarting Nginx..."
+# Uji konfigurasi Nginx dan mulai ulang
+echo_info "Menguji dan memulai ulang Nginx..."
 nginx -t
 systemctl restart nginx
 
-# --- 7. Configure Firewall (UFW) ---
-echo_info "Configuring firewall with UFW..."
-ufw allow 'Nginx Full' # Allows both HTTP and HTTPS
+
+# --- 8. Konfigurasi Firewall (UFW) ---
+echo_info "Mengkonfigurasi firewall dengan UFW..."
+ufw allow 'Nginx Full' # Mengizinkan HTTP dan HTTPS
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 8. Set up PM2 to start on boot ---
-echo_info "Configuring PM2 to start on system reboot..."
-# The `pm2 startup` command generates a command to run. We capture it and execute it.
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(logname) --hp /home/$(logname)
-pm2 save
 
-echo_success "Installation complete!"
+# --- 9. Atur PM2 untuk memulai saat boot ---
+echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
+# `pm2 startup` menghasilkan perintah untuk dijalankan. Kita menangkap dan menjalankannya.
+# Menjalankan sebagai pengguna saat ini untuk menghindari masalah izin
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
+sudo -u $RUN_USER pm2 save
+
+
+echo_success "Instalasi Selesai!"
 echo "--------------------------------------------------"
-echo "Your Next.js application is now running in the background."
-echo "You can safely close your terminal connection."
+echo "Aplikasi Next.js Anda sekarang berjalan di latar belakang."
 echo ""
-echo "It is managed by PM2 under the name: $APP_NAME"
-echo "You can monitor it with: pm2 monit"
+echo "Dikelola oleh PM2 dengan nama: $APP_NAME"
+echo "Anda dapat memonitornya dengan: pm2 monit"
 echo ""
-echo "Nginx is configured to serve your app on port 80."
-echo "Point your domain's A record to this server's IP address."
+echo "Nginx dikonfigurasi untuk melayani aplikasi Anda di port 80."
+echo "Arahkan record A domain Anda ke alamat IP server ini."
 echo ""
-echo_warn "For HTTPS (recommended), run 'sudo certbot --nginx' after setting up your domain."
+echo_warn "Untuk HTTPS (disarankan), jalankan 'sudo certbot --nginx' setelah mengatur domain Anda."
+echo_warn "JANGAN LUPA: Edit file .env Anda dan tambahkan GEMINI_API_KEY."
 echo "--------------------------------------------------"
+
