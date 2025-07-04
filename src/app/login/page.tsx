@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -83,6 +84,9 @@ function LoginForm() {
 function RegisterForm() {
   const { register } = useAuth();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get('ref');
+
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -138,7 +142,7 @@ function RegisterForm() {
     
     setLoading(true);
     try {
-      await register({ name, username, password, whatsapp });
+      await register({ name, username, password, whatsapp, referredBy: refCode || undefined });
       toast({ title: 'Pendaftaran Berhasil!', description: 'Anda sekarang dapat masuk dengan akun baru Anda.' });
        // The context will handle redirection
     } catch (error) {
@@ -201,7 +205,7 @@ function RegisterForm() {
   );
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
   const [platformName, setPlatformName] = useState('Aplikasi Kursus');
 
   useEffect(() => {
@@ -256,5 +260,13 @@ export default function AuthPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthPageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -12,6 +13,10 @@ export type User = {
   lastLoginAt: string;
   status: 'active' | 'inactive';
   loginCount: number;
+  referralCode: string;
+  referredBy?: string;
+  affiliateBalance: number;
+  affiliatePaid: number;
 };
 
 export type Course = {

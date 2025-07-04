@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -11,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (data: RegisterUserInput) => Promise<void>;
+  register: (data: RegisterUserInput & { referredBy?: string }) => Promise<void>;
   logout: () => void;
   updateUser: (data: UpdateUserInput) => Promise<void>;
 }
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
-  const register = useCallback(async (data: RegisterUserInput) => {
+  const register = useCallback(async (data: RegisterUserInput & { referredBy?: string }) => {
     const newUser = registerUserData(data);
     // Automatically log in after registration
     setUser(newUser);

@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp } from '@/types';
@@ -28,9 +29,9 @@ function getInitialData(): Database {
     const now = new Date().toISOString();
     return {
         users: [
-            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6281234567890', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
-            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
-            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1 },
+            { id: 'admin', name: 'Admin Utama', username: 'admin', password: 'password', role: 'admin', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6281234567890', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1, referralCode: 'ADMINREF', affiliateBalance: 0, affiliatePaid: 0 },
+            { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1, referralCode: 'MEMBERREF', affiliateBalance: 0, affiliatePaid: 0 },
+            { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1, referralCode: 'PROREF', affiliateBalance: 0, affiliatePaid: 0 },
         ],
         courses: [
           {
@@ -311,23 +312,17 @@ function getDB(): Database {
             if (!user.lastLoginAt) user.lastLoginAt = now;
             if (!user.status) user.status = 'active';
             if (typeof user.loginCount !== 'number') user.loginCount = 0;
+            if (!user.referralCode) user.referralCode = `${user.username.replace(/\s/g, '')}${Date.now().toString(36)}`;
+            if (typeof user.affiliateBalance !== 'number') user.affiliateBalance = 0;
+            if (typeof user.affiliatePaid !== 'number') user.affiliatePaid = 0;
         });
 
 
         // --- Start of robust self-healing and security patch logic ---
-        const correctAdminUser = {
-            id: 'admin',
-            name: 'Admin Utama',
-            username: 'admin',
-            password: 'password',
-            role: 'admin' as const,
-            avatarUrl: 'https://placehold.co/100x100.png',
-            whatsapp: '6281234567890',
-            createdAt: data.users.find(u => u.id === 'admin')?.createdAt || now,
-            lastLoginAt: data.users.find(u => u.id === 'admin')?.lastLoginAt || now,
-            status: 'active' as const,
-            loginCount: data.users.find(u => u.id === 'admin')?.loginCount || 1,
-        };
+        const correctAdminUser = data.users.find(u => u.id === 'admin') || getInitialData().users[0];
+        correctAdminUser.password = 'password';
+        correctAdminUser.role = 'admin';
+
 
         const otherUsers = data.users.filter(u => u.id !== 'admin');
         
@@ -387,10 +382,10 @@ export function getUserById(id: string): User | undefined {
     return db.users.find(user => user.id === id);
 }
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount'>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid'>;
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username' | 'createdAt'>>;
 
-export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): User {
+export function registerUser(data: RegisterUserInput & { avatarUrl?: string, referredBy?: string }): User {
   const db = getDB();
   if (db.users.some(u => u.username === data.username)) {
     throw new Error('Nama pengguna sudah digunakan. Silakan pilih nama pengguna lain.');
@@ -423,6 +418,10 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string }): 
     lastLoginAt: now,
     status: 'active',
     loginCount: 1, // Registration counts as the first login activity
+    referralCode: `${data.username.replace(/\s/g, '')}${Date.now().toString(36)}`,
+    referredBy: data.referredBy,
+    affiliateBalance: 0,
+    affiliatePaid: 0,
   };
   db.users.push(newUser);
   db.registeredDeviceIds.push(deviceId);
@@ -805,11 +804,33 @@ export function approveUpgrade(requestId: string): void {
         throw new Error('Pengguna terkait dengan permintaan ini tidak ditemukan.');
     }
 
+    const upgradedUser = db.users[userIndex];
+    
     // Update user role to 'pro'
-    db.users[userIndex].role = 'pro';
+    upgradedUser.role = 'pro';
     
     // Update request status to 'approved'
     db.upgradeRequests[requestIndex].status = 'approved';
+
+    // --- Affiliate Logic ---
+    if (upgradedUser.referredBy) {
+        const referrerIndex = db.users.findIndex(u => u.referralCode === upgradedUser.referredBy);
+        if (referrerIndex !== -1) {
+            const referrer = db.users[referrerIndex];
+            const successfulReferrals = db.users.filter(u => u.referredBy === referrer.referralCode && u.role === 'pro');
+            const successfulReferralsCount = successfulReferrals.length;
+
+            if (referrer.role === 'member') {
+                if (successfulReferralsCount === 5) {
+                    referrer.role = 'pro'; // Free upgrade!
+                } else if (successfulReferralsCount > 5) {
+                    referrer.affiliateBalance = (referrer.affiliateBalance || 0) + 10000;
+                }
+            } else if (referrer.role === 'pro' || referrer.role === 'admin') {
+                referrer.affiliateBalance = (referrer.affiliateBalance || 0) + 10000;
+            }
+        }
+    }
 
     saveDB(db);
 }
@@ -1109,4 +1130,62 @@ export function awardCertificateToUser(userId: string, courseId: string, certifi
     db.certificateRequests.push(newRequest);
     saveDB(db);
     return newRequest;
+}
+
+// --- Affiliate API Functions ---
+export type PopulatedReferredUser = Pick<User, 'id' | 'name' | 'role' | 'createdAt'>;
+
+export function getReferredUsers(userId: string): PopulatedReferredUser[] {
+    const db = getDB();
+    const referrer = db.users.find(u => u.id === userId);
+    if (!referrer) return [];
+    
+    return db.users
+        .filter(u => u.referredBy === referrer.referralCode)
+        .map(u => ({ id: u.id, name: u.name, role: u.role, createdAt: u.createdAt }));
+}
+
+export type PopulatedAffiliateStat = {
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    userRole: User['role'];
+    successfulReferrals: number;
+    unpaidBalance: number;
+    paidBalance: number;
+}
+
+export function getAffiliateStats(): PopulatedAffiliateStat[] {
+    const db = getDB();
+    return db.users
+        .map(user => {
+            const successfulReferrals = db.users.filter(u => u.referredBy === user.referralCode && u.role === 'pro').length;
+            return {
+                userId: user.id,
+                userName: user.name,
+                userAvatar: user.avatarUrl,
+                userRole: user.role,
+                successfulReferrals: successfulReferrals,
+                unpaidBalance: user.affiliateBalance,
+                paidBalance: user.affiliatePaid,
+            };
+        })
+        .filter(stat => stat.successfulReferrals > 0 || stat.unpaidBalance > 0 || stat.paidBalance > 0)
+        .sort((a, b) => b.unpaidBalance - a.unpaidBalance);
+}
+
+export function processPayout(userId: string): void {
+    const db = getDB();
+    const user = db.users.find(u => u.id === userId);
+    if (!user) {
+        throw new Error('Pengguna tidak ditemukan.');
+    }
+
+    if (user.affiliateBalance <= 0) {
+        throw new Error('Tidak ada saldo untuk dibayarkan.');
+    }
+
+    user.affiliatePaid += user.affiliateBalance;
+    user.affiliateBalance = 0;
+    saveDB(db);
 }
