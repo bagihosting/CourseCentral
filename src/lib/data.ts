@@ -453,7 +453,7 @@ export function deleteUser(userId: string): void {
     
     const testimonialToDelete = db.testimonials.find(t => t.userId === userId);
     if (testimonialToDelete) {
-      db.testimonials = db.testimonials.filter(t => t.userId !== userId);
+      db.testimonials = db.testimonials.filter(t => t.userId !== testimonialToDelete.id);
       db.landingPageSettings.featuredTestimonialIds = db.landingPageSettings.featuredTestimonialIds.filter(id => id !== testimonialToDelete.id);
     }
     
