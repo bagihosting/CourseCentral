@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
@@ -354,7 +355,7 @@ export async function generateCertificateAction(
   try {
     const result = await generateCertificateFlow(input);
     // Sanitize the generated HTML before returning it to the client
-    result.certificateHtml = DOMPurify.sanitize(result.certificateHtml);
+    result.certificateHtml = DOMPurify.sanitize(result.certificateHtml, { WHOLE_DOCUMENT: true });
     return result;
   } catch (error) {
     console.error('Error generating certificate:', error);
@@ -390,7 +391,7 @@ export async function generateAndApproveCertificateAction(
     try {
         const generationResult = await generateCertificateFlow(generationInput);
         // Sanitize the generated HTML before saving it
-        const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml);
+        const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml, { WHOLE_DOCUMENT: true });
         approveCertificateRequest(requestId, cleanHtml);
         return { success: true };
     } catch (error) {
@@ -407,7 +408,7 @@ export async function awardCertificateAction(
 ): Promise<{ success: boolean } | { error: string }> {
     try {
         // Sanitize the HTML before saving it
-        const cleanHtml = DOMPurify.sanitize(certificateHtml);
+        const cleanHtml = DOMPurify.sanitize(certificateHtml, { WHOLE_DOCUMENT: true });
         awardCertificateToUser(userId, courseId, cleanHtml);
         return { success: true };
     } catch (error) {
