@@ -63,16 +63,24 @@ const generateCertificateFlow = ai.defineFlow(
           3.  **Decorative Frame (SVG)**: Create a beautiful, modern, and intricate certificate border or frame. **You MUST use inline SVG for the frame** to create elegant patterns, guilloche, or geometric designs in the corners and/or along the edges. Do not use a simple CSS border. The frame should look sophisticated and premium. Use a color palette based on a deep, professional blue (#0A2240) and gold accents (#D4AF37).
           4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
           5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "{{{participantName}}}", "has successfully completed the course", "{{{courseName}}}", "on {{{completionDate}}}".
-          6.  **Signature Area (SVG)**: Below the main content, create a centered signature block. It MUST contain:
-              - A **realistic, elegant, handwritten signature for the name 'Scriptify' generated as an inline SVG path**. It should use a dark color and look like a real signature. Do not just use a cursive font.
-              - The organizer's name: \`{{{organizerName}}}\`.
-              - The NIP number below the name: \`{{{nip}}}\`.
+          6.  **Signature & Organizer Block (SVG/HTML)**: Below the main content, create a single, centered block for the signature and organizer details. This block MUST contain the following elements, stacked vertically in this exact order:
+              a.  A **realistic, elegant, handwritten signature for the name 'Scriptify', generated as an inline SVG path**. It should look like a real signature, not just a cursive font.
+              b.  The organizer's name: \`{{{organizerName}}}\`.
+              c.  The NIB (Nomor Ijin Berusaha) number below the organizer's name: \`{{{nip}}}\`.
+              d.  The organizer's logo, rendered as an \`<img>\` tag using the URL \`{{{logoUrl}}}\`. The logo MUST be placed directly below the NIB number and styled appropriately (e.g., max-height: 50px, margin-top: 10px).
           7.  **QR Code & Serial (SVG)**: Place this in a corner (e.g., bottom-left). It MUST contain:
               - A **valid, scannable QR code generated as an inline SVG** that links to the URL: \`https://scriptify.com/dashboard/courses/{{{courseId}}}\`. The QR code should be black on a white background.
               - The text "Serial No: {{{serialNumber}}}" next to or below the QR code.
-          8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in \`<style>\` tags or as inline SVG. No external files.
-          9.  **Logo Placement**: The organizer's logo should be placed prominently, usually at the top center. Use this URL for the logo: \`{{{logoUrl}}}\`. Render it as \`<img src="{{{logoUrl}}}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />\`.
+          8.  **Self-Contained**: All CSS and SVG MUST be included within the HTML file in \`<style>\` tags or as inline SVG. No external files. Do not use top-level logo placement anymore; it must be in the signature block.
         `,
+        config: {
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+              threshold: 'BLOCK_NONE',
+            },
+          ]
+        },
     });
     
     // Generate the final HTML using the single, consolidated prompt
