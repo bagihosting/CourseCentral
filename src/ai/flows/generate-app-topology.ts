@@ -65,6 +65,14 @@ const generateAppTopologyFlow = ai.defineFlow(
         5.  **User Flow**: Describe the main user journey in one or two sentences. Keep it high-level.
         6.  **Language**: All output must be in Bahasa Indonesia.
       `,
+      config: {
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_NONE',
+          },
+        ],
+      },
     });
     
     const { output } = await prompt(input);
