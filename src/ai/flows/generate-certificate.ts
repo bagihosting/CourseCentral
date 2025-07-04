@@ -37,6 +37,8 @@ const generateCertificateFlow = ai.defineFlow(
     // 1. Generate unique/consistent data
     const serialNumber = `CERT-${Date.now()}-${crypto.randomUUID().substring(0, 4).toUpperCase()}`;
     const nip = '31.7405.527108.1001'; 
+    // Define a static, consistent SVG path for the "Scriptify" signature to ensure it doesn't change on each generation.
+    const signatureSvgPath = "M20 70 C 30 20, 60 20, 70 70 S 100 120, 110 70 C 120 20, 150 20, 160 70 C 165 50, 175 50, 180 70 C 185 90, 195 90, 200 70 T 220 70 C 230 60, 240 60, 250 70 C 255 80, 265 80, 270 70";
 
     // Define prompt inside the flow to avoid module-level object exports.
     const certificateHtmlPrompt = ai.definePrompt({
@@ -50,6 +52,7 @@ const generateCertificateFlow = ai.defineFlow(
             courseId: z.string(),
             serialNumber: z.string(),
             nip: z.string(),
+            signatureSvgPath: z.string().describe('A static SVG path for the signature.'),
         }) },
         output: { schema: z.object({ certificateHtml: z.string() }) },
         prompt: `
@@ -64,7 +67,7 @@ const generateCertificateFlow = ai.defineFlow(
           4.  **Typography**: Use professional and elegant fonts from Google Fonts (e.g., 'Merriweather' for headings, 'Lato' or 'Montserrat' for body text). The main title "Certificate of Completion" should be large and prominent.
           5.  **Content**: The certificate must include the following texts clearly: "Certificate of Completion", "This is to certify that", "{{{participantName}}}", "has successfully completed the course", "{{{courseName}}}", "on {{{completionDate}}}".
           6.  **Signature & Organizer Block (SVG/HTML)**: Below the main content, create a single, centered block for the signature and organizer details. This block MUST contain the following elements, stacked vertically in this exact order:
-              a.  A **realistic, elegant, handwritten signature for the name 'Scriptify', generated as an inline SVG path**. It should look like a real signature, not just a cursive font.
+              a.  An **inline SVG of a signature**. You MUST use the exact SVG path data provided in \`signatureSvgPath\` to render it. It should be styled with a black stroke and no fill. Example: \`<svg viewBox="0 0 300 100" height="50"><path d="{{{signatureSvgPath}}}" stroke="black" stroke-width="2.5" fill="none"/></svg>\`.
               b.  The organizer's name: \`{{{organizerName}}}\`.
               c.  The NIB (Nomor Ijin Berusaha) number below the organizer's name: \`{{{nip}}}\`.
               d.  The organizer's logo, rendered as an \`<img>\` tag using the URL \`{{{logoUrl}}}\`. The logo MUST be placed directly below the NIB number and styled appropriately (e.g., max-height: 50px, margin-top: 10px).
@@ -88,6 +91,7 @@ const generateCertificateFlow = ai.defineFlow(
         ...input,
         serialNumber,
         nip,
+        signatureSvgPath,
     });
     if (!output || !output.certificateHtml) {
       throw new Error("Gagal membuat HTML sertifikat. Model AI tidak mengembalikan konten yang valid.");
