@@ -189,7 +189,7 @@ function RegisterForm() {
           >
             Saya setuju dengan{' '}
             <Link href="/terms-conditions" className="underline hover:text-primary">
-              Syarat & Ketentuan
+              Syarat &amp; Ketentuan
             </Link>
           </label>
           <p className="text-sm text-muted-foreground">

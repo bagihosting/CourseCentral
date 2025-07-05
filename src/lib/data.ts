@@ -2,7 +2,6 @@
 
 
 
-'use client';
 
 // ====================================================================
 // PANDUAN MANUAL: MIGRASI KE DATABASE MARIADB/MYSQL
@@ -269,8 +268,8 @@ function getInitialData(): Database {
               { id: 'makalah', title: 'AI Generator Makalah', description: 'Buat makalah perkuliahan lengkap dengan judul, isi, dan daftar pustaka.', icon: 'BookCopy', enabled: true },
               { id: 'blogger', title: 'AI Template Blogger', description: 'Buat template Blogger yang responsif dan dapat disesuaikan secara instan.', icon: 'Bot', enabled: true },
               { id: 'skripsi', title: 'AI Asisten Skripsi', description: 'Hasilkan draf untuk bab skripsi Anda dengan bantuan AI.', icon: 'FileText', enabled: true },
-              { id: 'wordpress', title: 'Plugin Wordpress', description: 'Buat file boilerplate (readme.txt & php) untuk plugin WordPress.', icon: 'Plug', enabled: true },
-              { id: 'google-ads', title: 'AI Google Ads Copy', description: 'Buat teks iklan (headlines & descriptions) untuk kampanye Google Ads.', icon: 'Megaphone', enabled: true },
+              { id: 'wordpress', title: 'Plugin Wordpress', description: 'Buat file boilerplate (readme.txt &amp; php) untuk plugin WordPress.', icon: 'Plug', enabled: true },
+              { id: 'google-ads', title: 'AI Google Ads Copy', description: 'Buat teks iklan (headlines &amp; descriptions) untuk kampanye Google Ads.', icon: 'Megaphone', enabled: true },
               { id: 'digital-invitation', title: 'AI Undangan Digital', description: 'Buat teks dan konsep desain untuk undangan digital Anda.', icon: 'Mail', enabled: true },
               { id: 'umkm', title: 'AI Asisten UMKM', description: 'Buat nama, slogan, dan deskripsi singkat untuk bisnis Anda.', icon: 'Briefcase', enabled: true },
               { id: 'spss', title: 'AI Asisten SPSS', description: 'Buat sintaks SPSS dan dapatkan penjelasan untuk analisis statistik Anda.', icon: 'BarChart', enabled: true },
@@ -329,8 +328,14 @@ function getDB(): Database {
     
     if (dbString) {
         try {
-            // Coba parse data yang ada. Jika berhasil, kembalikan.
-            return JSON.parse(dbString);
+            const db = JSON.parse(dbString);
+            // Self-healing: Ensure aiApps are in sync with initialData
+            const initialApps = getInitialData().landingPageSettings.aiApps;
+            if (JSON.stringify(db.landingPageSettings.aiApps) !== JSON.stringify(initialApps)) {
+                db.landingPageSettings.aiApps = initialApps;
+                saveDB(db);
+            }
+            return db;
         } catch (e) {
             console.error("Gagal mem-parsing DB dari localStorage, mengatur ulang.", e);
             // Jika parsing gagal, lanjutkan untuk membuat data awal yang baru.
