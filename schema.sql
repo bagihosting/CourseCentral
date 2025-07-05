@@ -1,24 +1,22 @@
--- =====================================================================
--- Skema Database CourseCentral untuk MariaDB/MySQL
--- =====================================================================
--- Panduan:
--- 1. Jalankan skrip ini di dalam database MariaDB Anda untuk membuat
---    semua tabel yang diperlukan.
--- 2. Setelah tabel dibuat, langkah selanjutnya adalah memodifikasi kode
---    di `src/lib/data.ts` untuk berinteraksi dengan tabel-tabel ini
---    menggunakan query SQL, bukan localStorage.
--- =====================================================================
+-- ====================================================================
+-- SKEMA DATABASE SCRIPTIFY (MariaDB/MySQL)
+-- ====================================================================
+-- Versi: 1.1
+-- Deskripsi: Skema ini mencakup semua tabel yang diperlukan untuk
+-- menjalankan aplikasi Scriptify dengan database MariaDB, menggantikan
+-- ketergantungan pada localStorage.
+-- ====================================================================
 
+-- --------------------------------------------------------------------
+-- Tabel Inti Pengguna & Otentikasi
+-- Fitur yang Dicakup: Pendaftaran, Login, Pengaturan Akun, Total Pengguna
+-- --------------------------------------------------------------------
 
--- -----------------------------------------------------
--- Tabel: users
--- Menyimpan semua data pengguna, termasuk admin dan member.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(255) NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `username` VARCHAR(100) NOT NULL UNIQUE,
-  `password` VARCHAR(255) NOT NULL,
+  `password` VARCHAR(255) NOT NULL, -- Harus di-hash dalam produksi nyata
   `role` ENUM('admin', 'member', 'pro') NOT NULL DEFAULT 'member',
   `avatarUrl` TEXT,
   `whatsapp` VARCHAR(20),
@@ -28,118 +26,107 @@ CREATE TABLE IF NOT EXISTS `users` (
   `loginCount` INT NOT NULL DEFAULT 0,
   `referralCode` VARCHAR(255) NOT NULL UNIQUE,
   `referredBy` VARCHAR(255),
-  `affiliateBalance` INT NOT NULL DEFAULT 0,
-  `affiliatePaid` INT NOT NULL DEFAULT 0,
+  `affiliateBalance` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `affiliatePaid` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- -----------------------------------------------------
--- Tabel: courses
--- Menyimpan katalog semua kursus yang tersedia.
--- -----------------------------------------------------
+-- --------------------------------------------------------------------
+-- Tabel Manajemen Kursus
+-- Fitur yang Dicakup: Katalog Kursus, Kursus Saya, Kursus Diikuti, Total Kursus, Total Pelajaran
+-- --------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS `courses` (
   `id` VARCHAR(255) NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT NOT NULL,
   `instructor` VARCHAR(255) NOT NULL,
-  `price` INT NOT NULL DEFAULT 0,
-  `imageUrl` TEXT NOT NULL,
+  `price` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `imageUrl` TEXT,
   `accessLevel` ENUM('public', 'pro') NOT NULL DEFAULT 'public',
   `seoTitle` VARCHAR(255),
   `seoDescription` TEXT,
   `seoKeywords` TEXT,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: modules
--- Modul-modul pembelajaran di dalam setiap kursus.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `modules` (
   `id` VARCHAR(255) NOT NULL,
-  `course_id` VARCHAR(255) NOT NULL,
+  `courseId` VARCHAR(255) NOT NULL,
   `title` VARCHAR(255) NOT NULL,
+  `orderIndex` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`courseId`) REFERENCES `courses`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: lessons
--- Pelajaran-pelajaran di dalam setiap modul.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `lessons` (
   `id` VARCHAR(255) NOT NULL,
-  `module_id` VARCHAR(255) NOT NULL,
+  `moduleId` VARCHAR(255) NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `type` ENUM('video', 'youtube', 'text', 'zip') NOT NULL,
   `contentUrl` TEXT,
-  `content` MEDIUMTEXT,
+  `content` LONGTEXT,
   `downloadable` BOOLEAN NOT NULL DEFAULT FALSE,
+  `orderIndex` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`module_id`) REFERENCES `modules`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`moduleId`) REFERENCES `modules`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: enrollments
--- Mencatat pengguna mana yang terdaftar di kursus mana.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `enrollments` (
-  `user_id` VARCHAR(255) NOT NULL,
-  `course_id` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`user_id`, `course_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  `userId` VARCHAR(255) NOT NULL,
+  `courseId` VARCHAR(255) NOT NULL,
+  `enrolledAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`userId`, `courseId`),
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`courseId`) REFERENCES `courses`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `lesson_progress` (
+  `userId` VARCHAR(255) NOT NULL,
+  `lessonId` VARCHAR(255) NOT NULL,
+  `completedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`userId`, `lessonId`),
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`lessonId`) REFERENCES `lessons`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- -----------------------------------------------------
--- Tabel: upgrade_requests
--- Menyimpan riwayat permintaan upgrade ke Pro.
--- -----------------------------------------------------
+-- --------------------------------------------------------------------
+-- Tabel Permintaan & Transaksi
+-- Fitur yang Dicakup: Permintaan Pro, Permintaan Sertifikat, Request Aplikasi
+-- --------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS `upgrade_requests` (
   `id` VARCHAR(255) NOT NULL,
-  `user_id` VARCHAR(255) NOT NULL,
+  `userId` VARCHAR(255) NOT NULL,
   `bankName` VARCHAR(255) NOT NULL,
   `accountHolder` VARCHAR(255) NOT NULL,
   `requestDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` ENUM('pending', 'approved') NOT NULL DEFAULT 'pending',
+  `status` ENUM('pending', 'approved') NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: certificate_requests
--- Menyimpan riwayat permintaan dan sertifikat yang sudah jadi.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `certificate_requests` (
   `id` VARCHAR(255) NOT NULL,
-  `user_id` VARCHAR(255) NOT NULL,
-  `course_id` VARCHAR(255) NOT NULL,
+  `userId` VARCHAR(255) NOT NULL,
+  `courseId` VARCHAR(255) NOT NULL,
   `requestDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` ENUM('pending', 'approved') NOT NULL DEFAULT 'pending',
-  `certificateHtml` MEDIUMTEXT,
-  `approvedAt` TIMESTAMP NULL,
+  `status` ENUM('pending', 'approved') NOT NULL,
+  `certificateHtml` LONGTEXT,
+  `approvedAt` TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`courseId`) REFERENCES `courses`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: custom_app_requests
--- Menyimpan riwayat permintaan aplikasi kustom.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `custom_app_requests` (
   `id` VARCHAR(255) NOT NULL,
-  `user_id` VARCHAR(255) NOT NULL,
+  `userId` VARCHAR(255) NOT NULL,
   `appName` VARCHAR(255) NOT NULL,
-  `appKeywords` TEXT NOT NULL,
+  `appKeywords` TEXT,
   `topology` JSON,
   `requestDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `status` ENUM('pending_approval', 'in_progress', 'completed', 'rejected') NOT NULL,
@@ -147,78 +134,74 @@ CREATE TABLE IF NOT EXISTS `custom_app_requests` (
   `adminNotes` TEXT,
   `resultLink` TEXT,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- -----------------------------------------------------
--- Tabel: testimonials
--- Menyimpan testimoni dari pengguna.
--- -----------------------------------------------------
+-- --------------------------------------------------------------------
+-- Tabel Afiliasi & Testimoni
+-- Fitur yang Dicakup: Afiliasi, Testimoni dan Ulasan Anda
+-- --------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `affiliate_payouts` (
+  `id` VARCHAR(255) NOT NULL,
+  `userId` VARCHAR(255) NOT NULL,
+  `amount` DECIMAL(10, 2) NOT NULL,
+  `payoutDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `notes` TEXT,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `testimonials` (
   `id` VARCHAR(255) NOT NULL,
-  `user_id` VARCHAR(255) NOT NULL,
+  `userId` VARCHAR(255) NOT NULL UNIQUE, -- Satu testimoni per pengguna
   `quote` TEXT NOT NULL,
-  `rating` INT NOT NULL,
+  `rating` TINYINT NOT NULL,
   `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_id_unique` (`user_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+  FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- -----------------------------------------------------
--- Tabel: payment_accounts
--- Pengaturan rekening bank untuk pembayaran.
--- -----------------------------------------------------
+-- --------------------------------------------------------------------
+-- Tabel Pengaturan Global & Lainnya
+-- Fitur yang Dicakup: Pengaturan Global, Pengaturan Aplikasi, Halaman Depan
+-- --------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS `payment_accounts` (
   `id` VARCHAR(255) NOT NULL,
-  `bankName` VARCHAR(100) NOT NULL,
+  `bankName` VARCHAR(255) NOT NULL,
   `accountNumber` VARCHAR(100) NOT NULL,
   `accountHolder` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: confirmation_contacts
--- Pengaturan kontak admin untuk konfirmasi.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `confirmation_contacts` (
   `id` VARCHAR(255) NOT NULL,
-  `name` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
   `whatsapp` VARCHAR(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- -----------------------------------------------------
--- Tabel: settings
--- Tabel tunggal untuk menyimpan berbagai pengaturan aplikasi.
--- Menggunakan pendekatan key-value.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `settings` (
-  `setting_key` VARCHAR(255) NOT NULL,
-  `setting_value` JSON,
-  PRIMARY KEY (`setting_key`)
-) ENGINE=InnoDB;
+  `key` VARCHAR(255) NOT NULL,
+  `value` JSON,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Catatan: Pengaturan seperti SEO dan Landing Page dapat disimpan di tabel `settings`
+-- dengan `key` = 'seoSettings' atau 'landingPageSettings' dan `value` berisi objek JSON.
+-- Ini memberikan fleksibilitas untuk menambahkan pengaturan baru tanpa mengubah skema.
 
--- -----------------------------------------------------
--- Tabel: ai_apps
--- Mengelola aplikasi AI yang tersedia.
--- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `ai_apps` (
-  `id` VARCHAR(100) NOT NULL,
-  `title` VARCHAR(255) NOT NULL,
-  `description` TEXT,
-  `icon` VARCHAR(100),
-  `enabled` BOOLEAN NOT NULL DEFAULT TRUE,
-  `sort_order` INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
+    `id` VARCHAR(100) NOT NULL,
+    `title` VARCHAR(255) NOT NULL,
+    `description` TEXT,
+    `icon` VARCHAR(100),
+    `enabled` BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Catatan: Data untuk 'seo_settings' dan 'landing_page_settings' dapat disimpan di
--- tabel `settings` dengan `setting_key` seperti 'seo' dan 'landingPage'.
--- 'setting_value' akan berisi data JSON lengkap untuk setiap pengaturan.
--- Ini memberikan fleksibilitas tanpa harus mengubah skema jika ada penambahan field baru.
+-- Anda perlu mengisi tabel `ai_apps` dan `settings` dengan data awal
+-- menggunakan pernyataan INSERT setelah tabel dibuat.
