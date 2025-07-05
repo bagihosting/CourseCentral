@@ -22,9 +22,10 @@ export async function getUserById(id: string): Promise<User | undefined> {
     }
     return undefined;
   } catch (error) {
-    console.error("Gagal mengambil pengguna dari DB:", error);
-    // Di lingkungan produksi, Anda mungkin ingin melempar error yang lebih umum
-    throw new Error("Gagal mengambil data pengguna.");
+    console.error("🔴 Gagal mengambil pengguna dari DB di getUserById:", error);
+    // Lemparkan kembali error asli agar pesan error yang sebenarnya muncul di log dan di browser (selama development).
+    // Ini akan memberikan petunjuk yang lebih jelas tentang masalah koneksi atau query.
+    throw error;
   }
 }
 
@@ -67,7 +68,8 @@ export async function validateUser(username: string, password: string): Promise<
         if (error instanceof Error && error.message === 'ACCOUNT_INACTIVE') {
             throw error; // Lemparkan kembali error spesifik ini
         }
-        console.error("Error saat validasi pengguna:", error);
-        throw new Error("Terjadi kesalahan pada server saat mencoba masuk.");
+        console.error("🔴 Error saat validasi pengguna di validateUser:", error);
+        // Lemparkan kembali error asli untuk debugging.
+        throw error;
     }
 }

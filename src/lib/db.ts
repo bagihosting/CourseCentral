@@ -12,4 +12,23 @@ export const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-console.log('Koneksi pool database MariaDB telah dibuat.');
+async function testConnection() {
+    try {
+        const connection = await pool.getConnection();
+        console.log("✅ Koneksi database MariaDB berhasil.");
+        connection.release();
+    } catch (error) {
+        console.error("❌ GAGAL TERHUBUNG KE DATABASE ❌");
+        console.error("==========================================");
+        console.error("Ini biasanya terjadi karena salah satu dari alasan berikut:");
+        console.error("1. Kontainer Docker untuk MariaDB belum berjalan. Coba jalankan `docker-compose up -d`.");
+        console.error("2. Detail koneksi di file .env Anda salah (host, user, password, atau nama database).");
+        console.error("3. Firewall memblokir koneksi ke port 3306.");
+        console.error("\nDetail Error Asli:");
+        console.error(error);
+        console.error("==========================================");
+    }
+}
+
+// Jalankan tes koneksi saat aplikasi dimulai
+testConnection();
