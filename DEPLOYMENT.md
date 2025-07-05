@@ -1,122 +1,140 @@
-# Panduan Deployment Aplikasi ke VPS Ubuntu 24.04
+Dokumen ini berisi dua metode untuk men-deploy aplikasi Next.js Anda ke server pribadi virtual (VPS) yang menjalankan Ubuntu 24.04.
 
-Dokumen ini menjelaskan cara men-deploy aplikasi Next.js Anda ke server pribadi virtual (VPS) yang menjalankan Ubuntu 24.04 menggunakan skrip `install.sh` yang telah disediakan.
-
-## Prasyarat
-
-- Sebuah server VPS baru yang menjalankan **Ubuntu 24.04**.
-- Akses SSH ke server Anda dengan pengguna yang memiliki hak `sudo`.
-- Nama domain yang sudah Anda beli (opsional, tapi sangat disarankan).
+- **Metode 1** adalah cara tradisional menggunakan Nginx dan PM2 secara langsung di server. Ini bagus untuk pemula.
+- **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
 
 ---
 
-## Langkah 1: Persiapan
+## Metode 1: Deployment Langsung di VPS (Nginx + PM2)
+
+Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan instalasi langsung di server.
+
+### Prasyarat
+
+- Sebuah server VPS baru yang menjalankan **Ubuntu 24.04**.
+- Akses SSH ke server Anda dengan pengguna yang memiliki hak `sudo`.
+
+### Langkah 1: Persiapan
 
 Sebelum menjalankan skrip, Anda perlu mengunggah file proyek Anda ke server.
 
 1.  **Kompres Folder Proyek Anda**: Di komputer lokal Anda, kompres seluruh folder proyek Anda menjadi satu file (misalnya `CourseCentral.zip`).
-
 2.  **Unggah File ke Server**: Gunakan `scp` (atau klien SFTP seperti FileZilla) untuk mengunggah file ZIP tersebut ke direktori home pengguna di server Anda.
-
     ```bash
     # Contoh menggunakan scp
     scp /path/to/your/local/CourseCentral.zip username@alamat_ip_server:~/
     ```
-
 3.  **Unggah Skrip Instalasi**: Unggah juga skrip `install.sh` ke direktori home yang sama.
-
     ```bash
     scp /path/to/your/local/install.sh username@alamat_ip_server:~/
     ```
-
 4.  **Masuk ke Server dan Ekstrak**:
     - Masuk ke server Anda melalui SSH: `ssh username@alamat_ip_server`
     - Instal `unzip` jika belum ada: `sudo apt update && sudo apt install unzip`
     - Ekstrak file proyek Anda: `unzip CourseCentral.zip`
-
     Sekarang, Anda seharusnya memiliki folder proyek (misalnya `/home/username/CourseCentral`) dan file `install.sh` di direktori home Anda.
 
----
+### Langkah 2: Konfigurasi dan Instalasi
 
-## Langkah 2: Konfigurasi dan Instalasi
-
-1.  **Konfigurasi Skrip (Opsional)**:
-    Buka skrip `install.sh` menggunakan editor teks seperti `nano` untuk memeriksa konfigurasinya.
-    ```bash
-    nano install.sh
-    ```
-    Pastikan `PROJECT_DIR_NAME` cocok dengan nama folder proyek Anda. Biasanya Anda tidak perlu mengubah yang lain.
-
-2.  **Jadikan Skrip Dapat Dieksekusi**:
-    Berikan izin eksekusi pada skrip.
-    ```bash
-    chmod +x install.sh
-    ```
-
-3.  **Jalankan Skrip Instalasi**:
-    Jalankan skrip dengan hak akses `sudo`.
+1.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
+2.  **Jalankan Skrip Instalasi**: Jalankan skrip dengan hak akses `sudo`.
     ```bash
     sudo ./install.sh
     ```
-    Skrip akan melakukan semua hal berikut secara otomatis:
-    - Memperbarui sistem.
-    - Menginstal Nginx, Node.js, dan PM2.
-    - Menginstal dependensi proyek (`npm install`).
-    - Membangun aplikasi Next.js untuk produksi (`npm run build`).
-    - Menjalankan aplikasi di latar belakang menggunakan PM2.
-    - Mengkonfigurasi Nginx sebagai reverse proxy.
-    - Mengatur firewall (UFW).
+    Skrip akan menangani semua proses instalasi dan konfigurasi secara otomatis.
+
+### Langkah 3: Mengarahkan Domain
+
+Setelah skrip selesai, aplikasi Anda sudah berjalan. Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
 
 ---
 
-## Langkah 3: Mengarahkan Domain (Penting)
+## Metode 2: Deployment menggunakan Docker & Portainer
 
-Setelah skrip selesai, aplikasi Anda sudah berjalan di alamat IP server. Langkah terakhir adalah mengarahkan nama domain Anda ke alamat IP tersebut.
+Metode ini mengemas aplikasi Anda ke dalam sebuah kontainer Docker, yang kemudian dikelola melalui antarmuka web Portainer. Ini adalah pendekatan yang lebih modern dan terisolasi.
 
-1.  **Dapatkan Alamat IP Server Anda**.
-2.  **Masuk ke Registrar Domain Anda** (GoDaddy, Namecheap, dll.).
-3.  Cari **Pengaturan DNS**.
-4.  Edit **A Record** untuk domain utama (`@` atau `domainanda.com`) dan arahkan ke alamat IP server Anda.
-5.  Tunggu beberapa saat untuk proses propagasi DNS.
+### Prasyarat
 
----
+- Server dengan **Docker** dan **Portainer** yang sudah terinstal. Jika belum, Anda bisa mengikuti panduan instalasi resmi mereka.
+- Nama domain yang sudah Anda beli.
 
-## Memperbarui Aplikasi
+### Langkah 1: Persiapan File
 
-Untuk memperbarui aplikasi Anda di masa mendatang:
-1.  Unggah versi baru folder proyek Anda (ZIP).
-2.  Hapus folder proyek lama di server.
-3.  Ekstrak folder proyek yang baru.
-4.  Jalankan kembali skrip `sudo ./install.sh`. Skrip ini dirancang untuk dapat dijalankan ulang dan akan menangani proses pembaruan secara otomatis.
+1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server, misalnya ke direktori `/root/coursecentral`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
 
----
-
-## Troubleshooting (Jika Terjadi Masalah)
-
-Jika Anda melihat error "502 Bad Gateway" setelah instalasi, coba langkah-langkah berikut di server Anda:
-
-1.  **Cek Status Aplikasi dengan PM2**:
+2.  **Buat File Environment**: Di dalam folder proyek di server (`/root/coursecentral`), buat file baru bernama `.env`.
     ```bash
-    pm2 status
+    # Masuk ke folder proyek
+    cd /root/coursecentral
+    
+    # Buat dan edit file .env
+    nano .env
     ```
-    Pastikan aplikasi Anda berstatus `online`.
+    Isi file tersebut hanya dengan satu baris ini, ganti dengan kunci API Anda:
+    ```
+    GEMINI_API_KEY=AIzaSy...
+    ```
+    Simpan file (Ctrl+X, lalu Y, lalu Enter).
 
-2.  **Lihat Log Error Aplikasi**:
-    Ini adalah langkah paling penting untuk menemukan masalah.
-    ```bash
-    pm2 logs CourseCentral
-    ```
-    Periksa pesan error yang muncul. Mungkin ada masalah dengan dependensi atau variabel lingkungan.
+### Langkah 2: Deploy dari Command Line (Disarankan)
 
-3.  **Uji Konfigurasi Nginx**:
-    ```bash
-    sudo nginx -t
-    ```
-    Pastikan outputnya menunjukkan `syntax is ok` dan `test is successful`.
+Ini adalah cara termudah dan paling andal untuk memulai. Anda hanya menggunakan Portainer untuk memantau dan mengelola.
 
-4.  **Edit Variabel Lingkungan**:
-    Pastikan Anda telah mengisi `GEMINI_API_KEY` di file `.env.local` di dalam folder proyek Anda.
+1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/root/coursecentral`), lalu jalankan perintah:
     ```bash
-    nano /home/username/CourseCentral/.env.local
+    docker-compose up --build -d
     ```
-    Setelah mengedit, restart aplikasi: `pm2 restart CourseCentral`.
+    - `--build`: Memaksa Docker untuk membangun image baru dari `Dockerfile`.
+    - `-d`: Menjalankan kontainer di latar belakang (detached mode).
+
+2.  **Selesai!** Aplikasi Anda sekarang berjalan di dalam kontainer Docker di port 3000. Anda bisa lanjut ke Langkah 4 untuk mengarahkan domain.
+
+### Langkah 3: (Alternatif) Deploy Murni dari Portainer
+
+Gunakan metode ini jika Anda lebih suka melakukan semuanya dari antarmuka web Portainer.
+
+1.  **Masuk ke Portainer**: Buka antarmuka web Portainer Anda.
+2.  **Pilih Environment**: Pilih environment (biasanya bernama `local` atau `primary`) tempat Docker berjalan.
+3.  **Buka Stacks**: Navigasi ke menu "Stacks" di sebelah kiri.
+4.  **Tambah Stack Baru**: Klik tombol "+ Add stack".
+5.  **Konfigurasi Stack**:
+    - **Name**: Beri nama stack Anda, misalnya `coursecentral`.
+    - **Build method**: Pilih **Web editor**.
+    - **Web editor**: Salin **seluruh isi** dari file `docker-compose.yml` yang ada di proyek Anda, dan tempelkan ke dalam editor teks.
+6.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan membaca file compose, membangun image dari `Dockerfile` di server Anda, dan menjalankan kontainer.
+
+### Langkah 4: Konfigurasi Reverse Proxy & Domain
+
+Setelah aplikasi berjalan di Docker (di port 3000), Anda masih perlu Nginx sebagai *reverse proxy* untuk mengarahkan domain Anda ke kontainer tersebut.
+
+1.  **Buat File Konfigurasi Nginx**:
+    ```bash
+    sudo nano /etc/nginx/sites-available/coursecentral
+    ```
+2.  **Tempelkan Konfigurasi Berikut**: Ganti `domainanda.com` dengan nama domain Anda.
+    ```nginx
+    server {
+        listen 80;
+        listen [::]:80;
+        
+        # Ganti dengan nama domain Anda
+        server_name domainanda.com www.domainanda.com;
+
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+3.  **Aktifkan Konfigurasi**:
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/coursecentral /etc/nginx/sites-enabled/
+    sudo nginx -t      # Uji konfigurasi
+    sudo systemctl restart nginx
+    ```
+4.  **Arahkan Domain Anda**: Lakukan Langkah 3 dari Metode 1 untuk mengarahkan domain Anda ke IP server.
+
+Sekarang aplikasi Anda berjalan melalui Docker dan dapat diakses dari domain Anda! Anda dapat memantau, menghentikan, atau melihat log kontainer melalui antarmuka Portainer.
