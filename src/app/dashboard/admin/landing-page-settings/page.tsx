@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/lib/data';
 import type { LandingPageSettings, Testimonial, FAQItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Image from 'next/image';
@@ -28,6 +28,7 @@ export default function LandingPageSettingsPage() {
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isGeneratingHero, setIsGeneratingHero] = useState(false);
+    const [generatedHeroPreview, setGeneratedHeroPreview] = useState<string | null>(null);
     const { toast } = useToast();
 
     const refreshData = useCallback(() => {
@@ -73,6 +74,7 @@ export default function LandingPageSettingsPage() {
             return;
         }
         setIsGeneratingHero(true);
+        setGeneratedHeroPreview(null);
         const result = await generateHeroImageAction({ headline: settings.heroHeadline });
         
         if ('error' in result) {
@@ -110,17 +112,17 @@ export default function LandingPageSettingsPage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const compressedDataUrl = reader.result as string;
-                setSettings(prev => prev ? {...prev, heroImageUrl: compressedDataUrl} : null);
+                setGeneratedHeroPreview(compressedDataUrl);
                 setIsGeneratingHero(false);
-                toast({ title: 'Sukses', description: 'Gambar hero berhasil dibuat dan dikompres.' });
+                toast({ title: 'Sukses!', description: 'Gambar hero berhasil dibuat. Silakan unduh gambar dan unggah ke hosting Anda.' });
             };
             reader.readAsDataURL(compressedFile);
 
         } catch (compressionError) {
             console.error("Compression Error:", compressionError);
-            setSettings(prev => prev ? {...prev, heroImageUrl: result.imageUrl} : null);
+            setGeneratedHeroPreview(result.imageUrl);
             setIsGeneratingHero(false);
-            toast({ title: 'Sukses', description: 'Gambar hero berhasil dibuat, namun gagal dikompres.', variant: 'default' });
+            toast({ title: 'Sukses', description: 'Gambar berhasil dibuat, namun gagal dikompres. Unduh dan unggah ke hosting.', variant: 'default' });
         }
     };
     
@@ -293,15 +295,9 @@ export default function LandingPageSettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Gambar Hero</CardTitle>
-                    <CardDescription>Atur gambar utama yang tampil di bagian hero halaman depan.</CardDescription>
+                    <CardDescription>Atur gambar utama di halaman depan. Cara terbaik adalah mengunggah gambar ke hosting dan menempelkan URL di bawah.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Pratinjau Gambar</Label>
-                        <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted w-full max-w-sm">
-                            <Image src={settings.heroImageUrl} alt="Pratinjau Hero" fill className="object-cover" />
-                        </div>
-                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="heroImageUrl">URL Gambar Hero</Label>
                         <Input 
@@ -309,30 +305,67 @@ export default function LandingPageSettingsPage() {
                             value={settings.heroImageUrl || ''}
                             onChange={(e) => setSettings({...settings, heroImageUrl: e.target.value})}
                             placeholder="https://example.com/hero.png"
-                            disabled={isGeneratingHero}
                         />
+                         <p className="text-xs text-muted-foreground">URL ini akan disimpan dan digunakan untuk menampilkan gambar hero.</p>
                     </div>
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-2 text-muted-foreground">Atau</span>
+                     <div className="space-y-2">
+                        <Label>Pratinjau Gambar Saat Ini</Label>
+                        <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted w-full max-w-sm">
+                            {settings.heroImageUrl ? (
+                                <Image src={settings.heroImageUrl} alt="Pratinjau Hero" fill className="object-cover" />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    <ImageIcon className="h-10 w-10"/>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={handleGenerateHeroImage}
-                        disabled={isGeneratingHero || !settings.heroHeadline}
-                    >
-                        {isGeneratingHero ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Wand2 className="mr-2 h-4 w-4" />
-                        )}
-                        Buat Gambar Hero dengan AI
-                    </Button>
+                     <div className="relative">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Atau</span></div>
+                    </div>
+                    <Card className="bg-muted/30">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">Buat Gambar dengan AI</CardTitle>
+                            <CardDescription>Gunakan AI untuk membuat gambar baru. Setelah dibuat, unduh gambar, unggah ke hosting, lalu tempel URL-nya di kolom di atas.</CardDescription>
+                        </CardHeader>
+                         <CardContent>
+                            <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleGenerateHeroImage}
+                                disabled={isGeneratingHero || !settings.heroHeadline}
+                            >
+                                {isGeneratingHero ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Wand2 className="mr-2 h-4 w-4" />
+                                )}
+                                Buat Gambar Hero dengan AI
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {generatedHeroPreview && (
+                        <div className="space-y-4 pt-4 border-t">
+                            <h4 className="font-semibold text-center">Hasil Gambar AI (Sementara)</h4>
+                            <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted w-full max-w-sm mx-auto">
+                                <Image src={generatedHeroPreview} alt="Pratinjau Hero AI" fill className="object-contain" />
+                            </div>
+                            <Button 
+                                className="w-full"
+                                onClick={() => {
+                                    const a = document.createElement('a');
+                                    a.href = generatedHeroPreview;
+                                    a.download = 'hero-image-scriptify.jpg';
+                                    a.click();
+                                }}
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Unduh Gambar Ini
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
