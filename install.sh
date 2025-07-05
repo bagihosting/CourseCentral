@@ -11,27 +11,23 @@
 
 # --- CARA PENGGUNAAN ---
 
-# 1. INSTALASI PERTAMA:
-#    a. Pastikan Anda sudah mengunggah kode Anda ke repository Git (misal: GitHub).
-#    b. Unggah skrip 'install.sh' ini ke direktori home Anda di VPS (misal: /home/ubuntu/).
-#    c. EDIT skrip ini dan masukkan URL repository Anda di variabel REPO_URL di bawah.
-#    d. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
-#    e. Jalankan skrip dengan sudo: sudo ./install.sh
-#    f. Skrip akan mengkloning, menginstal dependensi, membangun, dan menjalankan aplikasi Anda.
+# 1. PERSIAPAN:
+#    a. Salin/Unggah SELURUH FOLDER proyek Anda ke VPS. Letakkan di dalam direktori home pengguna Anda.
+#       Contoh: /home/ubuntu/CourseCentral
+#    b. Pastikan nama folder proyek Anda sesuai dengan variabel PROJECT_DIR_NAME di bawah.
+#    c. Unggah skrip 'install.sh' ini ke direktori home Anda (misal: /home/ubuntu/).
 
-# 2. CARA UPDATE SCRIPT (PEMBARUAN):
-#    a. Lakukan perubahan pada kode Anda di Firebase Studio.
-#    b. Simpan (commit) dan unggah (push) perubahan tersebut ke repository Git Anda.
-#    c. Masuk ke VPS Anda dan jalankan kembali skrip ini: sudo ./install.sh
-#    d. Skrip akan secara otomatis mendeteksi instalasi yang ada, menarik perubahan
-#       terbaru, membangun ulang, dan memulai ulang aplikasi Anda tanpa downtime.
+# 2. INSTALASI & PEMBARUAN:
+#    a. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
+#    b. Jalankan skrip dengan sudo: sudo ./install.sh
+#    c. Skrip akan menginstal dependensi sistem, Nginx, Node.js, dan PM2.
+#    d. Skrip akan masuk ke folder proyek Anda, menginstal dependensi, membangun, dan menjalankan aplikasi.
+#    e. Untuk memperbarui aplikasi, cukup unggah ulang folder proyek Anda dan jalankan kembali skrip ini.
 
 # --- Berhenti jika ada kesalahan ---
 set -e
 
 # --- Konfigurasi ---
-# PENTING: Ganti dengan URL repository Git Anda!
-REPO_URL="https://github.com/username/nama-repo.git" 
 # Nama folder proyek yang akan dibuat
 PROJECT_DIR_NAME="CourseCentral"
 # Port tempat aplikasi Next.js Anda akan berjalan. `next start` default-nya 3000.
@@ -71,24 +67,23 @@ fi
 echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME..."
 
 # --- 1. Pembaruan Sistem dan Pemasangan Dependensi Awal ---
-echo_info "Memperbarui paket sistem dan memasang dependensi (nginx, curl, git)..."
+echo_info "Memperbarui paket sistem dan memasang dependensi (nginx, curl)..."
 apt-get update
 apt-get upgrade -y
-apt-get install -y nginx curl git build-essential
+apt-get install -y nginx curl build-essential
 
-# --- 2. Git & Setup Direktori Proyek ---
-echo_info "Mempersiapkan direktori proyek di $PROJECT_DIR..."
+# --- 2. Setup Direktori Proyek ---
+echo_info "Memeriksa direktori proyek di $PROJECT_DIR..."
 
-if [ -d "$PROJECT_DIR/.git" ]; then
-    echo_info "Direktori proyek sudah ada. Menarik perubahan terbaru dari Git..."
-    cd "$PROJECT_DIR"
-    chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR" # Pastikan izin benar sebelum pull
-    sudo -u "$RUN_USER" git pull
-else
-    echo_info "Direktori proyek tidak ditemukan. Mengkloning repository dari $REPO_URL..."
-    sudo -u "$RUN_USER" git clone "$REPO_URL" "$PROJECT_DIR"
-    cd "$PROJECT_DIR"
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo_error "Direktori proyek '$PROJECT_DIR' tidak ditemukan."
+    echo_error "Harap unggah folder proyek Anda ke direktori tersebut sebelum menjalankan skrip ini."
+    exit 1
 fi
+
+echo_info "Direktori proyek ditemukan. Melanjutkan instalasi..."
+cd "$PROJECT_DIR"
+
 
 # --- 3. Pasang Node.js & PM2 ---
 echo_info "Memeriksa instalasi Node.js dan PM2..."
