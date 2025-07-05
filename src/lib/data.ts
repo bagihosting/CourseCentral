@@ -1,4 +1,5 @@
 
+
 'use client';
 
 // ====================================================================
@@ -371,15 +372,15 @@ function getDB(): Database {
             const storedAiApps = data.landingPageSettings.aiApps || [];
             const storedAppsMap = new Map(storedAiApps.map(app => [app.id, app]));
             
-            const finalAiApps = initialAiApps.map(initialApp => {
+            const mergedAiApps = initialAiApps.map(initialApp => {
                 const storedApp = storedAppsMap.get(initialApp.id);
                 // Use stored app if it exists, otherwise use the initial (new) app from code
                 return storedApp ? storedApp : initialApp;
             });
 
-            // Filter out apps that are no longer in the initial code (e.g., promo-thumbnail)
+            // Filter out apps that are no longer in the initial code to keep it clean.
             const initialAppIds = new Set(initialAiApps.map(app => app.id));
-             data.landingPageSettings.aiApps = finalAiApps.filter(app => initialAppIds.has(app.id));
+             data.landingPageSettings.aiApps = mergedAiApps.filter(app => initialAppIds.has(app.id));
 
         }
 
