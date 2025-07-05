@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,6 +11,7 @@ import { Award, Download, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import DOMPurify from 'isomorphic-dompurify';
 
 export default function MyCertificatesPage() {
   const { user, loading: userLoading } = useAuth();
@@ -31,7 +33,8 @@ export default function MyCertificatesPage() {
     }
     
     try {
-        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const cleanHtml = DOMPurify.sanitize(htmlContent, { WHOLE_DOCUMENT: true });
+        const blob = new Blob([cleanHtml], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
