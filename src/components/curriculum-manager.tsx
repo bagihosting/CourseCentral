@@ -289,20 +289,23 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
         </div>
 
         {type === 'text' ? (
-           <div className="space-y-2">
-             <div className="flex justify-between items-center">
-                <Label htmlFor="content">Konten Teks</Label>
-                <Button
-                    type="button"
-                    variant="link"
-                    className="h-auto p-0 text-sm"
-                    onClick={handleGenerateContent}
-                    disabled={isGeneratingContent || !title}
-                >
-                    {isGeneratingContent ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Buat Tutorial dengan AI
-                </Button>
+           <div className="space-y-4">
+             <div className="space-y-2">
+                <Label htmlFor="content">Konten Pelajaran</Label>
+                <p className="text-sm text-muted-foreground">
+                    Tulis manual atau gunakan AI untuk membuat draf tutorial lengkap dengan gambar dan format yang rapi.
+                </p>
             </div>
+             <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGenerateContent}
+                disabled={isGeneratingContent || !title}
+            >
+                {isGeneratingContent ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                Buat Draf Tutorial dengan AI
+            </Button>
             <div className="rounded-md border bg-transparent">
               <div className="flex items-center gap-1 border-b p-1">
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('b')} title="Tebal">
@@ -329,7 +332,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
                 value={content} 
                 onChange={e => setContent(e.target.value)} 
                 rows={15} 
-                placeholder="Tulis konten pelajaran di sini atau gunakan AI untuk membuatnya." 
+                placeholder="Konten pelajaran akan muncul di sini setelah dibuat oleh AI, atau Anda bisa mengetiknya manual." 
                 className="w-full resize-y rounded-t-none border-0 bg-transparent px-3 py-2 focus-visible:ring-0"
               />
             </div>
