@@ -49,7 +49,7 @@ const generateLessonContentFlow = ai.defineFlow(
       input: { schema: GenerateLessonContentInputSchema.extend({ hintKeywords: z.string() }) },
       output: { schema: GenerateLessonContentOutputSchema },
       prompt: `
-        You are an expert instructional designer and technical writer. Your task is to create a complete and engaging tutorial in HTML format based on the provided course and lesson titles.
+        You are an expert instructional designer and author. Your task is to create a **comprehensive, long-form tutorial** in HTML format based on the provided course and lesson titles. The content should be detailed, easy to understand, and approximately 500-700 words in length.
         The tutorial must be written in clear, educational, and professional Bahasa Indonesia.
 
         **Course Title:** "{{{courseTitle}}}"
@@ -57,18 +57,19 @@ const generateLessonContentFlow = ai.defineFlow(
 
         **CRITICAL INSTRUCTIONS:**
 
-        1.  **HTML Structure**: The entire output must be a single block of well-formed HTML. Use semantic tags.
+        1.  **HTML Structure**: The entire output must be a single block of well-formed HTML. Use semantic tags like \`<h1>\`, \`<h2>\`, \`<p>\`, \`<ul>\`, \`<ol>\`, \`<li>\`, and \`<strong>\`.
         2.  **Content Organization**:
             -   Start with a main heading \`<h1>\` using the lesson title.
-            -   Follow with a brief introductory paragraph \`<p>\`.
-            -   Use subheadings \`<h2>\` to break down the main topics.
-            -   Use paragraphs \`<p>\` for explanations. Use \`<strong>\` for important terms.
-            -   Use ordered \`<ol>\` or unordered \`<ul>\` lists with \`<li>\` for steps, key points, or examples.
-        3.  **Image Inclusion**: You MUST include exactly one relevant image within the tutorial.
+            -   Write a detailed introductory paragraph \`<p>\` that sets the stage.
+            -   Divide the content into several logical sections using subheadings \`<h2>\`.
+            -   Use well-written paragraphs \`<p>\` for detailed explanations. Use \`<strong>\` to emphasize key concepts.
+            -   Use ordered lists \`<ol>\` for step-by-step instructions and unordered lists \`<ul>\` for key points or examples.
+        3.  **No Code Snippets**: Unless the lesson title is explicitly about computer programming, **do not include code blocks (\`<pre>\`, \`<code>\`)**. Focus on creating rich, descriptive prose.
+        4.  **Image Inclusion**: You MUST include exactly one relevant image within the tutorial to enhance understanding.
             -   The image tag must be: \`<img src="https://placehold.co/600x400.png" alt="{{{lessonTitle}}}" data-ai-hint="{{{hintKeywords}}}" style="width:100%;height:auto;border-radius:8px;margin:1em 0;" />\`.
-            -   Place the image after the introduction or within a relevant section. Do not place it at the very beginning or end.
-        4.  **Content Quality**: The tutorial should be comprehensive, easy to understand for a beginner on the topic, and provide practical information.
-        5.  **Language**: All text must be in Bahasa Indonesia.
+            -   Place the image in a logically relevant position, such as after the introduction or within a key section.
+        5.  **Content Quality & Length**: The tutorial must be comprehensive, thorough, and approximately 500-700 words. It should provide practical, in-depth information suitable for a learner.
+        6.  **Language**: All text must be in Bahasa Indonesia.
       `,
     });
     
