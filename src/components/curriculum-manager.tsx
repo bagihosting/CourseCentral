@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud } from 'lucide-react';
+import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud, Bold, Italic, List, Heading1, Heading2 } from 'lucide-react';
 import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
@@ -100,6 +100,42 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
     const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const contentRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleFormat = (tag: 'b' | 'i' | 'h1' | 'h2' | 'ul') => {
+        const textarea = contentRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = content.substring(start, end);
+        
+        let replacement = '';
+        let finalCursorStart = 0;
+        let finalCursorEnd = 0;
+
+        if (tag === 'ul') {
+            const listItems = selectedText.split('\n').map(line => `  <li>${line}</li>`).join('\n');
+            replacement = `<ul>\n${listItems || '  <li></li>'}\n</ul>`;
+            // Place cursor inside the li tag if it's a new list
+            finalCursorStart = start + (listItems ? replacement.length : '<ul>\n  <li>'.length);
+            finalCursorEnd = finalCursorStart;
+        } else {
+            const openTag = `<${tag}>`;
+            const closeTag = `</${tag}>`;
+            replacement = `${openTag}${selectedText}${closeTag}`;
+            finalCursorStart = start + openTag.length;
+            finalCursorEnd = finalCursorStart + selectedText.length;
+        }
+
+        const newContent = content.substring(0, start) + replacement + content.substring(end);
+        setContent(newContent);
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(finalCursorStart, finalCursorEnd);
+        }, 0);
+    };
 
     const validate = () => {
         const newErrors: FormErrors = {};
@@ -212,16 +248,38 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
         </div>
 
         {type === 'text' ? (
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label htmlFor="content">Konten Teks</Label>
-            <Textarea 
-              id="content" 
-              name="content" 
-              value={content} 
-              onChange={e => setContent(e.target.value)} 
-              rows={10} 
-              placeholder="Tulis konten pelajaran (mendukung HTML dasar)." 
-            />
+            <div className="rounded-md border bg-transparent">
+              <div className="flex items-center gap-1 border-b p-1">
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('b')} title="Tebal">
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('i')} title="Miring">
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('ul')} title="Daftar">
+                  <List className="h-4 w-4" />
+                </Button>
+                <div className="mx-1 h-6 border-l" />
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('h1')} title="Judul 1">
+                  <Heading1 className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('h2')} title="Judul 2">
+                  <Heading2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <Textarea 
+                ref={contentRef}
+                id="content" 
+                name="content" 
+                value={content} 
+                onChange={e => setContent(e.target.value)} 
+                rows={15} 
+                placeholder="Tulis konten pelajaran di sini..." 
+                className="w-full resize-y rounded-t-none border-0 bg-transparent px-3 py-2 focus-visible:ring-0"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
