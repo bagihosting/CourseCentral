@@ -131,7 +131,7 @@ function LessonDisplay({ lesson, onComplete, isCompleted }: { lesson: Lesson; on
         return (
             <>
                 <div
-                    className="prose dark:prose-invert max-w-none p-6 bg-muted/30 rounded-lg border"
+                    className="prose prose-lg prose-invert max-w-none p-8 lg:p-12 bg-slate-900 rounded-xl shadow-2xl"
                     dangerouslySetInnerHTML={{ __html: cleanHtml }}
                 />
                 {!isCompleted && <Progress value={textProgress} className="w-full h-2 mt-4" />}
