@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +17,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ContactPage() {
   const [settings, setSettings] = useState<LandingPageSettings | null>(null);
   const [contacts, setContacts] = useState<ConfirmationContact[]>([]);
-  const [platformName, setPlatformName] = useState('Scriptify');
   const [loading, setLoading] = useState(true);
 
   // Form state
@@ -30,7 +30,6 @@ export default function ContactPage() {
   useEffect(() => {
     setSettings(getLandingPageSettings());
     setContacts(getConfirmationContacts());
-    setPlatformName(getSeoSettings().platformName || 'Scriptify');
     setLoading(false);
   }, []);
 
@@ -49,6 +48,7 @@ export default function ContactPage() {
     setIsSubmitting(true);
     
     const targetWhatsapp = contacts[0].whatsapp.replace(/[^0-9]/g, '');
+    const platformName = getSeoSettings().platformName || 'Scriptify';
 
     const message = `
 *Pesan Baru dari Halaman Kontak ${platformName}*
@@ -79,8 +79,13 @@ ${formMessage}
       <div className="bg-muted/30 min-h-screen">
          <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
           <div className="container mx-auto flex justify-between items-center">
-            <Skeleton className="h-7 w-36" />
-            <Skeleton className="h-9 w-40" />
+            <Link href="/" className="flex items-center gap-2">
+                <BookOpenCheck className="h-7 w-7 text-primary" />
+                <span className="text-xl font-bold">Scriptify</span>
+            </Link>
+            <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
+                Kembali ke Aplikasi
+            </Link>
           </div>
         </header>
          <main className="container mx-auto py-12 md:py-16 px-4">
@@ -120,7 +125,7 @@ ${formMessage}
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <BookOpenCheck className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">{platformName}</span>
+            <span className="text-xl font-bold">Scriptify</span>
           </Link>
           <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
             Kembali ke Aplikasi

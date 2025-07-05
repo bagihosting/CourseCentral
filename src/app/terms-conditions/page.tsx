@@ -20,7 +20,7 @@ export default function TermsConditionsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">Syarat & Ketentuan</CardTitle>
-            <p className="text-sm text-muted-foreground">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-sm text-muted-foreground">Terakhir diperbarui: 25 Agustus 2024</p>
           </CardHeader>
           <CardContent className="prose dark:prose-invert max-w-none">
             <p>Dengan mengakses dan menggunakan platform Scriptify, Anda setuju untuk terikat oleh Syarat dan Ketentuan berikut.</p>

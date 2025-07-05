@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">Kebijakan Privasi</CardTitle>
-            <p className="text-sm text-muted-foreground">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-sm text-muted-foreground">Terakhir diperbarui: 25 Agustus 2024</p>
           </CardHeader>
           <CardContent className="prose dark:prose-invert max-w-none">
             <p>Selamat datang di Scriptify. Kami menghargai privasi Anda dan berkomitmen untuk melindunginya. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda.</p>
