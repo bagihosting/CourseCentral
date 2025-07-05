@@ -1,14 +1,9 @@
-// --- MariaDB Connection ---
-// Fungsi yang dimigrasikan akan menggunakan pool ini.
-import { pool } from './db';
-import type { RowDataPacket } from 'mysql2';
-
 // ====================================================================
 // PENTING: PEMBERITAHUAN TENTANG PENYIMPANAN DATA
 // ====================================================================
 // Aplikasi ini sedang dalam proses migrasi dari Local Storage ke MariaDB.
-// Beberapa fungsi di bawah ini sudah menggunakan MariaDB, sementara yang lain
-// masih menggunakan Local Storage.
+// Fungsi di file ini masih menggunakan Local Storage.
+// Fungsi yang sudah dimigrasikan ke MariaDB berada di dalam folder /src/actions.
 // ====================================================================
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
