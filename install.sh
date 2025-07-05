@@ -14,11 +14,21 @@
 # 6. Membuat file .env.local untuk variabel lingkungan jika belum ada.
 # 7. Membangun dan memulai aplikasi menggunakan PM2 agar berjalan di latar belakang.
 #
-# Penggunaan:
+# --- CARA PENGGUNAAN ---
 # 1. Unggah folder proyek Anda ke VPS (misalnya ke /home/ubuntu/nama-proyek).
 # 2. Pindahkan skrip ini ke dalam direktori proyek tersebut.
 # 3. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
 # 4. Jalankan dengan sudo: sudo ./install.sh
+#
+# --- PROSES UPDATE ---
+# Untuk memperbarui aplikasi Anda ke versi baru:
+# 1. Hapus folder proyek lama di server VPS Anda.
+# 2. Unggah folder proyek baru Anda ke lokasi yang sama.
+# 3. Masuk ke dalam direktori proyek baru tersebut.
+# 4. Jalankan kembali skrip ini dengan: sudo ./install.sh
+#
+# Skrip ini dirancang untuk dapat dijalankan ulang. Ia akan secara otomatis
+# membangun ulang dan memulai ulang aplikasi Anda dengan kode terbaru.
 # =================================================================
 
 # --- Berhenti jika ada kesalahan ---
@@ -224,5 +234,3 @@ echo "   sudo nginx -t"
 echo "------------------------------------------------------------"
 echo ""
 echo_success "Deployment selesai! Aplikasi Anda dapat diakses melalui IP server."
-
-```
