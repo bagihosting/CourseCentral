@@ -1,4 +1,3 @@
-
 'use server';
 
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
@@ -28,6 +27,7 @@ import { generatePromoThumbnail as generatePromoThumbnailFlow, type GenerateProm
 import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
 import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
 import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput, type GenerateGenkitAppOutput } from '@/ai/flows/generate-genkit-app';
+import { suggestModuleTitle as suggestModuleTitleFlow, type SuggestModuleTitleInput, type SuggestModuleTitleOutput } from '@/ai/flows/suggest-module-title';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -448,5 +448,20 @@ export async function generateGenkitAppAction(
   } catch (error) {
     console.error('Error generating Genkit app:', error);
     return { error: 'Gagal membuat aplikasi Genkit. Silakan coba lagi.' };
+  }
+}
+
+export async function suggestModuleTitleAction(
+  input: SuggestModuleTitleInput
+): Promise<SuggestModuleTitleOutput | { error: string }> {
+  if (!input.courseTitle) {
+    return { error: 'Judul kursus tidak boleh kosong.' };
+  }
+  try {
+    const result = await suggestModuleTitleFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error suggesting module title:', error);
+    return { error: 'Gagal memberikan saran judul modul.' };
   }
 }

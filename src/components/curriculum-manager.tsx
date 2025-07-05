@@ -31,12 +31,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud, Bold, Italic, List, Heading1, Heading2 } from 'lucide-react';
+import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud, Bold, Italic, List, Heading1, Heading2, Wand2 } from 'lucide-react';
 import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { suggestModuleTitleAction } from '@/actions/ai';
 
 type FormErrors = {
     title?: string;
@@ -45,10 +46,25 @@ type FormErrors = {
 }
 
 // --- Module Form ---
-function ModuleForm({ courseId, module, onFinished }: { courseId: string, module?: Module, onFinished: () => void }) {
+function ModuleForm({ course, module, onFinished }: { course: Course, module?: Module, onFinished: () => void }) {
   const [title, setTitle] = useState(module?.title || '');
   const [error, setError] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+
+  const handleGenerateTitle = async () => {
+    setIsGenerating(true);
+    const existingModuleTitles = course.modules.map(m => m.title);
+    const result = await suggestModuleTitleAction({ courseTitle: course.title, existingModuleTitles });
+    setIsGenerating(false);
+
+    if ('error' in result) {
+      toast({ title: 'Gagal', description: result.error, variant: 'destructive' });
+    } else {
+      setTitle(result.suggestedTitle);
+      toast({ title: 'Sukses', description: 'Judul modul berhasil dibuat oleh AI.' });
+    }
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -60,10 +76,10 @@ function ModuleForm({ courseId, module, onFinished }: { courseId: string, module
 
     try {
       if (module) {
-        updateModule(courseId, module.id, { title });
+        updateModule(course.id, module.id, { title });
         toast({ title: 'Sukses', description: 'Modul berhasil diperbarui.'});
       } else {
-        addModule(courseId, { title });
+        addModule(course.id, { title });
         toast({ title: 'Sukses', description: 'Modul berhasil ditambahkan.'});
       }
       onFinished();
@@ -78,13 +94,19 @@ function ModuleForm({ courseId, module, onFinished }: { courseId: string, module
       <div className="space-y-4 p-1">
         <div className="space-y-2">
           <Label htmlFor="title">Judul Modul</Label>
-          <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} />
+          <div className="flex items-center gap-2">
+            <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} className="flex-grow" placeholder="Contoh: Pengenalan Dasar" />
+            <Button type="button" variant="outline" size="icon" onClick={handleGenerateTitle} disabled={isGenerating}>
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              <span className="sr-only">Buat dengan AI</span>
+            </Button>
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit">{module ? 'Simpan Perubahan' : 'Tambah Modul'}</Button>
+        <Button type="submit" disabled={isGenerating}>{module ? 'Simpan Perubahan' : 'Tambah Modul'}</Button>
       </DialogFooter>
     </form>
   );
@@ -490,7 +512,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
             <DialogTitle>{editingModule ? 'Ubah Modul' : 'Tambah Modul Baru'}</DialogTitle>
             <DialogDescription>Isi detail modul di bawah ini.</DialogDescription>
           </DialogHeader>
-          <ModuleForm courseId={course.id} module={editingModule} onFinished={handleFinished} />
+          <ModuleForm course={course} module={editingModule} onFinished={handleFinished} />
         </DialogContent>
       </Dialog>
       
