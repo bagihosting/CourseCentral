@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  db:
+    image: mariadb:10.6
+    container_name: course-central-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MARIADB_DATABASE}
+      MYSQL_USER: ${MARIADB_USER}
+      MYSQL_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    # Uncomment baris di bawah jika Anda perlu mengakses DB dari luar Docker (misalnya dengan DBeaver)
+    # ports:
+    #   - "3306:3306"
+
   course-central:
     build:
       context: .
@@ -13,3 +28,14 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      # Variabel untuk koneksi DB dari dalam aplikasi
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=${MARIADB_USER}
+      - DB_PASSWORD=${MARIADB_PASSWORD}
+      - DB_NAME=${MARIADB_DATABASE}
+    depends_on:
+      - db
+
+volumes:
+  mariadb_data:

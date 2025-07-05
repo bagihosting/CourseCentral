@@ -49,9 +49,9 @@ Setelah skrip selesai, aplikasi Anda sudah berjalan. Arahkan nama domain Anda ke
 
 ---
 
-## Metode 2: Deployment menggunakan Docker & Portainer
+## Metode 2: Deployment menggunakan Docker & Portainer (Disarankan)
 
-Metode ini mengemas aplikasi Anda ke dalam sebuah kontainer Docker, yang kemudian dikelola melalui antarmuka web Portainer. Ini adalah pendekatan yang lebih modern dan terisolasi.
+Metode ini mengemas aplikasi dan database MariaDB Anda ke dalam sebuah kontainer Docker, yang kemudian dikelola melalui antarmuka web Portainer. Ini adalah pendekatan yang lebih modern, terisolasi, dan andal.
 
 ### Prasyarat
 
@@ -62,7 +62,7 @@ Metode ini mengemas aplikasi Anda ke dalam sebuah kontainer Docker, yang kemudia
 
 1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server, misalnya ke direktori `/root/coursecentral`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
 
-2.  **Buat File Environment**: Di dalam folder proyek di server (`/root/coursecentral`), buat file baru bernama `.env`.
+2.  **Buat dan Konfigurasi File Environment**: Di dalam folder proyek di server (`/root/coursecentral`), buat file baru bernama `.env`.
     ```bash
     # Masuk ke folder proyek
     cd /root/coursecentral
@@ -70,24 +70,20 @@ Metode ini mengemas aplikasi Anda ke dalam sebuah kontainer Docker, yang kemudia
     # Buat dan edit file .env
     nano .env
     ```
-    Isi file tersebut hanya dengan satu baris ini, ganti dengan kunci API Anda:
-    ```
-    GEMINI_API_KEY=AIzaSy...
-    ```
-    Simpan file (Ctrl+X, lalu Y, lalu Enter).
+    Salin dan tempel **seluruh isi** dari file `.env` yang ada di proyek lokal Anda. Kemudian, **ganti semua nilai placeholder** (seperti `ganti_dengan_password...` dan `AIzaSy...`) dengan nilai Anda yang sebenarnya. Ini sangat penting untuk keamanan dan fungsionalitas.
 
 ### Langkah 2: Deploy dari Command Line (Disarankan)
 
-Ini adalah cara termudah dan paling andal untuk memulai. Anda hanya menggunakan Portainer untuk memantau dan mengelola.
+Ini adalah cara termudah dan paling andal untuk memulai. `docker-compose` akan secara otomatis membuat kontainer untuk aplikasi dan database Anda.
 
 1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/root/coursecentral`), lalu jalankan perintah:
     ```bash
     docker-compose up --build -d
     ```
-    - `--build`: Memaksa Docker untuk membangun image baru dari `Dockerfile`.
+    - `--build`: Memaksa Docker untuk membangun image aplikasi baru dari `Dockerfile`.
     - `-d`: Menjalankan kontainer di latar belakang (detached mode).
 
-2.  **Selesai!** Aplikasi Anda sekarang berjalan di dalam kontainer Docker di port 3000. Anda bisa lanjut ke Langkah 4 untuk mengarahkan domain.
+2.  **Selesai!** Aplikasi Anda dan database MariaDB sekarang berjalan di dalam kontainer Docker. Anda bisa lanjut ke Langkah 4 untuk mengarahkan domain. Gunakan Portainer untuk memantau dan mengelola kontainer yang sudah berjalan.
 
 ### Langkah 3: (Alternatif) Deploy Murni dari Portainer
 
@@ -99,9 +95,13 @@ Gunakan metode ini jika Anda lebih suka melakukan semuanya dari antarmuka web Po
 4.  **Tambah Stack Baru**: Klik tombol "+ Add stack".
 5.  **Konfigurasi Stack**:
     - **Name**: Beri nama stack Anda, misalnya `coursecentral`.
-    - **Build method**: Pilih **Web editor**.
-    - **Web editor**: Salin **seluruh isi** dari file `docker-compose.yml` yang ada di proyek Anda, dan tempelkan ke dalam editor teks.
-6.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan membaca file compose, membangun image dari `Dockerfile` di server Anda, dan menjalankan kontainer.
+    - **Repository URL**: Masukkan URL repositori Git Anda (jika proyek ada di GitHub/GitLab).
+    - **Compose path**: Biarkan `docker-compose.yml`.
+    - **ATAU Build method**: Jika Anda mengunggah file manual, pilih **Web editor**. Salin **seluruh isi** dari file `docker-compose.yml` yang ada di proyek Anda, dan tempelkan ke dalam editor teks.
+6.  **Konfigurasi Variabel Lingkungan**:
+    - Gulir ke bawah ke bagian "Environment variables".
+    - Klik "Add environment variable" untuk setiap baris yang ada di file `.env` Anda (seperti `GEMINI_API_KEY`, `MARIADB_ROOT_PASSWORD`, dll.) dan masukkan nilainya.
+7.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan membaca file compose, membangun image, dan menjalankan kontainer aplikasi dan database Anda.
 
 ### Langkah 4: Konfigurasi Reverse Proxy & Domain
 
