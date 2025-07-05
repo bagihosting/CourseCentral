@@ -131,9 +131,12 @@ echo_info "Memulai aplikasi dengan PM2..."
 # PM2 adalah manajer proses yang akan menjaga aplikasi tetap berjalan di latar belakang.
 # Hapus instance yang ada untuk memastikan awal yang baru
 sudo -u "$RUN_USER" pm2 delete "$APP_NAME" || true
-# Menjalankan `npm start` tanpa argumen port tambahan untuk stabilitas yang lebih baik.
-# PM2 akan menjalankan `next start` yang secara default menggunakan port 3000, sesuai dengan konfigurasi Nginx.
+# Menjalankan `npm start` dengan --cwd untuk memastikan direktori kerja yang benar.
 sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start
+
+# Beri waktu sejenak agar aplikasi dapat memulai sepenuhnya
+echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
+sleep 2
 
 
 # --- 8. Konfigurasi Nginx ---
@@ -194,16 +197,32 @@ env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RU
 sudo -u $RUN_USER pm2 save
 
 
-echo_success "Instalasi Selesai!"
-echo "--------------------------------------------------"
-echo "Aplikasi Next.js Anda sekarang berjalan di latar belakang."
 echo ""
-echo "Dikelola oleh PM2 dengan nama: $APP_NAME"
-echo "Anda dapat memonitornya dengan: pm2 monit"
+echo_success "================= INSTALASI SELESAI ================="
+echo "Aplikasi Anda sekarang berjalan dan dikelola oleh PM2."
+echo "------------------------------------------------------------"
+echo_info "PENTING: ARAHKAN DOMAIN ANDA KE ALAMAT IP SERVER INI."
+echo_warn "Jangan lupa untuk mengedit '.env.local' dan menambahkan GEMINI_API_KEY Anda."
+echo_warn "Untuk mengaktifkan HTTPS (sangat disarankan), jalankan: sudo certbot --nginx"
 echo ""
-echo "Nginx dikonfigurasi untuk melayani aplikasi Anda di port 80."
-echo "Arahkan record A domain Anda ke alamat IP server ini."
+echo "------------------------------------------------------------"
+echo_warn "          JIKA TERJADI MASALAH (502 BAD GATEWAY)          "
+echo "------------------------------------------------------------"
+echo "Error '502 Bad Gateway' biasanya berarti aplikasi Next.js Anda"
+echo "gagal dimulai. Periksa log untuk menemukan penyebabnya:"
 echo ""
-echo_warn "Untuk HTTPS (disarankan), jalankan 'sudo certbot --nginx' setelah mengatur domain Anda."
-echo_warn "JANGAN LUPA: Edit file .env.local Anda dan tambahkan GEMINI_API_KEY."
-echo "--------------------------------------------------"
+echo "1. Cek status aplikasi:"
+echo "   pm2 status"
+echo "   (Pastikan statusnya 'online')"
+echo ""
+echo "2. Lihat log error aplikasi:"
+echo "   pm2 logs $APP_NAME"
+echo "   (Cari pesan error berwarna merah, seringkali karena API Key hilang)"
+echo ""
+echo "3. Uji konfigurasi Nginx:"
+echo "   sudo nginx -t"
+echo "------------------------------------------------------------"
+echo ""
+echo_success "Deployment selesai! Aplikasi Anda dapat diakses melalui IP server."
+
+```
