@@ -4,7 +4,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
-import { validateUser, registerUser as registerUserData, getUserById, RegisterUserInput, updateUser as updateUserData, UpdateUserInput } from '@/lib/data';
+import { validateUser, getUserById } from '@/actions/auth';
+import { registerUser as registerUserData, updateUser as updateUserData, RegisterUserInput, UpdateUserInput } from '@/lib/data';
 
 // Menggunakan localStorage untuk persistensi sesi yang lebih kuat.
 // Data akan tetap ada bahkan setelah browser ditutup, sampai pengguna logout.
@@ -27,26 +28,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    try {
-      const storedUserId = localStorage.getItem(SESSION_KEY);
-      if (storedUserId) {
-        const userData = getUserById(storedUserId);
-        if (userData) {
-          setUser(userData);
-        } else {
-          // Bersihkan sesi jika ID pengguna tidak valid
-          localStorage.removeItem(SESSION_KEY);
+    const loadUser = async () => {
+        try {
+            const storedUserId = localStorage.getItem(SESSION_KEY);
+            if (storedUserId) {
+                // `getUserById` sekarang adalah server action
+                const userData = await getUserById(storedUserId);
+                if (userData) {
+                    setUser(userData);
+                } else {
+                    // Bersihkan sesi jika ID pengguna tidak valid
+                    localStorage.removeItem(SESSION_KEY);
+                }
+            }
+        } catch (error) {
+            console.error("Gagal memuat pengguna:", error);
+            localStorage.removeItem(SESSION_KEY);
+        } finally {
+            setLoading(false);
         }
-      }
-    } catch (error) {
-      console.error("Gagal memuat pengguna dari localStorage:", error);
-    } finally {
-      setLoading(false);
-    }
+    };
+    loadUser();
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const validatedUser = validateUser(username, password);
+    // `validateUser` sekarang adalah server action
+    const validatedUser = await validateUser(username, password);
     if (validatedUser) {
       setUser(validatedUser);
       localStorage.setItem(SESSION_KEY, validatedUser.id);

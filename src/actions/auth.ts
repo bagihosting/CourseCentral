@@ -1,5 +1,73 @@
 'use server';
 
-// This file is deprecated. Authentication is now handled client-side
-// via src/contexts/auth-context.tsx to work with localStorage.
-// This file is kept to prevent build errors from other components that might still reference it.
+import { pool } from '@/lib/db';
+import type { User } from '@/types';
+import type { RowDataPacket } from 'mysql2';
+
+// This file contains the new, database-backed authentication functions.
+// Client components should import from here to use server actions.
+
+export async function getUserById(id: string): Promise<User | undefined> {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [id]);
+    if (rows.length > 0) {
+      const user = rows[0] as User;
+      // Konversi tipe data jika perlu (misalnya, dari TinyInt ke boolean)
+      return {
+        ...user,
+        affiliateBalance: Number(user.affiliateBalance),
+        affiliatePaid: Number(user.affiliatePaid),
+        loginCount: Number(user.loginCount),
+      };
+    }
+    return undefined;
+  } catch (error) {
+    console.error("Gagal mengambil pengguna dari DB:", error);
+    // Di lingkungan produksi, Anda mungkin ingin melempar error yang lebih umum
+    throw new Error("Gagal mengambil data pengguna.");
+  }
+}
+
+export async function validateUser(username: string, password: string): Promise<User | null> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);
+
+        if (rows.length === 0) {
+            return null; // Pengguna tidak ditemukan
+        }
+
+        const user = rows[0] as User;
+
+        // Di dunia nyata, gunakan bcrypt.compare(password, user.password)
+        if (user.password === password) {
+            if (user.role !== 'admin' && user.status === 'inactive') {
+                throw new Error('ACCOUNT_INACTIVE');
+            }
+            
+            // Update statistik login
+            const newLoginCount = (Number(user.loginCount) || 0) + 1;
+            await pool.query(
+                'UPDATE users SET lastLoginAt = NOW(), loginCount = ?, status = ? WHERE id = ?',
+                [newLoginCount, 'active', user.id]
+            );
+
+            // Kembalikan data pengguna yang sudah diperbarui
+            return {
+                ...user,
+                lastLoginAt: new Date().toISOString(),
+                loginCount: newLoginCount,
+                status: 'active',
+                affiliateBalance: Number(user.affiliateBalance),
+                affiliatePaid: Number(user.affiliatePaid),
+            };
+        }
+
+        return null; // Kata sandi salah
+    } catch (error) {
+        if (error instanceof Error && error.message === 'ACCOUNT_INACTIVE') {
+            throw error; // Lemparkan kembali error spesifik ini
+        }
+        console.error("Error saat validasi pengguna:", error);
+        throw new Error("Terjadi kesalahan pada server saat mencoba masuk.");
+    }
+}

@@ -1,85 +1,14 @@
-
-
-
-
-
-// ====================================================================
-// PANDUAN MANUAL: MIGRASI KE DATABASE MARIADB/MYSQL
-// ====================================================================
-// Bagian ini adalah panduan konseptual untuk membantu Anda memigrasikan
-// logika penyimpanan dari localStorage ke database MariaDB yang sesungguhnya.
-// Kode di bawah ini adalah contoh dan perlu Anda sesuaikan.
-
-/*
-// --- LANGKAH 1: INSTAL DRIVER DATABASE ---
-// Jalankan perintah ini di terminal proyek Anda (saya sudah menambahkannya ke package.json):
-// npm install mysql2
-
-// --- LANGKAH 2: SIAPKAN KONEKSI DATABASE ---
-// Anda perlu membuat koneksi ke server MariaDB Anda. Cara terbaik adalah
-// menggunakan "connection pool". Letakkan ini di atas semua fungsi Anda.
-
-import mysql from 'mysql2/promise';
-
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,         // 'localhost' atau alamat IP server DB Anda
-  user: process.env.DB_USER,         // Nama pengguna database Anda
-  password: process.env.DB_PASSWORD, // Kata sandi database Anda
-  database: process.env.DB_NAME,     // Nama database Anda
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
-
-// Pastikan Anda menambahkan variabel DB_* di atas ke dalam file .env.local Anda!
-
-// --- LANGKAH 3: UBAH FUNGSI-FUNGSI DI BAWAH INI ---
-// Setiap fungsi yang saat ini membaca dari `localStorage` (seperti getAllUsers,
-// getUserById, dll.) harus ditulis ulang untuk melakukan query SQL ke database Anda.
-// Semua fungsi yang berinteraksi dengan DB akan menjadi `async`.
-
-// CONTOH: Mengubah `getUserById`
-
-// VERSI LAMA (localStorage):
-// export function getUserById(id: string): User | undefined {
-//   const db = getDB();
-//   return db.users.find(user => user.id === id);
-// }
-
-// VERSI BARU (MariaDB):
-async function getUserByIdFromDB(id: string): Promise<User | undefined> {
-  try {
-    const [rows] = await pool.query<mysql.RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [id]);
-    if (rows.length > 0) {
-      // Anda perlu memastikan kolom di database cocok dengan tipe User
-      return rows[0] as User;
-    }
-    return undefined;
-  } catch (error) {
-    console.error("Gagal mengambil pengguna dari DB:", error);
-    throw new Error("Gagal mengambil data pengguna.");
-  }
-}
-
-// Anda perlu melakukan ini untuk SEMUA fungsi di bawah (getAllUsers, createCourse, dll.)
-// dengan query SQL yang sesuai (SELECT, INSERT, UPDATE, DELETE).
-*/
-
+// --- MariaDB Connection ---
+// Fungsi yang dimigrasikan akan menggunakan pool ini.
+import { pool } from './db';
+import type { RowDataPacket } from 'mysql2';
 
 // ====================================================================
 // PENTING: PEMBERITAHUAN TENTANG PENYIMPANAN DATA
 // ====================================================================
-// Aplikasi ini menggunakan Local Storage browser Anda sebagai database.
-// Ini berarti semua data (pengguna, kursus, dll.) HANYA tersimpan di
-// perangkat dan browser yang Anda gunakan saat ini.
-//
-// AKIBATNYA:
-// - Data TIDAK akan sinkron antar perangkat (misal: laptop dan ponsel).
-// - Membersihkan cache browser Anda akan MENGHAPUS SEMUA DATA.
-//
-// Ini adalah perilaku yang wajar untuk aplikasi prototipe. Untuk membuat
-// data menjadi real-time dan sinkron, diperlukan migrasi ke database
-// terpusat seperti Firebase Firestore atau MariaDB.
+// Aplikasi ini sedang dalam proses migrasi dari Local Storage ke MariaDB.
+// Beberapa fungsi di bawah ini sudah menggunakan MariaDB, sementara yang lain
+// masih menggunakan Local Storage.
 // ====================================================================
 
 import type { Course, User, Module, Lesson, Enrollment, UpgradeRequest, PaymentAccount, SeoSettings, LandingPageSettings, Testimonial, ConfirmationContact, CertificateRequest, FAQItem, AiApp, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
@@ -350,6 +279,11 @@ function getDB(): Database {
 
 // --- User API Functions ---
 
+// ===============================================
+// FUNGSI DI BAWAH INI MASIH MENGGUNAKAN LOCALSTORAGE
+// DAN SECARA BERTAHAP AKAN DIMIGRASIKAN
+// ===============================================
+
 export function getAllUsers(): User[] {
   const db = getDB();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -372,10 +306,6 @@ export function getAllUsers(): User[] {
   return db.users;
 }
 
-export function getUserById(id: string): User | undefined {
-    const db = getDB();
-    return db.users.find(user => user.id === id);
-}
 
 export type RegisterUserInput = Omit<User, 'id' | 'role' | 'avatarUrl' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid'>;
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'role' | 'username' | 'createdAt'>>;
@@ -444,23 +374,6 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
     
     saveDB(db);
     return db.users[userIndex];
-}
-
-export function validateUser(username: string, password: string): User | null {
-  const db = getDB();
-  const user = db.users.find(u => u.username === username);
-  if (user && user.password === password) {
-    if (user.role !== 'admin' && user.status === 'inactive') {
-      throw new Error('ACCOUNT_INACTIVE');
-    }
-    // Update login stats
-    user.lastLoginAt = new Date().toISOString();
-    user.loginCount = (user.loginCount || 0) + 1;
-    user.status = 'active'; // Reactivate on successful login if needed
-    saveDB(db);
-    return user;
-  }
-  return null;
 }
 
 export function deleteUser(userId: string): void {
@@ -975,7 +888,7 @@ export function getTestimonialByUserId(userId: string): Testimonial | undefined 
 
 export function addOrUpdateTestimonial(testimonialData: {userId: string; quote: string; rating: number}): Testimonial {
     const db = getDB();
-    const user = getUserById(testimonialData.userId);
+    const user = db.users.find(u => u.id === testimonialData.userId);
     if (!user) {
         throw new Error("Pengguna tidak ditemukan.");
     }
