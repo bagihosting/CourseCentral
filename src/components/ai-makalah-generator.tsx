@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ export function AiMakalahGenerator() {
   const [editRequest, setEditRequest] = useLocalStorage('ai_makalah_editRequest', '');
   
   const { toast } = useToast();
-  const paperContentRef =  useState<HTMLDivElement>(null);
+  const paperContentRef = useRef<HTMLDivElement>(null);
 
   const handleGenerateTitles = async () => {
     if (!major) {
@@ -100,51 +100,58 @@ export function AiMakalahGenerator() {
         return;
     }
     setIsDownloading(true);
+    toast({ title: 'Mempersiapkan PDF...', description: 'Ini mungkin memerlukan beberapa saat.' });
+
+    // Create a temporary container for rendering
+    const tempContainer = document.createElement('div');
+    tempContainer.style.width = '210mm'; // A4 width
+    tempContainer.style.padding = '15mm';
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.backgroundColor = 'white';
+    tempContainer.style.color = 'black';
+    tempContainer.innerHTML = DOMPurify.sanitize(contentElement.innerHTML);
+    document.body.appendChild(tempContainer);
+    
     try {
-        const canvas = await html2canvas(contentElement, { scale: 2 });
+        const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            useCORS: true,
+            windowWidth: tempContainer.scrollWidth,
+            windowHeight: tempContainer.scrollHeight,
+        });
+
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = imgWidth / imgHeight;
-        const height = pdfWidth / ratio;
-        let position = 0;
-        let remainingHeight = imgHeight;
-
-        while(remainingHeight > 0) {
-            const pageCanvas = document.createElement('canvas');
-            pageCanvas.width = imgWidth;
-            pageCanvas.height = imgHeight;
-            const pageCtx = pageCanvas.getContext('2d');
-            if (!pageCtx) continue;
-            
-            const sourceY = position * canvas.height;
-            const sourceHeight = Math.min(canvas.height, remainingHeight);
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = sourceHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            if (!tempCtx) continue;
-            tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-            
-            const pageImgData = tempCanvas.toDataURL('image/png');
-            const pageImgHeight = pdfWidth / (tempCanvas.width/tempCanvas.height);
-
-
-            if(position > 0) pdf.addPage();
-            pdf.addImage(pageImgData, 'PNG', 0, 0, pdfWidth, pageImgHeight);
-            position++;
-            remainingHeight -= sourceHeight * ratio * 1.5; // Heuristic adjustment
-        }
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+        });
         
-        pdf.save(`makalah-${title.substring(0, 20)}.pdf`);
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        let heightLeft = pdfHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+
+        while (heightLeft >= 0) {
+            position = heightLeft - pdfHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pdf.internal.pageSize.getHeight();
+        }
+
+        pdf.save(`makalah-${title.substring(0, 20).toLowerCase().replace(/[^a-z0-9]/g, '-')}.pdf`);
+        toast({ title: 'Sukses', description: 'PDF berhasil dibuat dan diunduh.' });
     } catch(e) {
         console.error(e);
         toast({ title: "Gagal Mengunduh PDF", description: "Terjadi kesalahan saat membuat PDF.", variant: "destructive" });
     } finally {
+        document.body.removeChild(tempContainer);
         setIsDownloading(false);
     }
   };
@@ -273,12 +280,14 @@ export function AiMakalahGenerator() {
             </Card>
             
             {/* Result */}
-            <div className="space-y-4" ref={paperContentRef}>
+            <div ref={paperContentRef}>
+              <div className="prose dark:prose-invert max-w-none p-4 border rounded-lg bg-background">
                 <h3 className="text-2xl font-bold text-center">{title}</h3>
-                <div className="prose dark:prose-invert max-w-none p-4 border rounded-lg bg-background" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(output.paperContent.replace(/\n/g, '<br/>')) }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(output.paperContent.replace(/\n/g, '<br/>')) }} />
                 
                 <h4 className="text-xl font-bold pt-4">Daftar Pustaka</h4>
-                <div className="prose dark:prose-invert max-w-none p-4 border rounded-lg bg-background" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(output.bibliography.replace(/\n/g, '<br/>')) }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(output.bibliography.replace(/\n/g, '<br/>')) }} />
+              </div>
             </div>
 
           </div>
@@ -287,3 +296,5 @@ export function AiMakalahGenerator() {
     </Card>
   );
 }
+
+    
