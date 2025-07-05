@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Course, Module, Lesson } from '@/types';
@@ -37,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { suggestModuleTitleAction } from '@/actions/ai';
+import { suggestModuleTitleAction, generateLessonContentAction } from '@/actions/ai';
 
 type FormErrors = {
     title?: string;
@@ -113,13 +114,14 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 }
 
 // --- Lesson Form ---
-function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: string, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
+function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
     const [title, setTitle] = useState(lesson?.title || '');
     const [type, setType] = useState<Lesson['type']>(lesson?.type || 'text');
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
     const [content, setContent] = useState(lesson?.content || '');
     const [errors, setErrors] = useState<FormErrors>({});
     const [isUploading, setIsUploading] = useState(false);
+    const [isGeneratingContent, setIsGeneratingContent] = useState(false);
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -157,6 +159,23 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
             textarea.focus();
             textarea.setSelectionRange(finalCursorStart, finalCursorEnd);
         }, 0);
+    };
+
+    const handleGenerateContent = async () => {
+        if (!title) {
+            toast({ title: "Gagal", description: "Judul pelajaran harus diisi terlebih dahulu.", variant: "destructive" });
+            return;
+        }
+        setIsGeneratingContent(true);
+        const result = await generateLessonContentAction({ courseTitle: course.title, lessonTitle: title });
+        setIsGeneratingContent(false);
+
+        if ('error' in result) {
+            toast({ title: 'Gagal', description: result.error, variant: 'destructive' });
+        } else {
+            setContent(result.content);
+            toast({ title: 'Sukses', description: 'Konten tutorial berhasil dibuat oleh AI.' });
+        }
     };
 
     const validate = () => {
@@ -233,10 +252,10 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
             };
 
             if(lesson) {
-                updateLesson(courseId, moduleId, lesson.id, lessonData);
+                updateLesson(course.id, moduleId, lesson.id, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
             } else {
-                addLesson(courseId, moduleId, lessonData);
+                addLesson(course.id, moduleId, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil ditambahkan.'});
             }
             onFinished();
@@ -271,7 +290,19 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
 
         {type === 'text' ? (
            <div className="space-y-2">
-            <Label htmlFor="content">Konten Teks</Label>
+             <div className="flex justify-between items-center">
+                <Label htmlFor="content">Konten Teks</Label>
+                <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-sm"
+                    onClick={handleGenerateContent}
+                    disabled={isGeneratingContent || !title}
+                >
+                    {isGeneratingContent ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                    Buat Tutorial dengan AI
+                </Button>
+            </div>
             <div className="rounded-md border bg-transparent">
               <div className="flex items-center gap-1 border-b p-1">
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFormat('b')} title="Tebal">
@@ -298,7 +329,7 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
                 value={content} 
                 onChange={e => setContent(e.target.value)} 
                 rows={15} 
-                placeholder="Tulis konten pelajaran di sini..." 
+                placeholder="Tulis konten pelajaran di sini atau gunakan AI untuk membuatnya." 
                 className="w-full resize-y rounded-t-none border-0 bg-transparent px-3 py-2 focus-visible:ring-0"
               />
             </div>
@@ -333,7 +364,7 @@ function LessonForm({ courseId, moduleId, lesson, onFinished }: { courseId: stri
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit" disabled={isUploading}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
+        <Button type="submit" disabled={isUploading || isGeneratingContent}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
       </DialogFooter>
     </form>
   );
@@ -518,12 +549,12 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
       
       {/* Lesson Dialog */}
       <Dialog open={isLessonDialogOpen} onOpenChange={setLessonDialogOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingLesson ? 'Ubah Pelajaran' : 'Tambah Pelajaran Baru'}</DialogTitle>
           </DialogHeader>
           <LessonForm 
-            courseId={course.id} 
+            course={course} 
             moduleId={editingLesson?.moduleId ?? addingLessonToModule!}
             lesson={editingLesson?.lesson}
             onFinished={handleFinished}

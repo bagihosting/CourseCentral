@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateThumbnail as generateThumbnailFlow } from '@/ai/flows/generate-thumbnail';
@@ -28,6 +29,7 @@ import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffi
 import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
 import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput, type GenerateGenkitAppOutput } from '@/ai/flows/generate-genkit-app';
 import { suggestModuleTitle as suggestModuleTitleFlow, type SuggestModuleTitleInput, type SuggestModuleTitleOutput } from '@/ai/flows/suggest-module-title';
+import { generateLessonContent as generateLessonContentFlow, type GenerateLessonContentInput, type GenerateLessonContentOutput } from '@/ai/flows/generate-lesson-content';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -463,5 +465,22 @@ export async function suggestModuleTitleAction(
   } catch (error) {
     console.error('Error suggesting module title:', error);
     return { error: 'Gagal memberikan saran judul modul.' };
+  }
+}
+
+export async function generateLessonContentAction(
+  input: GenerateLessonContentInput
+): Promise<GenerateLessonContentOutput | { error: string }> {
+  if (!input.courseTitle || !input.lessonTitle) {
+    return { error: 'Judul kursus dan judul pelajaran harus diisi.' };
+  }
+  try {
+    const result = await generateLessonContentFlow(input);
+    // Sanitize HTML content before returning to client
+    result.content = DOMPurify.sanitize(result.content);
+    return result;
+  } catch (error) {
+    console.error('Error generating lesson content:', error);
+    return { error: 'Gagal membuat konten pelajaran dengan AI.' };
   }
 }
