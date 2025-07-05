@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { suggestModuleTitleAction, generateLessonContentAction } from '@/actions/ai';
+import { suggestModuleTitleAction, generateLessonContentAction, suggestLessonTitleAction } from '@/actions/ai';
 
 type FormErrors = {
     title?: string;
@@ -121,10 +121,34 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
     const [content, setContent] = useState(lesson?.content || '');
     const [errors, setErrors] = useState<FormErrors>({});
     const [isUploading, setIsUploading] = useState(false);
+    const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
     const [isGeneratingContent, setIsGeneratingContent] = useState(false);
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const contentRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleGenerateTitle = async () => {
+        const module = course.modules.find(m => m.id === moduleId);
+        if (!module) {
+            toast({ title: "Error", description: "Modul tidak ditemukan.", variant: "destructive" });
+            return;
+        }
+        setIsGeneratingTitle(true);
+        const existingLessonTitles = module.lessons.map(l => l.title);
+        const result = await suggestLessonTitleAction({
+            courseTitle: course.title,
+            moduleTitle: module.title,
+            existingLessonTitles: existingLessonTitles
+        });
+        setIsGeneratingTitle(false);
+
+        if ('error' in result) {
+            toast({ title: 'Gagal', description: result.error, variant: 'destructive' });
+        } else {
+            setTitle(result.suggestedTitle);
+            toast({ title: 'Sukses', description: 'Judul pelajaran berhasil dibuat oleh AI.' });
+        }
+    };
 
     const handleFormat = (tag: 'b' | 'i' | 'h1' | 'h2' | 'ul') => {
         const textarea = contentRef.current;
@@ -269,9 +293,15 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
     <form onSubmit={handleSubmit}>
       <div className="space-y-4 p-1">
         <div className="space-y-2">
-          <Label htmlFor="title">Judul Pelajaran</Label>
-          <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} />
-          {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
+            <Label htmlFor="title">Judul Pelajaran</Label>
+            <div className="flex items-center gap-2">
+                <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} className="flex-grow"/>
+                <Button type="button" variant="outline" size="icon" onClick={handleGenerateTitle} disabled={isGeneratingTitle || isGeneratingContent}>
+                    {isGeneratingTitle ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    <span className="sr-only">Buat Judul dengan AI</span>
+                </Button>
+            </div>
+            {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
         </div>
         <div className="space-y-2">
             <Label htmlFor="type">Tipe Pelajaran</Label>
@@ -301,7 +331,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
                 variant="outline"
                 className="w-full"
                 onClick={handleGenerateContent}
-                disabled={isGeneratingContent || !title}
+                disabled={isGeneratingContent || !title || isGeneratingTitle}
             >
                 {isGeneratingContent ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />}
                 Buat Draf Tutorial dengan AI
@@ -367,7 +397,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit" disabled={isUploading || isGeneratingContent}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
+        <Button type="submit" disabled={isUploading || isGeneratingContent || isGeneratingTitle}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
       </DialogFooter>
     </form>
   );

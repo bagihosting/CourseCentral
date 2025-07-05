@@ -30,6 +30,7 @@ import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopolog
 import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput, type GenerateGenkitAppOutput } from '@/ai/flows/generate-genkit-app';
 import { suggestModuleTitle as suggestModuleTitleFlow, type SuggestModuleTitleInput, type SuggestModuleTitleOutput } from '@/ai/flows/suggest-module-title';
 import { generateLessonContent as generateLessonContentFlow, type GenerateLessonContentInput, type GenerateLessonContentOutput } from '@/ai/flows/generate-lesson-content';
+import { suggestLessonTitle as suggestLessonTitleFlow, type SuggestLessonTitleInput, type SuggestLessonTitleOutput } from '@/ai/flows/suggest-lesson-title';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -482,5 +483,20 @@ export async function generateLessonContentAction(
   } catch (error) {
     console.error('Error generating lesson content:', error);
     return { error: 'Gagal membuat konten pelajaran dengan AI.' };
+  }
+}
+
+export async function suggestLessonTitleAction(
+  input: SuggestLessonTitleInput
+): Promise<SuggestLessonTitleOutput | { error: string }> {
+  if (!input.courseTitle || !input.moduleTitle) {
+    return { error: 'Judul kursus dan modul tidak boleh kosong.' };
+  }
+  try {
+    const result = await suggestLessonTitleFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error suggesting lesson title:', error);
+    return { error: 'Gagal memberikan saran judul pelajaran.' };
   }
 }
