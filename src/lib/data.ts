@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 // ====================================================================
@@ -320,114 +321,26 @@ function saveDB(db: Database) {
 
 function getDB(): Database {
     if (typeof window === 'undefined') {
+        // Pada server, selalu kembalikan data awal yang bersih untuk mencegah kebocoran state antar-request.
         return getInitialData();
     }
+    
     const dbString = localStorage.getItem(DB_KEY);
     
-    if (!dbString) {
-        const initialData = getInitialData();
-        saveDB(initialData);
-        return initialData;
+    if (dbString) {
+        try {
+            // Coba parse data yang ada. Jika berhasil, kembalikan.
+            return JSON.parse(dbString);
+        } catch (e) {
+            console.error("Gagal mem-parsing DB dari localStorage, mengatur ulang.", e);
+            // Jika parsing gagal, lanjutkan untuk membuat data awal yang baru.
+        }
     }
 
-    try {
-        // Start with a deep copy to compare against later
-        const originalData = JSON.parse(dbString);
-        const data = JSON.parse(dbString) as Database; // Work on this copy
-        
-        const initialSettings = getInitialData();
-
-        // --- Data Migration & Integrity Checks ---
-
-        // Ensure all top-level keys exist
-        if (!data.users) data.users = [];
-        if (!data.courses) data.courses = [];
-        if (!data.enrollments) data.enrollments = [];
-        if (!data.upgradeRequests) data.upgradeRequests = [];
-        if (!data.certificateRequests) data.certificateRequests = [];
-        if (!data.testimonials) data.testimonials = [];
-        if (!data.confirmationContacts) data.confirmationContacts = [];
-        if (!data.registeredDeviceIds) data.registeredDeviceIds = [];
-        if (!data.customAppRequests) data.customAppRequests = [];
-
-        // Migrate PaymentSettings if it's in the old format
-        if (!data.paymentSettings || !Array.isArray(data.paymentSettings)) {
-          data.paymentSettings = initialSettings.paymentSettings;
-        }
-
-        // Migrate SEO Settings
-        if (!data.seoSettings) {
-            data.seoSettings = initialSettings.seoSettings;
-        }
-        data.seoSettings = { ...initialSettings.seoSettings, ...data.seoSettings };
-
-        // Migrate Landing Page Settings (merge complex objects like aiApps)
-        if (!data.landingPageSettings) {
-            data.landingPageSettings = initialSettings.landingPageSettings;
-        } else {
-            // Merge shallow properties first
-            data.landingPageSettings = { ...initialSettings.landingPageSettings, ...data.landingPageSettings };
-            
-            // Special handling for aiApps to merge new apps from code while preserving user's enabled/disabled state
-            const initialAiApps = initialSettings.landingPageSettings.aiApps;
-            const storedAiApps = data.landingPageSettings.aiApps || [];
-            const storedAppsMap = new Map(storedAiApps.map(app => [app.id, app]));
-            
-            const mergedAiApps = initialAiApps.map(initialApp => {
-                const storedApp = storedAppsMap.get(initialApp.id);
-                // Use stored app if it exists, otherwise use the initial (new) app from code
-                return storedApp ? storedApp : initialApp;
-            });
-
-            // Filter out apps that are no longer in the initial code to keep it clean.
-            const initialAppIds = new Set(initialAiApps.map(app => app.id));
-             data.landingPageSettings.aiApps = mergedAiApps.filter(app => initialAppIds.has(app.id));
-
-        }
-
-        // --- User Data Migration ---
-        const now = new Date().toISOString();
-        data.users.forEach(user => {
-            if (!user.createdAt) user.createdAt = now;
-            if (!user.lastLoginAt) user.lastLoginAt = now;
-            if (!user.status) user.status = 'active';
-            if (typeof user.loginCount !== 'number') user.loginCount = 0;
-            if (!user.referralCode) user.referralCode = `${(user.username || 'user').replace(/\s/g, '')}${Date.now().toString(36)}`;
-            if (typeof user.affiliateBalance !== 'number') user.affiliateBalance = 0;
-            if (typeof user.affiliatePaid !== 'number') user.affiliatePaid = 0;
-        });
-
-        // --- Admin User Self-Healing & Security Patch ---
-        let adminUser = data.users.find(u => u.id === 'admin');
-        if (adminUser) {
-            // Admin exists, just ensure its role is correct. DO NOT touch the password.
-            adminUser.role = 'admin';
-        } else {
-            // Admin was deleted, let's add it back from initial data. This is a "self-healing" mechanism.
-            adminUser = initialSettings.users.find(u => u.id === 'admin')!;
-            data.users.push(adminUser);
-        }
-
-        // Any other user who is not the designated admin cannot have the 'admin' role.
-        data.users.forEach(user => {
-            if (user.id !== 'admin' && user.role === 'admin') {
-                user.role = 'member'; // Revert to the lowest privilege
-            }
-        });
-
-        // --- Final Check & Save ---
-        // Only write back to localStorage if a change was actually made during migration.
-        if (JSON.stringify(originalData) !== JSON.stringify(data)) {
-             saveDB(data);
-        }
-
-        return data;
-    } catch (e) {
-        console.error("Gagal mem-parsing DB dari localStorage, mengatur ulang.", e);
-        const initialData = getInitialData();
-        saveDB(initialData);
-        return initialData;
-    }
+    // Jika tidak ada data atau parsing gagal, buat data awal, simpan, dan kembalikan.
+    const initialData = getInitialData();
+    saveDB(initialData);
+    return initialData;
 }
 
 // --- User API Functions ---
