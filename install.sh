@@ -2,27 +2,8 @@
 #
 # =================================================================
 # Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 24.04
-#
-# Disesuaikan untuk: CourseCentral
-#
-# Skrip ini dirancang untuk dapat dijalankan ulang untuk instalasi awal
-# maupun untuk memperbarui aplikasi dengan mudah.
+# Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
-
-# --- CARA PENGGUNAAN ---
-
-# 1. PERSIAPAN:
-#    a. Salin/Unggah SELURUH FOLDER proyek Anda ke VPS. Letakkan di dalam direktori home pengguna Anda.
-#       Contoh: /home/ubuntu/CourseCentral
-#    b. Pastikan nama folder proyek Anda sesuai dengan variabel PROJECT_DIR_NAME di bawah.
-#    c. Unggah skrip 'install.sh' ini ke direktori home Anda (misal: /home/ubuntu/).
-
-# 2. INSTALASI & PEMBARUAN:
-#    a. Jadikan skrip ini dapat dieksekusi: chmod +x install.sh
-#    b. Jalankan skrip dengan sudo: sudo ./install.sh
-#    c. Skrip akan menginstal dependensi sistem, Nginx, Node.js, dan PM2.
-#    d. Skrip akan masuk ke folder proyek Anda, menginstal dependensi, membangun, dan menjalankan aplikasi.
-#    e. Untuk memperbarui aplikasi, cukup unggah ulang folder proyek Anda dan jalankan kembali skrip ini.
 
 # --- Berhenti jika ada kesalahan ---
 set -e
@@ -191,16 +172,10 @@ sudo -u $RUN_USER pm2 save
 echo ""
 echo_success "================= PROSES SELESAI ================="
 echo "Aplikasi Anda sekarang berjalan dan dikelola oleh PM2."
-echo "------------------------------------------------------------"
+echo ""
 echo_info "PENTING: ARAHKAN DOMAIN ANDA KE ALAMAT IP SERVER INI."
 echo_warn "Untuk mengaktifkan HTTPS (sangat disarankan), jalankan: sudo certbot --nginx"
 echo ""
-echo "------------------------------------------------------------"
-echo_warn "          JIKA TERJADI MASALAH (502 BAD GATEWAY)          "
-echo "------------------------------------------------------------"
-echo "1. Cek status aplikasi: pm2 status"
-echo "2. Lihat log error aplikasi: pm2 logs $APP_NAME"
-echo "3. Uji konfigurasi Nginx: sudo nginx -t"
-echo "------------------------------------------------------------"
+echo_info "Untuk panduan pemecahan masalah, lihat file DEPLOYMENT.md."
 echo ""
 echo_success "Deployment selesai! Aplikasi Anda dapat diakses melalui IP server."
