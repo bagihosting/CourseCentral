@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { validateUser, registerUser as registerUserData, getUserById, RegisterUserInput, updateUser as updateUserData, UpdateUserInput } from '@/lib/data';
 
+// Menggunakan localStorage untuk persistensi sesi yang lebih kuat.
+// Data akan tetap ada bahkan setelah browser ditutup, sampai pengguna logout.
 const SESSION_KEY = 'user_session_id';
 
 interface AuthContextType {
@@ -26,18 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const storedUserId = sessionStorage.getItem(SESSION_KEY);
+      const storedUserId = localStorage.getItem(SESSION_KEY);
       if (storedUserId) {
         const userData = getUserById(storedUserId);
         if (userData) {
           setUser(userData);
         } else {
-          // Clear session if user ID is invalid
-          sessionStorage.removeItem(SESSION_KEY);
+          // Bersihkan sesi jika ID pengguna tidak valid
+          localStorage.removeItem(SESSION_KEY);
         }
       }
     } catch (error) {
-      console.error("Failed to load user from session storage:", error);
+      console.error("Gagal memuat pengguna dari localStorage:", error);
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const validatedUser = validateUser(username, password);
     if (validatedUser) {
       setUser(validatedUser);
-      sessionStorage.setItem(SESSION_KEY, validatedUser.id);
+      localStorage.setItem(SESSION_KEY, validatedUser.id);
       router.push('/dashboard');
       router.refresh();
     } else {
@@ -57,16 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(async (data: RegisterUserInput & { referredBy?: string }) => {
     const newUser = registerUserData(data);
-    // Automatically log in after registration
+    // Masuk secara otomatis setelah registrasi
     setUser(newUser);
-    sessionStorage.setItem(SESSION_KEY, newUser.id);
+    localStorage.setItem(SESSION_KEY, newUser.id);
     router.push('/dashboard');
     router.refresh();
   }, [router]);
 
   const logout = useCallback(() => {
     setUser(null);
-    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
     router.push('/');
     router.refresh();
   }, [router]);
@@ -77,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
         const updatedUser = updateUserData(user.id, data);
-        setUser(updatedUser); // Update the user state in the context
+        setUser(updatedUser); // Update state pengguna di dalam context
     } catch (error) {
         console.error("Gagal memperbarui pengguna:", error);
         throw error;
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth harus digunakan di dalam AuthProvider');
   }
   return context;
 }
