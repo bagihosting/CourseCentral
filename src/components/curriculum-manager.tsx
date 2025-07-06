@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Course, Module, Lesson } from '@/types';
@@ -31,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud, Bold, Italic, List, Heading1, Heading2, Wand2 } from 'lucide-react';
+import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, Bold, Italic, List, Heading1, Heading2, Wand2 } from 'lucide-react';
 import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/actions/curriculum';
@@ -123,12 +124,10 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
     const [content, setContent] = useState(lesson?.content || '');
     const [errors, setErrors] = useState<FormErrors>({});
-    const [isUploading, setIsUploading] = useState(false);
     const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
     const [isGeneratingContent, setIsGeneratingContent] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const contentRef = useRef<HTMLTextAreaElement>(null);
 
     const handleGenerateTitle = async () => {
@@ -209,59 +208,10 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
         const newErrors: FormErrors = {};
         if(title.length < 3) newErrors.title = 'Judul pelajaran minimal 3 karakter.';
         if ((type === 'video' || type === 'youtube' || type === 'zip') && !contentUrl) {
-            newErrors.contentUrl = 'URL konten atau hasil unggahan tidak boleh kosong.';
+            newErrors.contentUrl = 'URL konten tidak boleh kosong.';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    }
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        
-        const allowedTypes = ['video/', 'application/zip', 'application/x-zip-compressed'];
-        if (!allowedTypes.some(type => file.type.startsWith(type))) {
-            toast({ title: 'Gagal', description: 'Hanya file video atau ZIP yang diizinkan.', variant: 'destructive' });
-            setIsUploading(false);
-            return;
-        }
-
-        const maxSizeInBytes = 100 * 1024 * 1024; 
-        if (file.size > maxSizeInBytes) {
-            toast({ title: 'Gagal', description: `Ukuran file tidak boleh melebihi ${maxSizeInBytes / 1024 / 1024}MB.`, variant: 'destructive' });
-            setIsUploading(false);
-            return;
-        }
-
-        try {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                setContentUrl(dataUrl);
-                if (file.type.startsWith('video/')) {
-                    setType('video');
-                } else {
-                    setType('zip');
-                }
-                setIsUploading(false);
-                toast({ title: 'Sukses', description: 'File berhasil dibaca dan siap disimpan.' });
-            };
-            reader.onerror = () => {
-                setIsUploading(false);
-                toast({ title: 'Gagal Membaca File', description: 'Terjadi kesalahan saat membaca file.', variant: 'destructive' });
-            };
-            reader.readAsDataURL(file);
-        } catch (error) {
-            setIsUploading(false);
-            const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
-            toast({ title: 'Gagal', description: errorMessage, variant: 'destructive' });
-        }
-        
-        if(fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
     }
   
     const handleSubmit = async (e: FormEvent) => {
@@ -324,7 +274,29 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
             </Select>
         </div>
 
-        {type === 'text' ? (
+        {type !== 'text' ? (
+           <div className="space-y-2">
+                <Label htmlFor="contentUrl">
+                    {type === 'youtube' && 'URL Video YouTube'}
+                    {type === 'video' && 'URL Video Langsung'}
+                    {type === 'zip' && 'URL File ZIP'}
+                </Label>
+                <Input 
+                    id="contentUrl" 
+                    name="contentUrl" 
+                    value={contentUrl} 
+                    onChange={e => setContentUrl(e.target.value)} 
+                    placeholder={
+                        type === 'youtube' ? "https://www.youtube.com/watch?v=..." 
+                        : "https://... (URL publik ke file Anda)"
+                    }
+                />
+                {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
+                <p className="text-xs text-muted-foreground">
+                    Unggah file video atau ZIP Anda ke layanan hosting (seperti Google Drive, dll) dan tempelkan link publiknya di sini.
+                </p>
+            </div>
+        ) : (
            <div className="space-y-4">
              <div className="space-y-2">
                 <Label htmlFor="content">Konten Pelajaran</Label>
@@ -373,37 +345,11 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
               />
             </div>
           </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="contentUrl">URL Konten</Label>
-            <Input id="contentUrl" name="contentUrl" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder={type === 'youtube' ? "https://www.youtube.com/watch?v=..." : "https://..."} />
-            {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
-          </div>
         )}
-        
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Atau</span>
-            </div>
-        </div>
-
-        <div className="space-y-2">
-            <Label htmlFor="file-upload">Unggah File (Video/ZIP, Maks 100MB)</Label>
-            <div className="flex gap-2">
-                <Input id="file-upload" type="file" accept="video/*,application/zip,application/x-zip-compressed" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading} className="flex-grow" />
-                {isUploading && <Button disabled variant="outline" size="icon"><Loader2 className="animate-spin" /></Button>}
-            </div>
-            <p className="text-xs text-muted-foreground">Mengunggah file akan otomatis mengatur tipe pelajaran dan mengisi URL-nya.</p>
-        </div>
-
-
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit" disabled={isUploading || isGeneratingContent || isGeneratingTitle || isSubmitting}>{isSubmitting ? 'Menyimpan...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
+        <Button type="submit" disabled={isGeneratingContent || isGeneratingTitle || isSubmitting}>{isSubmitting ? 'Menyimpan...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
       </DialogFooter>
     </form>
   );
