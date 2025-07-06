@@ -34,6 +34,7 @@ import {
   Library,
   Palette,
   Banknote,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -70,10 +71,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
   
   const adminNavItems = [
+    { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
+    { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
     { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
     { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
-    { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
     { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
     { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },

@@ -19,10 +19,11 @@ export type User = {
   instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
   lessonsCreatedToday: number;
   lastLessonCreatedAt: string | null;
+  customDomain: string | null;
 };
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt'> & { referredBy?: string };
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt'>>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'> & { referredBy?: string };
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
 
 export type Course = {
   id: string;

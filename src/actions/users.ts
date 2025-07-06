@@ -16,14 +16,20 @@ function generateReferralCode(length = 8) {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users ORDER BY createdAt DESC');
+  const [rows] = await pool.query<RowDataPacket[]>(`
+    SELECT u.*, ib.customDomain
+    FROM users u
+    LEFT JOIN instructor_branding ib ON u.id = ib.userId
+    ORDER BY u.createdAt DESC
+  `);
   return rows.map(row => ({
       ...row,
       affiliateBalance: Number(row.affiliateBalance),
       affiliatePaid: Number(row.affiliatePaid),
       loginCount: Number(row.loginCount),
       lessonsCreatedToday: Number(row.lessons_created_today),
-      lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null
+      lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,
+      customDomain: row.customDomain
   })) as User[];
 }
 
