@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import { AffiliatePromoKit } from '@/components/affiliate-promo-kit';
+import { ReferredByBadge } from '@/components/referred-by-badge';
 
 export default function AffiliatePage() {
   const { user, loading: userLoading } = useAuth();
@@ -78,6 +79,11 @@ export default function AffiliatePage() {
       <div>
         <h1 className="text-3xl font-bold">Dasbor Afiliasi</h1>
         <p className="text-muted-foreground">Lacak referral Anda, lihat penghasilan, dan bagikan link unik Anda.</p>
+        {user.referredBy && (
+            <div className="mt-4">
+                 <ReferredByBadge referralCode={user.referredBy} />
+            </div>
+        )}
       </div>
 
       <Card>

@@ -39,6 +39,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getSeoSettings } from '@/actions/settings';
+import { ReferredByBadge } from '@/components/referred-by-badge';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -147,9 +148,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <div className="flex flex-col">
+        <div className="flex flex-col min-h-svh">
           <DashboardHeader />
           <main className="flex-1 p-4 md:p-6">{children}</main>
+          <footer className="flex justify-center p-4 border-t shrink-0">
+            {user && user.referredBy && <ReferredByBadge referralCode={user.referredBy} />}
+          </footer>
         </div>
       </SidebarInset>
     </SidebarProvider>

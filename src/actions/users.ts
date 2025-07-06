@@ -27,6 +27,20 @@ export async function getAllUsers(): Promise<User[]> {
   })) as User[];
 }
 
+export async function getUserByReferralCode(referralCode: string): Promise<Pick<User, 'name'> | null> {
+  if (!referralCode) return null;
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT name FROM users WHERE referralCode = ?', [referralCode]);
+    if (rows.length > 0) {
+      return rows[0] as Pick<User, 'name'>;
+    }
+    return null;
+  } catch (error) {
+    console.error(`🔴 Gagal mengambil pengguna dengan kode referral ${referralCode}:`, error);
+    return null;
+  }
+}
+
 export async function registerUser(data: RegisterUserInput): Promise<User> {
     const [existing] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE username = ?', [data.username]);
     if (existing.length > 0) {
