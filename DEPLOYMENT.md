@@ -1,7 +1,51 @@
-Dokumen ini berisi dua metode untuk men-deploy aplikasi Next.js Anda ke server pribadi virtual (VPS) yang menjalankan Ubuntu 24.04.
+Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda.
 
-- **Metode 1** adalah cara tradisional menggunakan Nginx dan PM2 secara langsung di server. Ini bagus untuk pemula.
+- **Metode 0** adalah untuk menjalankan aplikasi di komputer **lokal** Anda untuk development. **Mulai dari sini jika Anda baru pertama kali menjalankan proyek.**
+- **Metode 1** adalah cara tradisional menggunakan Nginx dan PM2 secara langsung di server VPS.
 - **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
+
+---
+
+## Metode 0: Development di Komputer Lokal
+
+Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan aplikasi server lokal seperti **XAMPP** atau **Laragon**.
+
+### Prasyarat
+- **Node.js**: Pastikan Node.js (versi 20 atau lebih baru) sudah terinstal.
+- **Server Lokal**: Pastikan Anda sudah menginstal dan menjalankan **XAMPP** atau **Laragon**. Pastikan service **Apache** dan **MySQL/MariaDB** sudah berjalan.
+- **Kode Proyek**: Anda sudah memiliki folder kode proyek ini.
+
+### Langkah 1: Setup Database
+1. Buka `phpMyAdmin` dari panel kontrol XAMPP/Laragon Anda.
+2. Buat database baru dengan nama `coursecentral_db`. Pastikan collation diatur ke `utf8mb4_unicode_ci`.
+3. Setelah database dibuat, klik tab "SQL" atau "Import".
+4. Buka file `schema.sql` dari folder proyek Anda, salin seluruh isinya, dan tempelkan ke dalam kotak teks SQL, lalu jalankan. Ini akan membuat semua tabel yang diperlukan beserta data admin default.
+
+### Langkah 2: Konfigurasi File Environment
+1. Di folder utama proyek, buat salinan dari file `.env.local` dan ganti namanya jika belum ada.
+2. Buka file `.env.local`.
+3. Isi `GEMINI_API_KEY` dengan API key Anda.
+4. Pastikan detail koneksi database sudah benar untuk setup lokal Anda. Untuk XAMPP/Laragon standar, konfigurasinya biasanya adalah:
+   ```env
+   GEMINI_API_KEY="PASTE_YOUR_KEY_HERE"
+   DB_HOST="127.0.0.1"
+   DB_PORT="3306"
+   DB_USER="root"
+   DB_PASSWORD=""
+   DB_NAME="coursecentral_db"
+   ```
+   Jika password `root` MariaDB Anda berbeda, silakan sesuaikan `DB_PASSWORD`.
+
+### Langkah 3: Jalankan Aplikasi
+1. Buka terminal atau command prompt di dalam folder proyek Anda.
+2. Jalankan perintah `npm install` untuk menginstal semua dependensi.
+3. Setelah selesai, jalankan `npm run dev` untuk memulai server development.
+4. Buka browser dan akses `http://localhost:3000`.
+
+### Troubleshooting: Error `ECONNREFUSED`
+Jika Anda melihat error `ECONNREFUSED` di konsol, itu artinya:
+- **MariaDB/MySQL Anda tidak berjalan.** Pastikan service tersebut aktif di XAMPP atau Laragon.
+- **Port atau Host salah.** Pastikan `DB_HOST` dan `DB_PORT` di file `.env.local` Anda sudah sesuai dengan konfigurasi MariaDB di komputer Anda. Konsol terminal juga akan memberikan petunjuk spesifik saat aplikasi dimulai.
 
 ---
 
