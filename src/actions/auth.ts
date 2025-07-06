@@ -1,3 +1,4 @@
+
 'use server';
 
 import { pool } from '@/lib/db';
@@ -21,8 +22,12 @@ export async function getUserById(id: string): Promise<User | undefined> {
       };
     }
     return undefined;
-  } catch (error) {
-    console.error("🔴 Gagal mengambil pengguna dari DB di getUserById:", error);
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED') {
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+    } else {
+        console.error("🔴 Gagal mengambil pengguna dari DB di getUserById:", error);
+    }
     // Mengembalikan undefined secara diam-diam agar tidak merusak seluruh aplikasi jika DB tidak terjangkau.
     // Error sudah dicatat di log server untuk debugging.
     return undefined;
@@ -64,11 +69,14 @@ export async function validateUser(username: string, password: string): Promise<
         }
 
         return null; // Kata sandi salah
-    } catch (error) {
-        if (error instanceof Error && error.message === 'ACCOUNT_INACTIVE') {
+    } catch (error: any) {
+        if (error.code === 'ECONNREFUSED') {
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+        } else if (error instanceof Error && error.message === 'ACCOUNT_INACTIVE') {
             throw error; // Lemparkan kembali error spesifik ini
+        } else {
+            console.error("🔴 Error saat validasi pengguna di validateUser:", error);
         }
-        console.error("🔴 Error saat validasi pengguna di validateUser:", error);
         // Lemparkan kembali error asli untuk debugging.
         throw error;
     }

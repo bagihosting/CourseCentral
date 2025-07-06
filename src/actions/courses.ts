@@ -26,10 +26,13 @@ export async function getAllCourses(): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
     return rows.map(mapRowToCourse);
-  } catch (error) {
-    console.error("🔴 Gagal mengambil semua kursus:", error);
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED') {
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+    } else {
+        console.error("🔴 Gagal mengambil semua kursus:", error);
+    }
     // Mengembalikan array kosong agar halaman tidak rusak jika database tidak tersedia.
-    // Toast akan ditampilkan di sisi klien jika diperlukan.
     return [];
   }
 }
@@ -41,8 +44,12 @@ export async function getCourseById(id: string): Promise<Course | null> {
             return null;
         }
         return mapRowToCourse(rows[0]);
-    } catch (error) {
-        console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
+    } catch (error: any) {
+        if (error.code === 'ECONNREFUSED') {
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+        } else {
+            console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
+        }
         // Mengembalikan null jika ada kesalahan database untuk mencegah halaman rusak.
         return null;
     }
