@@ -297,7 +297,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
                 />
                 {errors.contentUrl && <p className="text-sm text-destructive">{errors.contentUrl}</p>}
                 <p className="text-xs text-muted-foreground">
-                    Unggah file video atau ZIP Anda ke layanan hosting (seperti Google Drive, dll) dan tempelkan link publiknya di sini.
+                    Gunakan penyedia hosting yang terpercaya dan pastikan file Anda telah dipindai dari malware sebelum diunggah.
                 </p>
             </div>
         ) : (
