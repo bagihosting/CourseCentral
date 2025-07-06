@@ -1,3 +1,4 @@
+
 'use server';
 
 import { pool } from '@/lib/db';
@@ -27,7 +28,7 @@ export async function getAllCourses(): Promise<Course[]> {
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error("🔴 Gagal mengambil semua kursus:", error);
-    throw new Error('Gagal mengambil data kursus dari database.');
+    throw error;
   }
 }
 
@@ -40,7 +41,7 @@ export async function getCourseById(id: string): Promise<Course | null> {
         return mapRowToCourse(rows[0]);
     } catch (error) {
         console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
-        throw new Error('Gagal mengambil data kursus.');
+        throw error;
     }
 }
 
@@ -69,7 +70,7 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promis
         return createdCourse;
     } catch (error) {
         console.error("🔴 Gagal membuat kursus baru:", error);
-        throw new Error('Gagal menyimpan kursus baru ke database.');
+        throw error;
     }
 }
 
@@ -109,7 +110,7 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id'>>
         return updatedCourse;
     } catch (error) {
         console.error(`🔴 Gagal memperbarui kursus dengan ID ${id}:`, error);
-        throw new Error('Gagal memperbarui data kursus.');
+        throw error;
     }
 }
 
@@ -122,6 +123,6 @@ export async function deleteCourse(id: string): Promise<void> {
         }
     } catch (error) {
         console.error(`🔴 Gagal menghapus kursus dengan ID ${id}:`, error);
-        throw new Error('Gagal menghapus kursus.');
+        throw error;
     }
 }
