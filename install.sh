@@ -2,6 +2,7 @@
 #
 # =================================================================
 # Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 22.04 & 24.04
+# Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
 
@@ -48,18 +49,20 @@ fi
 echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME..."
 
 # --- 1. Pembaruan Sistem dan Pemasangan Dependensi Awal ---
-echo_info "Memperbarui paket sistem dan memasang dependensi (nginx, curl)..."
+echo_info "Memperbarui paket sistem dan memasang dependensi..."
 apt-get update
 apt-get upgrade -y
-apt-get install -y nginx curl build-essential mariadb-server
+# Tambahkan psmisc (untuk fuser), phpmyadmin dan dependensi php-nya
+apt-get install -y nginx curl build-essential mariadb-server psmisc \
+                   phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
 # --- 2. Setup Database MariaDB ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
-# PENTING: Ganti password ini di production
-DB_PASS="gantidenganpassworduseryangaman" 
-DB_ROOT_PASS="gantidenganpasswordrootyangaman"
+# Membuat password acak yang aman
+DB_PASS=$(openssl rand -base64 12)
+DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Jalankan skrip setup keamanan secara non-interaktif
 mysql -u root -e "UPDATE mysql.user SET password=PASSWORD('$DB_ROOT_PASS') WHERE user='root';"
@@ -69,14 +72,12 @@ mysql -u root -p"$DB_ROOT_PASS" -e "DROP DATABASE IF EXISTS test;"
 mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE db='test' OR db='test\\_%';"
 mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 
-
 # Buat database dan pengguna, pastikan idempotensi
 mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
 mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
-echo_success "Database dan pengguna berhasil dikonfigurasi."
-echo_warn "Harap catat password root dan pengguna yang baru dibuat."
+echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
 
 # --- 3. Setup Direktori Proyek ---
 echo_info "Memeriksa direktori proyek di $PROJECT_DIR..."
@@ -145,6 +146,10 @@ echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
 echo_warn "======================================================================="
 
 # --- 7. Mulai Aplikasi dengan PM2 ---
+# Hentikan proses apa pun yang mungkin berjalan di port aplikasi
+echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
+fuser -k $APP_PORT/tcp || true
+
 echo_info "Memulai atau me-restart aplikasi dengan PM2..."
 # Hapus instance yang ada untuk memastikan awal yang baru
 sudo -u "$RUN_USER" pm2 delete "$APP_NAME" || true
@@ -158,14 +163,26 @@ sleep 2
 # --- 8. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
+# Dapatkan versi PHP yang terinstal untuk path socket FPM
+PHP_SOCKET_PATH=$(ls /var/run/php/php*-fpm.sock | head -n 1)
+
+if [ -z "$PHP_SOCKET_PATH" ]; then
+    echo_error "Tidak dapat menemukan socket PHP-FPM. Instalasi php-fpm mungkin gagal."
+    exit 1
+fi
+echo_info "Menggunakan socket PHP-FPM di: $PHP_SOCKET_PATH"
 
 # Selalu timpa konfigurasi Nginx untuk memastikan yang terbaru
+# Konfigurasi ini termasuk block untuk phpMyAdmin
 NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
-    server_name _; # Ganti _ dengan nama domain Anda
-    location /.well-known/acme-challenge/ { root /var/www/html; }
+    server_name _; # Ganti _ dengan nama domain Anda saat konfigurasi SSL
+    root /var/www/html; # Root untuk verifikasi SSL/umum
+    index index.html index.htm index.nginx-debian.html;
+
+    # Lokasi untuk aplikasi Next.js
     location / {
         proxy_pass http://localhost:$APP_PORT;
         proxy_http_version 1.1;
@@ -177,9 +194,33 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
     }
+
+    # Lokasi untuk phpMyAdmin
+    location /phpmyadmin {
+        alias /usr/share/phpmyadmin;
+        index index.php;
+        
+        location ~ ^/phpmyadmin(.+\.php)$ {
+            try_files \$uri =404;
+            root /usr/share/;
+            fastcgi_pass unix:$PHP_SOCKET_PATH;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+        location ~* ^/phpmyadmin(.+\.(jpg|jpeg|gif|css|js))$ {
+            root /usr/share/;
+        }
+    }
+
+    # Blokir akses ke file .htaccess yang tidak digunakan oleh Nginx
+    location ~ /\.ht {
+        deny all;
+    }
 }"
 echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-echo_info "File konfigurasi Nginx dibuat/diperbarui."
+echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
@@ -203,9 +244,18 @@ echo ""
 echo_success "================= PROSES SELESAI ================="
 echo "Aplikasi Anda sekarang berjalan dan dikelola oleh PM2."
 echo ""
+echo_warn "================ CREDENTIALS DATABASE (HARAP SIMPAN!) ================"
+echo "Kredensial ini juga telah disimpan di $ENV_FILE"
+echo "  - Username Database: $DB_USER"
+echo "  - Password Database: $DB_PASS"
+echo "  - Root Password DB : $DB_ROOT_PASS"
+echo "=========================================================================="
+echo ""
+echo_info "AKSES APLIKASI:"
+echo "  - Aplikasi Next.js: http://<ALAMAT_IP_SERVER_ANDA>"
+echo "  - phpMyAdmin      : http://<ALAMAT_IP_SERVER_ANDA>/phpmyadmin"
+echo ""
 echo_info "PENTING: ARAHKAN DOMAIN ANDA KE ALAMAT IP SERVER INI."
 echo_warn "Untuk mengaktifkan HTTPS (sangat disarankan), jalankan: sudo certbot --nginx"
 echo ""
-echo_info "Untuk panduan pemecahan masalah, lihat file DEPLOYMENT.md."
-echo ""
-echo_success "Deployment selesai! Aplikasi Anda dapat diakses melalui IP server."
+echo_success "Deployment selesai!"

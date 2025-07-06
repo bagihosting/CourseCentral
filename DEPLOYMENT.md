@@ -55,7 +55,7 @@ Jika Anda melihat error `ECONNREFUSED` di konsol, itu artinya:
 
 ## Metode 1: Deployment di VPS (Nginx + PM2) dengan Auto-Installer
 
-Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses instalasi dan konfigurasi di server.
+Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses instalasi dan konfigurasi di server, termasuk instalasi phpMyAdmin untuk kemudahan pengelolaan database.
 
 ### Prasyarat
 
@@ -77,22 +77,25 @@ Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses i
       ```bash
       unzip proyek-kursus.zip -d kursus
       ```
-    - Pindahkan file `install.sh` keluar dari folder `kursus` ke direktori home Anda:
-      ```bash
-      mv kursus/install.sh .
-      ```
-    Sekarang, Anda seharusnya memiliki folder proyek `/home/username/kursus` dan file `install.sh` di direktori home (`~`).
 
 ### Langkah 2: Jalankan Skrip Instalasi
 
 Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
 
-1.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
-2.  **Jalankan Skrip dengan Sudo**:
+1.  **Masuk ke Folder Proyek**: `cd kursus`
+2.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
+3.  **Jalankan Skrip dengan Sudo**:
     ```bash
     sudo ./install.sh
     ```
-    Skrip akan meminta password sudo Anda, lalu akan berjalan secara otomatis, menginstal semua yang diperlukan, mengkonfigurasi database, membangun aplikasi, dan menjalankannya.
+    Skrip akan meminta password sudo Anda, lalu akan berjalan secara otomatis. Skrip ini akan:
+    - Menginstal semua dependensi (Nginx, MariaDB, Node.js, PM2, phpMyAdmin, dll.).
+    - Membuat database dan pengguna baru dengan password acak yang aman.
+    - Mengimpor file `schema.sql` secara otomatis.
+    - Membangun aplikasi Next.js Anda.
+    - Menghentikan proses lama yang mungkin berjalan di port 3000.
+    - Menjalankan aplikasi Anda dengan PM2.
+    - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan phpMyAdmin.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 
@@ -100,8 +103,9 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     ```bash
     nano ~/kursus/.env.local
     ```
-2.  **Arahkan Domain**: Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
-3.  **(Sangat Disarankan) Aktifkan SSL/HTTPS**: Setelah domain diarahkan, jalankan perintah berikut untuk mendapatkan sertifikat SSL gratis dari Let's Encrypt.
+2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`.
+3.  **Arahkan Domain**: Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
+4.  **(Sangat Disarankan) Aktifkan SSL/HTTPS**: Setelah domain diarahkan, jalankan perintah berikut untuk mendapatkan sertifikat SSL gratis dari Let's Encrypt.
     ```bash
     sudo apt install certbot python3-certbot-nginx -y
     sudo certbot --nginx
@@ -202,6 +206,6 @@ Setelah aplikasi berjalan di Docker (di port 3000), Anda masih perlu Nginx sebag
     sudo nginx -t      # Uji konfigurasi
     sudo systemctl restart nginx
     ```
-4.  **Arahkan Domain Anda dan Aktifkan HTTPS**: Lakukan Langkah 3 dari Metode 1 untuk mengarahkan domain dan mengaktifkan SSL dengan `certbot`.
+4.  **Arahkan Domain Anda dan Aktifkan HTTPS**: Lakukan Langkah 4 dari Metode 1 untuk mengarahkan domain dan mengaktifkan SSL dengan `certbot`.
 
 Sekarang aplikasi Anda berjalan melalui Docker dan dapat diakses dari domain Anda! Anda dapat memantau, menghentikan, atau melihat log kontainer melalui antarmuka Portainer.
