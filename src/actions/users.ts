@@ -1,3 +1,4 @@
+
 'use server';
 
 import { pool } from '@/lib/db';
@@ -5,6 +6,7 @@ import type { User, RegisterUserInput, UpdateUserInput } from '@/types';
 import { getUserById } from '@/actions/auth';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 function generateReferralCode(length = 8) {
   return crypto.randomBytes(Math.ceil(length / 2))
@@ -32,8 +34,8 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
     const newId = `user_${Date.now()}`;
     const referralCode = generateReferralCode();
     
-    // In a real app, hash the password: const hashedPassword = await bcrypt.hash(data.password, 10);
-    const hashedPassword = data.password; // For simplicity, using plain text as in the original project
+    // Hash the password with bcrypt
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     await pool.query(
         'INSERT INTO users (id, name, username, password, whatsapp, role, avatarUrl, referralCode, referredBy) VALUES (?, ?, ?, ?, ?, "member", ?, ?, ?)',
@@ -46,14 +48,16 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
 }
 
 export async function updateUser(id: string, data: UpdateUserInput): Promise<User> {
-    const fieldsToUpdate = { ...data };
+    const fieldsToUpdate: { [key: string]: any } = { ...data };
     
     if (fieldsToUpdate.password) {
-        // In a real app, hash the password
-        fieldsToUpdate.password = fieldsToUpdate.password;
+        // Hash the new password before updating
+        fieldsToUpdate.password = await bcrypt.hash(fieldsToUpdate.password, 10);
+    } else {
+        delete fieldsToUpdate.password; // Ensure empty password field doesn't overwrite existing hash
     }
 
-    const fieldEntries = Object.entries(fieldsToUpdate).filter(([_, value]) => value !== undefined);
+    const fieldEntries = Object.entries(fieldsToUpdate).filter(([, value]) => value !== undefined);
     if (fieldEntries.length === 0) {
       const user = await getUserById(id);
       if(!user) throw new Error("Pengguna tidak ditemukan");

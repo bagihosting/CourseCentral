@@ -4,6 +4,7 @@
 import { pool } from '@/lib/db';
 import type { User } from '@/types';
 import type { RowDataPacket } from 'mysql2';
+import bcrypt from 'bcrypt';
 
 // This file contains the new, database-backed authentication functions.
 // Client components should import from here to use server actions.
@@ -45,13 +46,29 @@ export async function validateUser(username: string, password: string): Promise<
         }
 
         const user = rows[0] as User;
+        const storedPassword = user.password;
 
-        // Di dunia nyata, gunakan bcrypt.compare(password, user.password)
-        if (user.password === password) {
+        let passwordMatch = false;
+
+        // Cek apakah password yang tersimpan adalah hash bcrypt
+        if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
+            passwordMatch = await bcrypt.compare(password, storedPassword);
+        } else {
+            // Fallback untuk password plaintext (untuk pengguna lama/default)
+            passwordMatch = (storedPassword === password);
+        }
+
+        if (passwordMatch) {
             if (user.role !== 'admin' && user.status === 'inactive') {
                 throw new Error('ACCOUNT_INACTIVE');
             }
             
+            // Lazy migration: Jika password masih plaintext, hash dan update sekarang
+            if (!storedPassword.startsWith('$2a$') && !storedPassword.startsWith('$2b$')) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+            }
+
             // Update statistik login
             const newLoginCount = (Number(user.loginCount) || 0) + 1;
             await pool.query(
