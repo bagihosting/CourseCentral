@@ -102,10 +102,9 @@ export default function LandingPageSettingsPage() {
             const imageFile = dataURItoFile(result.imageUrl, 'hero.png');
             
             const options = {
-                maxSizeMB: 0.3,
+                maxSizeMB: 0.5,
                 maxWidthOrHeight: 1280,
                 useWebWorker: true,
-                fileType: 'image/jpeg',
             };
             const compressedFile = await imageCompression(imageFile, options);
 
@@ -357,7 +356,7 @@ export default function LandingPageSettingsPage() {
                                 onClick={() => {
                                     const a = document.createElement('a');
                                     a.href = generatedHeroPreview;
-                                    a.download = 'hero-image-scriptify.jpg';
+                                    a.download = 'hero-image-scriptify.png';
                                     a.click();
                                 }}
                             >
