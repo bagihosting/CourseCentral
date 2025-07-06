@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating SEO-optimized content for a course.
