@@ -1,7 +1,9 @@
+
 'use server';
 
 import { getCourseById, updateCourse } from './courses';
 import type { Lesson, Module } from '@/types';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function addModule(courseId: string, data: { title: string }): Promise<void> {
     const course = await getCourseById(courseId);
@@ -47,6 +49,11 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
     const module = course.modules.find(m => m.id === moduleId);
     if(!module) throw new Error("Modul tidak ditemukan.");
 
+    // Sanitize HTML content on input to prevent storing malicious scripts
+    if (data.type === 'text' && data.content) {
+        data.content = DOMPurify.sanitize(data.content);
+    }
+
     const newLesson: Lesson = {
         ...data,
         id: `lesson_${Date.now()}`,
@@ -66,6 +73,11 @@ export async function updateLesson(courseId: string, moduleId: string, lessonId:
 
     const lessonIndex = module.lessons.findIndex(l => l.id === lessonId);
     if(lessonIndex === -1) throw new Error("Pelajaran tidak ditemukan.");
+    
+    // Sanitize HTML content on input to prevent storing malicious scripts
+    if (data.type === 'text' && data.content) {
+        data.content = DOMPurify.sanitize(data.content);
+    }
 
     const updatedLesson = {
         ...module.lessons[lessonIndex],
