@@ -33,6 +33,7 @@ import {
   BookUser,
   Library,
   Palette,
+  Banknote,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
     { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
     { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
+    { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Penarikan Dana' },
     { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
     { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },

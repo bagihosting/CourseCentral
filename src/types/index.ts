@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -191,4 +192,17 @@ export type CustomAppRequest = {
   };
   adminNotes?: string;
   resultLink?: string;
+};
+
+export type WithdrawalRequest = {
+    id: string;
+    userId: string;
+    amount: number;
+    bankName: string;
+    accountHolder: string;
+    accountNumber: string;
+    status: 'pending' | 'approved' | 'rejected';
+    requestDate: string;
+    processedAt?: string;
+    adminNotes?: string;
 };
