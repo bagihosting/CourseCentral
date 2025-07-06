@@ -15,6 +15,9 @@ export async function createWithdrawalRequest(data: WithdrawalInput, userId: str
     await connection.beginTransaction();
 
     try {
+        // SECURITY: Fetch the user's current balance directly from the database within a transaction.
+        // This ensures we are working with the real, server-side balance, not a value from the client that could be manipulated.
+        // The `FOR UPDATE` clause locks the row to prevent race conditions (e.g., two simultaneous withdrawal requests).
         const [userRows] = await connection.query<RowDataPacket[]>('SELECT role, createdAt, affiliateBalance FROM users WHERE id = ? FOR UPDATE', [userId]);
         if (userRows.length === 0) throw new Error('Pengguna tidak ditemukan.');
         const user = userRows[0];
@@ -27,7 +30,9 @@ export async function createWithdrawalRequest(data: WithdrawalInput, userId: str
             throw new Error(`Anda tidak memenuhi syarat. Anda harus menjadi member Pro atau menjadi Pengajar selama lebih dari ${MIN_INSTRUCTOR_AGE_DAYS} hari.`);
         }
 
-        // --- 2. Validate Balance ---
+        // --- 2. CRITICAL: Server-Side Balance Validation ---
+        // This is the most important security check. It compares the requested amount against the true balance from the database.
+        // Even if a user alters the balance displayed on the frontend, this server-side check will fail, preventing fraud.
         if (Number(user.affiliateBalance) < data.amount) {
             throw new Error('Saldo Anda tidak mencukupi untuk jumlah penarikan yang diminta.');
         }
