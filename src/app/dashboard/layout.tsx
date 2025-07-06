@@ -152,7 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <DashboardHeader />
           <main className="flex-1 p-4 md:p-6">{children}</main>
           <footer className="flex justify-center p-4 border-t shrink-0">
-            {user && user.referredBy && <ReferredByBadge referralCode={user.referredBy} />}
+            {user && user.referredBy && user.role !== 'instructor' && <ReferredByBadge referralCode={user.referredBy} />}
           </footer>
         </div>
       </SidebarInset>

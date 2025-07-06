@@ -79,7 +79,7 @@ export default function AffiliatePage() {
       <div>
         <h1 className="text-3xl font-bold">Dasbor Afiliasi</h1>
         <p className="text-muted-foreground">Lacak referral Anda, lihat penghasilan, dan bagikan link unik Anda.</p>
-        {user.referredBy && (
+        {user.referredBy && user.role !== 'instructor' && (
             <div className="mt-4">
                  <ReferredByBadge referralCode={user.referredBy} />
             </div>
