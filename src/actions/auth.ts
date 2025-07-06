@@ -23,9 +23,9 @@ export async function getUserById(id: string): Promise<User | undefined> {
     return undefined;
   } catch (error) {
     console.error("🔴 Gagal mengambil pengguna dari DB di getUserById:", error);
-    // Lemparkan kembali error asli agar pesan error yang sebenarnya muncul di log dan di browser (selama development).
-    // Ini akan memberikan petunjuk yang lebih jelas tentang masalah koneksi atau query.
-    throw error;
+    // Mengembalikan undefined secara diam-diam agar tidak merusak seluruh aplikasi jika DB tidak terjangkau.
+    // Error sudah dicatat di log server untuk debugging.
+    return undefined;
   }
 }
 

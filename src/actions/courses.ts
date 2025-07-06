@@ -28,7 +28,9 @@ export async function getAllCourses(): Promise<Course[]> {
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error("🔴 Gagal mengambil semua kursus:", error);
-    throw error;
+    // Mengembalikan array kosong agar halaman tidak rusak jika database tidak tersedia.
+    // Toast akan ditampilkan di sisi klien jika diperlukan.
+    return [];
   }
 }
 
@@ -41,7 +43,8 @@ export async function getCourseById(id: string): Promise<Course | null> {
         return mapRowToCourse(rows[0]);
     } catch (error) {
         console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
-        throw error;
+        // Mengembalikan null jika ada kesalahan database untuk mencegah halaman rusak.
+        return null;
     }
 }
 
