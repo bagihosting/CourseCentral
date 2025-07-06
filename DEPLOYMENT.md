@@ -1,7 +1,7 @@
 Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda.
 
 - **Metode 0** adalah untuk menjalankan aplikasi di komputer **lokal** Anda untuk development. **Mulai dari sini jika Anda baru pertama kali menjalankan proyek.**
-- **Metode 1** adalah cara tradisional menggunakan Nginx dan PM2 secara langsung di server VPS.
+- **Metode 1** adalah cara deployment langsung di server VPS menggunakan Nginx dan PM2, diotomatisasi dengan skrip.
 - **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
 
 ---
@@ -53,47 +53,61 @@ Jika Anda melihat error `ECONNREFUSED` di konsol, itu artinya:
 
 ---
 
-## Metode 1: Deployment Langsung di VPS (Nginx + PM2)
+## Metode 1: Deployment di VPS (Nginx + PM2) dengan Auto-Installer
 
-Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan instalasi langsung di server.
+Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses instalasi dan konfigurasi di server.
 
 ### Prasyarat
 
-- Sebuah server VPS baru yang menjalankan **Ubuntu 24.04**.
-- Akses SSH ke server Anda dengan pengguna yang memiliki hak `sudo`.
+- Sebuah server VPS baru yang menjalankan **Ubuntu 22.04** atau **24.04**.
+- Akses SSH ke server Anda dengan pengguna non-root yang memiliki hak `sudo`.
 
-### Langkah 1: Persiapan
+### Langkah 1: Unggah File ke Server
 
-Sebelum menjalankan skrip, Anda perlu mengunggah file proyek Anda ke server.
-
-1.  **Kompres Folder Proyek Anda**: Di komputer lokal Anda, kompres seluruh folder proyek Anda menjadi satu file (misalnya `CourseCentral.zip`).
-2.  **Unggah File ke Server**: Gunakan `scp` (atau klien SFTP seperti FileZilla) untuk mengunggah file ZIP tersebut ke direktori home pengguna di server Anda.
+1.  **Kompres Folder Proyek**: Di komputer lokal Anda, kompres seluruh folder proyek Anda (termasuk file `schema.sql` dan `install.sh`) menjadi satu file, misalnya `proyek-kursus.zip`.
+2.  **Unggah File ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla) untuk mengunggah file ZIP tersebut ke direktori home pengguna di server Anda.
     ```bash
     # Contoh menggunakan scp
-    scp /path/to/your/local/CourseCentral.zip username@alamat_ip_server:~/
+    scp /path/to/your/local/proyek-kursus.zip username@alamat_ip_server:~/
     ```
-3.  **Unggah Skrip Instalasi**: Unggah juga skrip `install.sh` ke direktori home yang sama.
-    ```bash
-    scp /path/to/your/local/install.sh username@alamat_ip_server:~/
-    ```
-4.  **Masuk ke Server dan Ekstrak**:
+3.  **Masuk ke Server dan Ekstrak**:
     - Masuk ke server Anda melalui SSH: `ssh username@alamat_ip_server`
-    - Instal `unzip` jika belum ada: `sudo apt update && sudo apt install unzip`
-    - Ekstrak file proyek Anda: `unzip CourseCentral.zip`
-    Sekarang, Anda seharusnya memiliki folder proyek (misalnya `/home/username/CourseCentral`) dan file `install.sh` di direktori home Anda.
+    - Instal `unzip` jika belum ada: `sudo apt update && sudo apt install -y unzip`
+    - Ekstrak file proyek Anda. Ini akan membuat folder bernama `kursus`:
+      ```bash
+      unzip proyek-kursus.zip -d kursus
+      ```
+    - Pindahkan file `install.sh` keluar dari folder `kursus` ke direktori home Anda:
+      ```bash
+      mv kursus/install.sh .
+      ```
+    Sekarang, Anda seharusnya memiliki folder proyek `/home/username/kursus` dan file `install.sh` di direktori home (`~`).
 
-### Langkah 2: Konfigurasi dan Instalasi
+### Langkah 2: Jalankan Skrip Instalasi
+
+Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
 
 1.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
-2.  **Jalankan Skrip Instalasi**: Jalankan skrip dengan hak akses `sudo`.
+2.  **Jalankan Skrip dengan Sudo**:
     ```bash
     sudo ./install.sh
     ```
-    Skrip akan menangani semua proses instalasi dan konfigurasi secara otomatis.
+    Skrip akan meminta password sudo Anda, lalu akan berjalan secara otomatis, menginstal semua yang diperlukan, mengkonfigurasi database, membangun aplikasi, dan menjalankannya.
 
-### Langkah 3: Mengarahkan Domain
+### Langkah 3: Langkah Final Setelah Skrip Selesai
 
-Setelah skrip selesai, aplikasi Anda sudah berjalan. Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
+1.  **Isi API Key**: Skrip akan membuat file `.env.local` di dalam folder proyek. Anda **HARUS** mengedit file ini dan memasukkan `GEMINI_API_KEY` Anda.
+    ```bash
+    nano ~/kursus/.env.local
+    ```
+2.  **Arahkan Domain**: Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
+3.  **(Sangat Disarankan) Aktifkan SSL/HTTPS**: Setelah domain diarahkan, jalankan perintah berikut untuk mendapatkan sertifikat SSL gratis dari Let's Encrypt.
+    ```bash
+    sudo apt install certbot python3-certbot-nginx -y
+    sudo certbot --nginx
+    ```
+
+Selesai! Aplikasi Anda kini berjalan, aman, dan dapat diakses dari domain Anda.
 
 ---
 
@@ -188,6 +202,6 @@ Setelah aplikasi berjalan di Docker (di port 3000), Anda masih perlu Nginx sebag
     sudo nginx -t      # Uji konfigurasi
     sudo systemctl restart nginx
     ```
-4.  **Arahkan Domain Anda**: Lakukan Langkah 3 dari Metode 1 untuk mengarahkan domain Anda ke IP server.
+4.  **Arahkan Domain Anda dan Aktifkan HTTPS**: Lakukan Langkah 3 dari Metode 1 untuk mengarahkan domain dan mengaktifkan SSL dengan `certbot`.
 
 Sekarang aplikasi Anda berjalan melalui Docker dan dapat diakses dari domain Anda! Anda dapat memantau, menghentikan, atau melihat log kontainer melalui antarmuka Portainer.

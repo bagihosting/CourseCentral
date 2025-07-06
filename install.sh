@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # =================================================================
-# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 24.04
+# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 22.04 & 24.04
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
 
@@ -55,28 +55,26 @@ apt-get install -y nginx curl build-essential mariadb-server
 
 # --- 2. Setup Database MariaDB ---
 echo_info "Mengkonfigurasi database MariaDB..."
-# Jalankan skrip setup keamanan secara non-interaktif
-mysql_secure_installation <<EOF
-
-n
-Y
-gantidenganpasswordrootyangaman
-gantidenganpasswordrootyangaman
-Y
-Y
-Y
-Y
-EOF
-
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
-DB_PASS="gantidenganpassworduseryangaman"
+# PENTING: Ganti password ini di production
+DB_PASS="gantidenganpassworduseryangaman" 
+DB_ROOT_PASS="gantidenganpasswordrootyangaman"
+
+# Jalankan skrip setup keamanan secara non-interaktif
+mysql -u root -e "UPDATE mysql.user SET password=PASSWORD('$DB_ROOT_PASS') WHERE user='root';"
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='';"
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '127.0.0.1', '::1');"
+mysql -u root -p"$DB_ROOT_PASS" -e "DROP DATABASE IF EXISTS test;"
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE db='test' OR db='test\\_%';"
+mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+
 
 # Buat database dan pengguna, pastikan idempotensi
-mysql -u root -p"gantidenganpasswordrootyangaman" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-mysql -u root -p"gantidenganpasswordrootyangaman" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mysql -u root -p"gantidenganpasswordrootyangaman" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
-mysql -u root -p"gantidenganpasswordrootyangaman" -e "FLUSH PRIVILEGES;"
+mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 echo_success "Database dan pengguna berhasil dikonfigurasi."
 echo_warn "Harap catat password root dan pengguna yang baru dibuat."
 
@@ -98,12 +96,12 @@ echo_success "Skema database berhasil diimpor."
 # --- 4. Pasang Node.js & PM2 ---
 echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
-if ! command -v node &> /dev/null; then
+if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
     echo_info "Memasang Node.js v20 LTS..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     apt-get install -y nodejs
 else
-    echo_info "Node.js sudah terpasang."
+    echo_info "Node.js v20 sudah terpasang."
 fi
 
 # Pasang PM2
