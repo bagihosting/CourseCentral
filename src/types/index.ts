@@ -89,6 +89,14 @@ export type InstructorApplication = {
   userAvatar: string;
 }
 
+export type InstructorBranding = {
+  userId: string;
+  customDomain: string | null;
+  brandName: string | null;
+  brandLogoUrl: string | null;
+  brandPrimaryColor: string | null;
+};
+
 export type PaymentAccount = {
   id: string;
   bankName: string;

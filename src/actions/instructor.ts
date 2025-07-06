@@ -2,7 +2,7 @@
 'use server';
 
 import { pool } from '@/lib/db';
-import type { InstructorApplication } from '@/types';
+import type { InstructorApplication, InstructorBranding } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export async function applyForInstructor(userId: string): Promise<void> {
@@ -89,5 +89,31 @@ export async function rejectInstructorApplication(applicationId: string): Promis
         throw error;
     } finally {
         connection.release();
+    }
+}
+
+export async function getInstructorBranding(userId: string): Promise<InstructorBranding | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM instructor_branding WHERE userId = ?', [userId]);
+    if (rows.length === 0) {
+        return null;
+    }
+    return rows[0] as InstructorBranding;
+}
+
+export async function saveInstructorBranding(userId: string, data: Partial<Omit<InstructorBranding, 'userId'>>): Promise<void> {
+    const existing = await getInstructorBranding(userId);
+
+    const { customDomain, brandName, brandLogoUrl, brandPrimaryColor } = data;
+
+    if (existing) {
+        await pool.query(
+            'UPDATE instructor_branding SET customDomain = ?, brandName = ?, brandLogoUrl = ?, brandPrimaryColor = ? WHERE userId = ?',
+            [customDomain, brandName, brandLogoUrl, brandPrimaryColor, userId]
+        );
+    } else {
+        await pool.query(
+            'INSERT INTO instructor_branding (userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?)',
+            [userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor]
+        );
     }
 }

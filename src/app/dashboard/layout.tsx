@@ -32,6 +32,7 @@ import {
   Rocket,
   BookUser,
   Library,
+  Palette,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -63,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const instructorNavItems = [
      { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
-     // Add more instructor-specific links here, like earnings
+     { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
   ];
   
   const adminNavItems = [
