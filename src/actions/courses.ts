@@ -28,7 +28,9 @@ export async function getAllCourses(): Promise<Course[]> {
     return rows.map(mapRowToCourse);
   } catch (error: any) {
     if (error.code === 'ECONNREFUSED') {
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+        const dbHost = process.env.DB_HOST || 'localhost';
+        const dbPort = process.env.DB_PORT || 3306;
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
     } else {
         console.error("🔴 Gagal mengambil semua kursus:", error);
     }
@@ -46,7 +48,9 @@ export async function getCourseById(id: string): Promise<Course | null> {
         return mapRowToCourse(rows[0]);
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
         }

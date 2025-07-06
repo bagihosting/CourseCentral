@@ -24,7 +24,9 @@ export async function getUserById(id: string): Promise<User | undefined> {
     return undefined;
   } catch (error: any) {
     if (error.code === 'ECONNREFUSED') {
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+        const dbHost = process.env.DB_HOST || 'localhost';
+        const dbPort = process.env.DB_PORT || 3306;
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
     } else {
         console.error("🔴 Gagal mengambil pengguna dari DB di getUserById:", error);
     }
@@ -71,7 +73,9 @@ export async function validateUser(username: string, password: string): Promise<
         return null; // Kata sandi salah
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else if (error instanceof Error && error.message === 'ACCOUNT_INACTIVE') {
             throw error; // Lemparkan kembali error spesifik ini
         } else {

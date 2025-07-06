@@ -61,7 +61,9 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
         return defaultValue;
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}':`, error);
         }
@@ -99,7 +101,9 @@ export async function getPaymentSettings(): Promise<PaymentAccount[]> {
         return rows as PaymentAccount[];
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error("🔴 Gagal mengambil akun pembayaran:", error);
         }
@@ -130,7 +134,9 @@ export async function getConfirmationContacts(): Promise<ConfirmationContact[]> 
         return rows as ConfirmationContact[];
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error("🔴 Gagal mengambil kontak konfirmasi:", error);
         }
@@ -166,7 +172,9 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
         return rows as Testimonial[];
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error("🔴 Gagal mengambil semua testimoni:", error);
         }
@@ -181,7 +189,9 @@ export async function getTestimonialByUserId(userId: string): Promise<Testimonia
         return rows[0] as Testimonial;
     } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${process.env.DB_HOST}:${process.env.DB_PORT}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
         } else {
             console.error(`🔴 Gagal mengambil testimoni untuk pengguna ${userId}:`, error);
         }
