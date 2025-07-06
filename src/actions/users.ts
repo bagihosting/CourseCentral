@@ -22,6 +22,8 @@ export async function getAllUsers(): Promise<User[]> {
       affiliateBalance: Number(row.affiliateBalance),
       affiliatePaid: Number(row.affiliatePaid),
       loginCount: Number(row.loginCount),
+      lessonsCreatedToday: Number(row.lessons_created_today),
+      lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null
   })) as User[];
 }
 
@@ -34,7 +36,6 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
     const newId = `user_${Date.now()}`;
     const referralCode = generateReferralCode();
     
-    // Hash the password with bcrypt
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     await pool.query(
@@ -51,10 +52,9 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
     const fieldsToUpdate: { [key: string]: any } = { ...data };
     
     if (fieldsToUpdate.password) {
-        // Hash the new password before updating
         fieldsToUpdate.password = await bcrypt.hash(fieldsToUpdate.password, 10);
     } else {
-        delete fieldsToUpdate.password; // Ensure empty password field doesn't overwrite existing hash
+        delete fieldsToUpdate.password;
     }
 
     const fieldEntries = Object.entries(fieldsToUpdate).filter(([, value]) => value !== undefined);
@@ -75,7 +75,6 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
 }
 
 export async function deleteUser(id: string): Promise<void> {
-    // Foreign key constraints with ON DELETE CASCADE should handle related data
     await pool.query('DELETE FROM users WHERE id = ?', [id]);
 }
 

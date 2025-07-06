@@ -25,7 +25,7 @@ export function UserNav() {
 
   useEffect(() => {
     async function fetchCompletedCount() {
-      if (user && (user.role === 'member' || user.role === 'pro')) {
+      if (user && (user.role === 'member' || user.role === 'pro' || user.role === 'instructor')) {
         const count = await getCompletedCourseCount(user.id);
         setCompletedCourses(count);
       }
@@ -84,5 +84,3 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
-
-    

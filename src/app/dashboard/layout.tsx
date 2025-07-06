@@ -30,6 +30,8 @@ import {
   ToggleRight,
   DollarSign,
   Rocket,
+  BookUser,
+  Library,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -42,22 +44,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [platformName, setPlatformName] = useState('Aplikasi Saya');
 
-  const memberNavItems = [
+  const baseNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
     { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
-    { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi' },
+    { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
+  ];
+
+  const memberNavItems = [
     { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
     { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
     { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-    { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
-    { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
-    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
+    { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro', roles: ['member'] },
+    { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar', roles: ['pro'] },
+    { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi', roles: ['pro', 'admin'] },
+    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan', roles: ['pro', 'admin'] },
     { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
+  ];
+
+  const instructorNavItems = [
+     { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
+     // Add more instructor-specific links here, like earnings
   ];
   
   const adminNavItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
     { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
+    { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
+    { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
     { href: '/dashboard/admin', icon: Users, label: 'Pengguna' },
     { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
     { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
@@ -94,19 +106,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   
   const getNavItems = () => {
+      let items = [...baseNavItems];
       if (user.role === 'admin') {
-        return adminNavItems;
+          items = [...items, ...adminNavItems];
+      } else if (user.role === 'instructor') {
+          items = [...items, ...instructorNavItems, ...memberNavItems];
+      } else {
+          items = [...items, ...memberNavItems];
       }
-      return memberNavItems.filter(item => {
-        if (item.label === 'Upgrade ke Pro') {
-          return user.role === 'member'; // Only show for regular members
-        }
-        if (item.label === 'Unduhan' || item.label === 'Request Aplikasi') {
-          return user.role === 'pro'; // Only show for pro members
-        }
-        return true;
-      });
-    };
+      return items.filter(item => !item.roles || item.roles.includes(user.role));
+  };
 
   const navItems = getNavItems();
 

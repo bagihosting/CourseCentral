@@ -19,12 +19,17 @@ function mapRowToCourse(row: any): Course {
         seoDescription: row.seo_description,
         seoKeywords: row.seo_keywords,
         modules: JSON.parse(row.modules || '[]'),
+        status: row.status,
+        authorId: row.authorId,
+        reviewNotes: row.reviewNotes,
+        updated_at: row.updated_at,
     };
 }
 
+// For public catalog, only show published courses
 export async function getAllCourses(): Promise<Course[]> {
   try {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
+    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM courses WHERE status = 'published' ORDER BY created_at DESC");
     return rows.map(mapRowToCourse);
   } catch (error: any) {
     if (error.code === 'ECONNREFUSED') {
@@ -34,10 +39,53 @@ export async function getAllCourses(): Promise<Course[]> {
     } else {
         console.error("🔴 Gagal mengambil semua kursus:", error);
     }
-    // Mengembalikan array kosong agar halaman tidak rusak jika database tidak tersedia.
     return [];
   }
 }
+
+// For admin, show all courses with any status
+export async function getAllCoursesForAdmin(): Promise<Course[]> {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
+    return rows.map(mapRowToCourse);
+  } catch (error) {
+    console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
+    return [];
+  }
+}
+
+// For instructors, get their own courses
+export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? ORDER BY created_at DESC', [authorId]);
+    return rows.map(mapRowToCourse);
+  } catch (error) {
+     console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
+     return [];
+  }
+}
+
+// Get courses pending review for admin dashboard
+export type CourseForReview = Course & { instructorName: string };
+export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT c.*, u.name as instructorName 
+            FROM courses c 
+            JOIN users u ON c.authorId = u.id 
+            WHERE c.status = 'pending_review' 
+            ORDER BY c.updated_at ASC
+        `);
+        return rows.map(row => ({
+            ...mapRowToCourse(row),
+            instructorName: row.instructorName
+        })) as CourseForReview[];
+    } catch (error) {
+        console.error("🔴 Gagal mengambil kursus untuk direview:", error);
+        return [];
+    }
+}
+
 
 export async function getCourseById(id: string): Promise<Course | null> {
     try {
@@ -54,14 +102,13 @@ export async function getCourseById(id: string): Promise<Course | null> {
         } else {
             console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
         }
-        // Mengembalikan null jika ada kesalahan database untuk mencegah halaman rusak.
         return null;
     }
 }
 
-export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promise<Course> {
+export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'authorId' | 'reviewNotes' | 'updated_at'>, authorId: string): Promise<Course> {
     const newId = `course_${Date.now()}`;
-    const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
     
     try {
         await pool.query(query, [
@@ -75,7 +122,8 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promis
             data.seoTitle || '',
             data.seoDescription || '',
             data.seoKeywords || '',
-            '[]' // Mulai dengan modul kosong
+            '[]', // Start with empty modules
+            authorId
         ]);
         
         const createdCourse = await getCourseById(newId);
@@ -88,7 +136,7 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules'>): Promis
     }
 }
 
-export async function updateCourse(id: string, data: Partial<Omit<Course, 'id'>>): Promise<Course> {
+export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>): Promise<Course> {
     try {
         const [existingRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
         if (existingRows.length === 0) {
@@ -100,7 +148,8 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id'>>
         const query = `
             UPDATE courses SET 
             title = ?, description = ?, instructor = ?, price = ?, image_url = ?, 
-            access_level = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, modules = ?, updated_at = NOW()
+            access_level = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, modules = ?, updated_at = NOW(),
+            status = ?, reviewNotes = ?
             WHERE id = ?
         `;
 
@@ -115,6 +164,8 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id'>>
             courseToUpdate.seoDescription,
             courseToUpdate.seoKeywords,
             JSON.stringify(courseToUpdate.modules || []),
+            courseToUpdate.status,
+            courseToUpdate.reviewNotes,
             id
         ]);
         
@@ -130,7 +181,6 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id'>>
 
 export async function deleteCourse(id: string): Promise<void> {
     try {
-        // Asumsikan foreign keys di database diatur ke ON DELETE CASCADE
         const [result] = await pool.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             throw new Error("Gagal menghapus kursus, ID tidak ditemukan.");
@@ -139,4 +189,33 @@ export async function deleteCourse(id: string): Promise<void> {
         console.error(`🔴 Gagal menghapus kursus dengan ID ${id}:`, error);
         throw error;
     }
+}
+
+// --- Course Status Management ---
+
+export async function submitCourseForReview(courseId: string, authorId: string): Promise<void> {
+    const [result] = await pool.query<ResultSetHeader>(
+        "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND status IN ('draft', 'rejected')",
+        [courseId, authorId]
+    );
+    if (result.affectedRows === 0) {
+        throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft.");
+    }
+}
+
+export async function publishCourse(courseId: string): Promise<void> {
+    const [result] = await pool.query<ResultSetHeader>(
+        "UPDATE courses SET status = 'published' WHERE id = ? AND status = 'pending_review'",
+        [courseId]
+    );
+    if (result.affectedRows === 0) {
+        throw new Error("Hanya kursus yang sedang direview yang dapat dipublikasikan.");
+    }
+}
+
+export async function rejectCourse(courseId: string, reviewNotes: string): Promise<void> {
+    await pool.query(
+        "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review'",
+        [reviewNotes, courseId]
+    );
 }

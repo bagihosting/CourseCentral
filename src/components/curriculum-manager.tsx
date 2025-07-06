@@ -39,6 +39,7 @@ import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteL
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { suggestModuleTitleAction, generateLessonContentAction, suggestLessonTitleAction } from '@/actions/ai';
+import { useAuth } from '@/contexts/auth-context';
 
 type FormErrors = {
     title?: string;
@@ -53,6 +54,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleGenerateTitle = async () => {
     setIsGenerating(true);
@@ -70,6 +72,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     if (title.length < 3) {
       setError('Judul modul minimal 3 karakter.');
       return;
@@ -79,10 +82,10 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
     try {
       if (module) {
-        await updateModule(course.id, module.id, { title });
+        await updateModule(course.id, module.id, { title }, user.id);
         toast({ title: 'Sukses', description: 'Modul berhasil diperbarui.'});
       } else {
-        await addModule(course.id, { title });
+        await addModule(course.id, user.id);
         toast({ title: 'Sukses', description: 'Modul berhasil ditambahkan.'});
       }
       onFinished();
@@ -119,6 +122,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
 // --- Lesson Form ---
 function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
+    const { user } = useAuth();
     const [title, setTitle] = useState(lesson?.title || '');
     const [type, setType] = useState<Lesson['type']>(lesson?.type || 'text');
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
@@ -216,7 +220,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
   
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if(!validate()) {
+        if(!validate() || !user) {
             toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive' });
             return
         };
@@ -230,10 +234,10 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
             };
 
             if(lesson) {
-                await updateLesson(course.id, moduleId, lesson.id, lessonData);
+                await updateLesson(course.id, moduleId, lesson.id, lessonData, user.id);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
             } else {
-                await addLesson(course.id, moduleId, lessonData);
+                await addLesson(course.id, moduleId, lessonData, user.id);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil ditambahkan.'});
             }
             onFinished();
@@ -357,6 +361,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
 
 // --- Main Curriculum Manager ---
 export function CurriculumManager({ course, onUpdate }: { course: Course; onUpdate: () => void; }) {
+  const { user, loading: userLoading } = useAuth();
   const [optimisticModules, setOptimisticModules] = useOptimistic(course.modules, 
     (state, {action, moduleId, lessonId}: {action: string, moduleId?: string, lessonId?: string}) => {
         switch(action) {
@@ -376,6 +381,12 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson, moduleId: string } | undefined>(undefined);
   const [addingLessonToModule, setAddingLessonToModule] = useState<string | undefined>(undefined);
   const { toast } = useToast();
+  
+  if (userLoading) return <Loader2 className="animate-spin" />;
+  if (!user) return <p>Silakan masuk.</p>;
+  
+  const canEdit = user.role === 'admin' || user.id === course.authorId;
+  const isLocked = course.status === 'pending_review' && user.role !== 'admin';
 
   const handleFinished = () => {
     setModuleDialogOpen(false);
@@ -384,16 +395,19 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   }
 
   const openModuleDialog = (module?: Module) => {
+    if (isLocked) return;
     setEditingModule(module);
     setModuleDialogOpen(true);
   };
 
   const openLessonDialog = (lesson: Lesson, moduleId: string) => {
+    if (isLocked) return;
     setEditingLesson({ lesson, moduleId });
     setLessonDialogOpen(true);
   };
   
   const openNewLessonDialog = (moduleId: string) => {
+    if (isLocked) return;
     setEditingLesson(undefined);
     setAddingLessonToModule(moduleId);
     setLessonDialogOpen(true);
@@ -402,7 +416,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const handleDeleteModule = async (moduleId: string) => {
     setOptimisticModules({action: 'delete_module', moduleId});
     try {
-        await deleteModule(course.id, moduleId);
+        await deleteModule(course.id, moduleId, user.id);
         toast({ title: "Sukses", description: "Modul berhasil dihapus." });
         onUpdate();
     } catch(e) {
@@ -415,7 +429,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
     setOptimisticModules({action: 'delete_lesson', moduleId, lessonId});
      try {
-        await deleteLesson(course.id, moduleId, lessonId);
+        await deleteLesson(course.id, moduleId, lessonId, user.id);
         toast({ title: "Sukses", description: "Pelajaran berhasil dihapus." });
         onUpdate();
     } catch(e) {
@@ -441,7 +455,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
           <CardTitle>Kurikulum Kursus</CardTitle>
           <CardDescription>Susun modul dan pelajaran untuk kursus ini.</CardDescription>
         </div>
-        <Button onClick={() => openModuleDialog()}>
+        <Button onClick={() => openModuleDialog()} disabled={isLocked || !canEdit}>
           <PlusCircle className="mr-2" />
           Tambah Modul
         </Button>
@@ -462,23 +476,25 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
                     <div className="border-t -mx-4 px-4 pt-4">
                         <div className="flex justify-between items-center mb-4">
                             <h4 className="font-semibold">Pelajaran</h4>
-                            <div>
-                                <Button variant="outline" size="sm" onClick={() => openModuleDialog(module)} className="mr-2">
-                                    <Pencil className="h-3 w-3 mr-1" /> Ubah
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm"><Trash2 className="h-3 w-3 mr-1" /> Hapus Modul</Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader><AlertDialogTitle>Hapus Modul?</AlertDialogTitle><AlertDialogDescription>Ini akan menghapus modul dan semua pelajaran di dalamnya.</AlertDialogDescription></AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteModule(module.id)}>Hapus</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
+                            {canEdit && (
+                                <div>
+                                    <Button variant="outline" size="sm" onClick={() => openModuleDialog(module)} className="mr-2" disabled={isLocked}>
+                                        <Pencil className="h-3 w-3 mr-1" /> Ubah
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="sm" disabled={isLocked}><Trash2 className="h-3 w-3 mr-1" /> Hapus Modul</Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader><AlertDialogTitle>Hapus Modul?</AlertDialogTitle><AlertDialogDescription>Ini akan menghapus modul dan semua pelajaran di dalamnya.</AlertDialogDescription></AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteModule(module.id)}>Hapus</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            )}
                         </div>
 
                         {module.lessons.length > 0 ? (
@@ -489,30 +505,34 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
                                         {getLessonIcon(lesson.type)}
                                         <span>{lesson.title}</span>
                                     </div>
-                                    <div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openLessonDialog(lesson, module.id)}><Pencil className="h-4 w-4" /></Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Hapus Pelajaran?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteLesson(module.id, lesson.id)}>Hapus</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
+                                    {canEdit && (
+                                        <div>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openLessonDialog(lesson, module.id)} disabled={isLocked}><Pencil className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" disabled={isLocked}><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader><AlertDialogTitle>Hapus Pelajaran?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteLesson(module.id, lesson.id)}>Hapus</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>
                         ) : (
                             <p className="text-sm text-muted-foreground text-center py-4">Modul ini belum memiliki pelajaran.</p>
                         )}
-                        <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={() => openNewLessonDialog(module.id)}>
-                            <PlusCircle className="h-4 w-4 mr-2" /> Tambah Pelajaran
-                        </Button>
+                        {canEdit && (
+                            <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={() => openNewLessonDialog(module.id)} disabled={isLocked}>
+                                <PlusCircle className="h-4 w-4 mr-2" /> Tambah Pelajaran
+                            </Button>
+                        )}
                     </div>
                 </AccordionContent>
               </AccordionItem>
@@ -534,7 +554,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
       
       {/* Lesson Dialog */}
       <Dialog open={isLessonDialogOpen} onOpenChange={setLessonDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingLesson ? 'Ubah Pelajaran' : 'Tambah Pelajaran Baru'}</DialogTitle>
           </DialogHeader>

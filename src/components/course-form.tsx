@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { generateThumbnailAction, generateDescriptionAction } from '@/actions/ai';
 import imageCompression from 'browser-image-compression';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useAuth } from '@/contexts/auth-context';
 
 interface CourseFormProps {
   course?: Course;
@@ -22,7 +24,6 @@ interface CourseFormProps {
 type FormErrors = {
   title?: string;
   description?: string;
-  instructor?: string;
   price?: string;
   imageUrl?: string;
 }
@@ -30,10 +31,11 @@ type FormErrors = {
 export function CourseForm({ course }: CourseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [title, setTitle] = useState(course?.title || '');
   const [description, setDescription] = useState(course?.description || '');
-  const [instructor, setInstructor] = useState(course?.instructor || '');
+  const [instructor, setInstructor] = useState(course?.instructor || user?.name || '');
   const [price, setPrice] = useState(course?.price || 0);
   const [imageUrl, setImageUrl] = useState(course?.imageUrl || '');
   const [accessLevel, setAccessLevel] = useState<'public' | 'pro'>(course?.accessLevel || 'public');
@@ -47,7 +49,6 @@ export function CourseForm({ course }: CourseFormProps) {
     const newErrors: FormErrors = {};
     if (title.length < 3) newErrors.title = 'Judul minimal 3 karakter';
     if (description.length < 10) newErrors.description = 'Deskripsi minimal 10 karakter';
-    if (instructor.length < 3) newErrors.instructor = 'Nama instruktur minimal 3 karakter';
     if (price < 0) newErrors.price = 'Harga tidak boleh negatif';
     if (!imageUrl) newErrors.imageUrl = 'Gambar thumbnail harus dibuat.';
     
@@ -57,20 +58,27 @@ export function CourseForm({ course }: CourseFormProps) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!validate()) {
+    if (!validate() || !user) {
       toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive'});
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const courseData = { title, description, instructor, price: Number(price), imageUrl, accessLevel };
+      // Use user's name as instructor if the field is empty
+      const finalInstructor = instructor.trim() === '' ? user.name : instructor;
+      const courseData = { title, description, instructor: finalInstructor, price: Number(price), imageUrl, accessLevel };
+      
       if (course) {
         await updateCourse(course.id, courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil diperbarui.' });
-        router.push('/dashboard/admin/courses');
+        if (user.role === 'instructor') {
+          router.push('/dashboard/instructor/courses');
+        } else {
+          router.push('/dashboard/admin/courses');
+        }
       } else {
-        const newCourse = await createCourse(courseData);
+        const newCourse = await createCourse(courseData, user.id);
         toast({ title: 'Sukses', description: 'Kursus berhasil dibuat.' });
         router.push(`/dashboard/courses/${newCourse.id}/edit`);
       }
@@ -212,8 +220,7 @@ export function CourseForm({ course }: CourseFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="instructor">Nama Instruktur</Label>
-          <Input id="instructor" name="instructor" value={instructor} onChange={(e) => setInstructor(e.target.value)} aria-describedby="instructor-error" />
-          {errors.instructor && <p id="instructor-error" className="text-sm text-destructive">{errors.instructor}</p>}
+          <Input id="instructor" name="instructor" value={instructor} onChange={(e) => setInstructor(e.target.value)} placeholder="Default: nama Anda" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="price">Harga (Rp)</Label>

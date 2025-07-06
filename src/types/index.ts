@@ -4,7 +4,7 @@ export type User = {
   name: string;
   username: string;
   password: string;
-  role: 'admin' | 'member' | 'pro';
+  role: 'admin' | 'member' | 'pro' | 'instructor';
   avatarUrl: string;
   whatsapp?: string;
   createdAt: string;
@@ -15,10 +15,13 @@ export type User = {
   referredBy?: string;
   affiliateBalance: number;
   affiliatePaid: number;
+  instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  lessonsCreatedToday: number;
+  lastLessonCreatedAt: string | null;
 };
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid'> & { referredBy?: string };
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid'>>;
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt'> & { referredBy?: string };
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt'>>;
 
 export type Course = {
   id: string;
@@ -32,6 +35,10 @@ export type Course = {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
+  status: 'draft' | 'pending_review' | 'published' | 'rejected';
+  authorId: string;
+  reviewNotes?: string;
+  updated_at: string;
 };
 
 export type Module = {
@@ -73,6 +80,15 @@ export type CertificateRequest = {
   approvedAt?: string;
 };
 
+export type InstructorApplication = {
+  id: string;
+  userId: string;
+  requestDate: string;
+  status: 'pending' | 'approved' | 'rejected';
+  userName: string;
+  userAvatar: string;
+}
+
 export type PaymentAccount = {
   id: string;
   bankName: string;
@@ -99,7 +115,7 @@ export type Testimonial = {
   userId: string;
   userName: string;
   userAvatar: string;
-  userRole: 'member' | 'pro';
+  userRole: 'member' | 'pro' | 'instructor';
   quote: string;
   rating: number; // 1 to 5
   createdAt: string;

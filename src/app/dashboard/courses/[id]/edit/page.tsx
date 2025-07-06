@@ -6,18 +6,20 @@ import { CourseForm } from '@/components/course-form';
 import { CurriculumManager } from '@/components/curriculum-manager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCourseById } from '@/actions/courses';
+import { getCourseById, submitCourseForReview } from '@/actions/courses';
 import { updateCourse } from '@/actions/courses';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2, Send, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCourseSeoAction } from '@/actions/ai';
+import { useAuth } from '@/contexts/auth-context';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => void }) {
     const [seoTitle, setSeoTitle] = useState(course.seoTitle || '');
@@ -119,7 +121,10 @@ export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
   const courseId = params.id;
   const { toast } = useToast();
+  const { user, loading: userLoading } = useAuth();
   const [course, setCourse] = useState<Course | null | undefined>(undefined);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const router = useRouter();
 
   const refreshCourse = async () => {
     try {
@@ -135,7 +140,21 @@ export default function EditCoursePage() {
     refreshCourse();
   }, [courseId]);
 
-  if (course === undefined) {
+  const handleSubmitForReview = async () => {
+    if (!user || !course) return;
+    setIsSubmittingReview(true);
+    try {
+      await submitCourseForReview(course.id, user.id);
+      toast({ title: 'Sukses', description: 'Kursus telah diajukan untuk ditinjau oleh Admin.' });
+      refreshCourse();
+    } catch (e: any) {
+      toast({ title: 'Gagal', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+  
+  if (userLoading || course === undefined) {
     return (
         <div className="space-y-6">
             <Card>
@@ -154,6 +173,11 @@ export default function EditCoursePage() {
   if (course === null) {
     notFound();
   }
+  
+  const canEdit = user?.role === 'admin' || user?.id === course.authorId;
+  if (!canEdit) {
+    return notFound();
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -165,6 +189,53 @@ export default function EditCoursePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+            {course.status === 'rejected' && course.reviewNotes && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Kursus Ditolak</AlertTitle>
+                <AlertDescription>
+                  <strong>Catatan dari Admin:</strong> {course.reviewNotes}
+                  <br/>
+                  Harap perbaiki kursus Anda sesuai catatan di atas dan ajukan kembali untuk review.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {(course.status === 'draft' || course.status === 'rejected') && (
+              <Card className="mb-6 bg-blue-50 border-blue-200">
+                <CardHeader className="flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-blue-900">Siap untuk Dipublikasikan?</CardTitle>
+                    <CardDescription className="text-blue-800">Setelah selesai, ajukan kursus ini untuk ditinjau oleh Admin.</CardDescription>
+                  </div>
+                  <Button onClick={handleSubmitForReview} disabled={isSubmittingReview}>
+                    {isSubmittingReview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Ajukan untuk Review
+                  </Button>
+                </CardHeader>
+              </Card>
+            )}
+
+            {course.status === 'pending_review' && (
+               <Alert className="mb-6 border-yellow-500/50 text-yellow-700 dark:text-yellow-400 [&>svg]:text-yellow-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <AlertTitle>Sedang Ditinjau</AlertTitle>
+                <AlertDescription>
+                  Kursus ini sedang menunggu persetujuan dari Admin. Anda tidak dapat mengeditnya saat ini.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {course.status === 'published' && (
+                <Alert className="mb-6 border-green-500/50 text-green-700 dark:text-green-400 [&>svg]:text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertTitle>Telah Dipublikasikan</AlertTitle>
+                  <AlertDescription>
+                    Kursus ini sudah tayang. Perubahan yang Anda buat akan langsung terlihat oleh member.
+                  </AlertDescription>
+              </Alert>
+            )}
+
           <Tabs defaultValue="details" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Detail Kursus</TabsTrigger>
