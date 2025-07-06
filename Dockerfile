@@ -1,34 +1,51 @@
-# 1. Base Image
-FROM node:20-alpine AS base
+# Dockerfile for Next.js Application
+
+# Stage 1: Install dependencies
+# Use a specific version of Node.js for consistency. Alpine is a lightweight Linux distribution.
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# 2. Installer Stage: Install dependencies
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-COPY package.json ./
-RUN npm install --only=production
+# Copy package.json and lock file to leverage Docker layer caching.
+COPY package.json package-lock.json* ./
+# Install dependencies.
+RUN npm install
 
-# 3. Builder stage: Build the Next.js application
-FROM base AS builder
+# Stage 2: Build the application
+# Use the same Node.js version.
+FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Copy dependencies from the 'deps' stage.
 COPY --from=deps /app/node_modules ./node_modules
+# Copy the rest of the application source code.
 COPY . .
+
+# Set build-time arguments for environment variables if needed.
+# Note: For security, runtime secrets should come from the .env file in docker-compose, not here.
+
+# Build the Next.js application.
+# This will leverage the "output: 'standalone'" mode in next.config.ts for a minimal production server.
 RUN npm run build
 
-# 4. Runner stage: Create the final, small production image
-FROM base AS runner
+# Stage 3: Production image
+# Use the same lightweight Node.js Alpine image.
+FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Set the environment to production.
 ENV NODE_ENV=production
-# Next.js standalone output automatically sets the PORT and HOSTNAME when running server.js
 
-# Copy the standalone output from the builder
-COPY --from=builder /app/public ./public
+# Copy the standalone output from the builder stage.
+# This includes only the necessary files to run the app in production.
 COPY --from=builder /app/.next/standalone ./
+
+# Copy the public and static assets.
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
 
-# Expose port 3000
+# Expose the port the app runs on.
 EXPOSE 3000
 
-# Command to run the app
+# The command to start the Next.js server.
+# The standalone output creates a minimal server.js file.
 CMD ["node", "server.js"]
