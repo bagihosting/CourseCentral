@@ -4,25 +4,40 @@ import { useEffect, useState } from 'react';
 import { AdminCourseActions } from '@/components/admin-course-actions';
 import { CourseCard } from '@/components/course-card';
 import { Button } from '@/components/ui/button';
-import { getAllCourses } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchCourses = async () => {
+    try {
+      const coursesData = await getAllCourses();
+      setCourses(coursesData);
+    } catch (error) {
+      toast({
+        title: "Gagal Memuat Kursus",
+        description: "Tidak dapat mengambil data dari server. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Data fetching happens on the client
-    setCourses(getAllCourses());
-    setLoading(false);
+    fetchCourses();
   }, []);
 
   const handleCourseDeleted = () => {
-    // Re-fetch courses from localStorage to update the UI
-    setCourses(getAllCourses());
+    setLoading(true);
+    fetchCourses();
   };
 
   if (loading) {

@@ -4,26 +4,44 @@ import { useEffect, useState } from 'react';
 import { AdminCourseActions } from '@/components/admin-course-actions';
 import { AiSuggestions } from '@/components/ai-suggestions';
 import { CourseCard } from '@/components/course-card';
-import { getAllCourses, getSeoSettings } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
+import { getSeoSettings } from '@/lib/data';
 import { useAuth } from '@/contexts/auth-context';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const fetchCourses = async () => {
+    try {
+      const coursesData = await getAllCourses();
+      setCourses(coursesData);
+      const settings = getSeoSettings();
+      setShowAiSuggestions(settings.enableAiSuggestions ?? true);
+    } catch (error) {
+      toast({
+        title: "Gagal Memuat Kursus",
+        description: "Tidak dapat mengambil data dari server. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setCourses(getAllCourses());
-    const settings = getSeoSettings();
-    setShowAiSuggestions(settings.enableAiSuggestions ?? true);
-    setLoading(false);
+    fetchCourses();
   }, []);
 
   const handleCourseDeleted = () => {
-    setCourses(getAllCourses());
+    setLoading(true);
+    fetchCourses();
   };
   
   if (loading) {

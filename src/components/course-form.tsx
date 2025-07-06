@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { createCourse, updateCourse } from '@/lib/data';
+import { createCourse, updateCourse } from '@/actions/courses';
 import type { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -55,7 +55,7 @@ export function CourseForm({ course }: CourseFormProps) {
     return Object.keys(newErrors).length === 0;
   }
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!validate()) {
       toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive'});
@@ -64,13 +64,13 @@ export function CourseForm({ course }: CourseFormProps) {
 
     setIsSubmitting(true);
     try {
-      const courseData = { title, description, instructor, price: Number(price), imageUrl, accessLevel, modules: course?.modules || [] };
+      const courseData = { title, description, instructor, price: Number(price), imageUrl, accessLevel };
       if (course) {
-        updateCourse(course.id, courseData);
+        await updateCourse(course.id, courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil diperbarui.' });
         router.push('/dashboard/admin/courses');
       } else {
-        const newCourse = createCourse(courseData);
+        const newCourse = await createCourse(courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil dibuat.' });
         router.push(`/dashboard/courses/${newCourse.id}/edit`);
       }

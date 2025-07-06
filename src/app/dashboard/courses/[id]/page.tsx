@@ -1,11 +1,11 @@
-
 'use client';
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
-import { getCourseById, isUserEnrolled, enrollUserInCourse, hasUserRequestedCertificate, createCertificateRequest } from '@/lib/data';
+import { getCourseById } from '@/actions/courses';
+import { isUserEnrolled, enrollUserInCourse, hasUserRequestedCertificate, createCertificateRequest } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -242,41 +242,49 @@ export default function CoursePage() {
 
   // Load course, user, and progress data
   useEffect(() => {
-    if (userLoading) return;
-
-    if (!user) {
-        toast({ title: 'Akses Ditolak', description: 'Anda harus masuk untuk melihat kursus.', variant: 'destructive'});
-        router.push('/');
-        return;
-    }
-
-    const courseData = getCourseById(params.id);
-    if (courseData) {
-        setCourse(courseData);
-
-        const canAccessPro = user.role === 'admin' || user.role === 'pro';
-        const isPublicCourse = courseData.accessLevel === 'public';
-        
-        if (canAccessPro || isPublicCourse) {
-            const isEnrolled = isUserEnrolled(user.id, courseData.id);
-            setEnrolled(isEnrolled);
-            
-            if (isEnrolled) {
-                const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
-                const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
-                setCompletedLessons(initialCompleted);
-                setHasRequestedCert(hasUserRequestedCertificate(user.id, courseData.id));
-
-                const allLessons = courseData.modules.flatMap(m => m.lessons);
-                const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
-                setActiveLesson(firstUncompleted);
-            }
+    const loadCourseData = async () => {
+        if (userLoading) return;
+        if (!user) {
+            toast({ title: 'Akses Ditolak', description: 'Anda harus masuk untuk melihat kursus.', variant: 'destructive'});
+            router.push('/');
+            return;
         }
-    } else {
-        setCourse(null); // Course not found
-    }
 
-    setLoading(false);
+        try {
+            const courseData = await getCourseById(params.id);
+            if (courseData) {
+                setCourse(courseData);
+
+                const canAccessPro = user.role === 'admin' || user.role === 'pro';
+                const isPublicCourse = courseData.accessLevel === 'public';
+                
+                if (canAccessPro || isPublicCourse) {
+                    const isEnrolled = isUserEnrolled(user.id, courseData.id);
+                    setEnrolled(isEnrolled);
+                    
+                    if (isEnrolled) {
+                        const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
+                        const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
+                        setCompletedLessons(initialCompleted);
+                        setHasRequestedCert(hasUserRequestedCertificate(user.id, courseData.id));
+
+                        const allLessons = courseData.modules.flatMap(m => m.lessons);
+                        const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
+                        setActiveLesson(firstUncompleted);
+                    }
+                }
+            } else {
+                setCourse(null);
+            }
+        } catch (error) {
+            toast({ title: 'Gagal Memuat Kursus', description: 'Tidak dapat mengambil data kursus dari server.', variant: 'destructive'});
+            setCourse(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    loadCourseData();
   }, [params.id, user, userLoading, router, toast]);
 
   // Save progress whenever it changes
@@ -363,7 +371,7 @@ export default function CoursePage() {
     }
   }
 
-  if (loading || userLoading) {
+  if (loading || userLoading || course === undefined) {
     return (
       <div className="grid lg:grid-cols-5 gap-8 p-4 md:p-6">
         <div className="lg:col-span-3 space-y-6">

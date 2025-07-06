@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -9,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/course-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { getLandingPageSettings, getAllCourses, getAllTestimonials, getSeoSettings } from '@/lib/data';
+import { getLandingPageSettings, getAllTestimonials, getSeoSettings } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
 import type { Course, LandingPageSettings, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -73,21 +73,32 @@ function LandingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const seoData = getSeoSettings();
-    if (seoData && seoData.platformName) {
-      document.title = `${seoData.platformName} - ${seoData.titleSuffix || ''}`;
-    }
-    const landingData = getLandingPageSettings();
-    setSettings(landingData);
-    setCourses(getAllCourses().slice(0, 4));
+    const fetchData = async () => {
+      setLoading(true);
+      const seoData = getSeoSettings();
+      if (seoData && seoData.platformName) {
+        document.title = `${seoData.platformName} - ${seoData.titleSuffix || ''}`;
+      }
+      const landingData = getLandingPageSettings();
+      setSettings(landingData);
 
-    if (landingData && landingData.featuredTestimonialIds) {
+      try {
+        const allCourses = await getAllCourses();
+        setCourses(allCourses.slice(0, 4));
+      } catch (error) {
+        console.error("Gagal memuat kursus:", error);
+      }
+
+      if (landingData && landingData.featuredTestimonialIds) {
         const allTestimonials = getAllTestimonials();
         const featured = allTestimonials.filter(t => landingData.featuredTestimonialIds.includes(t.id));
         setTestimonials(featured);
-    }
+      }
 
-    setLoading(false);
+      setLoading(false);
+    };
+
+    fetchData();
   }, []);
 
   if (loading || !settings) {

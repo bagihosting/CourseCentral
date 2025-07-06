@@ -5,7 +5,8 @@ import { CourseForm } from '@/components/course-form';
 import { CurriculumManager } from '@/components/curriculum-manager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCourseById, updateCourse } from '@/lib/data';
+import { getCourseById } from '@/actions/courses';
+import { updateCourse } from '@/actions/courses';
 import { useParams, notFound } from 'next/navigation';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,10 +26,10 @@ function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => v
     const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
     const { toast } = useToast();
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setIsSaving(true);
         try {
-            updateCourse(course.id, { seoTitle, seoDescription, seoKeywords });
+            await updateCourse(course.id, { seoTitle, seoDescription, seoKeywords });
             toast({ title: 'Sukses', description: 'Pengaturan SEO kursus berhasil disimpan.' });
             onUpdate();
         } catch(e) {
@@ -116,12 +117,17 @@ function CourseSeoForm({ course, onUpdate }: { course: Course, onUpdate: () => v
 export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
   const courseId = params.id;
+  const { toast } = useToast();
+  const [course, setCourse] = useState<Course | null | undefined>(undefined);
 
-  const [course, setCourse] = useState<Course | undefined | null>(undefined);
-
-  const refreshCourse = () => {
-    const courseData = getCourseById(courseId);
-    setCourse(courseData);
+  const refreshCourse = async () => {
+    try {
+        const courseData = await getCourseById(courseId);
+        setCourse(courseData);
+    } catch (error) {
+        toast({ title: 'Gagal Memuat', description: 'Tidak dapat mengambil data kursus dari server.', variant: 'destructive' });
+        setCourse(null);
+    }
   }
 
   useEffect(() => {
@@ -136,6 +142,9 @@ export default function EditCoursePage() {
                     <Skeleton className="h-8 w-3/4" />
                     <Skeleton className="h-5 w-1/2" />
                 </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
             </Card>
         </div>
     )

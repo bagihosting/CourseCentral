@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Course, Module, Lesson } from '@/types';
@@ -35,7 +34,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Film, FileText, Package, Pencil, PlusCircle, Trash2, Youtube, Loader2, UploadCloud, Bold, Italic, List, Heading1, Heading2, Wand2 } from 'lucide-react';
 import { useState, useOptimistic, FormEvent, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/lib/data';
+import { addModule, updateModule, deleteModule, addLesson, updateLesson, deleteLesson } from '@/actions/curriculum';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { suggestModuleTitleAction, generateLessonContentAction, suggestLessonTitleAction } from '@/actions/ai';
@@ -51,6 +50,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
   const [title, setTitle] = useState(module?.title || '');
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleGenerateTitle = async () => {
@@ -67,26 +67,29 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (title.length < 3) {
       setError('Judul modul minimal 3 karakter.');
       return;
     }
     setError('');
+    setIsSubmitting(true);
 
     try {
       if (module) {
-        updateModule(course.id, module.id, { title });
+        await updateModule(course.id, module.id, { title });
         toast({ title: 'Sukses', description: 'Modul berhasil diperbarui.'});
       } else {
-        addModule(course.id, { title });
+        await addModule(course.id, { title });
         toast({ title: 'Sukses', description: 'Modul berhasil ditambahkan.'});
       }
       onFinished();
     } catch(e) {
       const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
       toast({ title: 'Gagal', description: errorMessage, variant: 'destructive'});
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -97,7 +100,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
           <Label htmlFor="title">Judul Modul</Label>
           <div className="flex items-center gap-2">
             <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} className="flex-grow" placeholder="Contoh: Pengenalan Dasar" />
-            <Button type="button" variant="outline" size="icon" onClick={handleGenerateTitle} disabled={isGenerating}>
+            <Button type="button" variant="outline" size="icon" onClick={handleGenerateTitle} disabled={isGenerating || isSubmitting}>
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
               <span className="sr-only">Buat dengan AI</span>
             </Button>
@@ -107,7 +110,7 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit" disabled={isGenerating}>{module ? 'Simpan Perubahan' : 'Tambah Modul'}</Button>
+        <Button type="submit" disabled={isGenerating || isSubmitting}>{isSubmitting ? 'Menyimpan...' : (module ? 'Simpan Perubahan' : 'Tambah Modul')}</Button>
       </DialogFooter>
     </form>
   );
@@ -123,6 +126,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
     const [isUploading, setIsUploading] = useState(false);
     const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
     const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -165,7 +169,6 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
         if (tag === 'ul') {
             const listItems = selectedText.split('\n').map(line => `  <li>${line}</li>`).join('\n');
             replacement = `<ul>\n${listItems || '  <li></li>'}\n</ul>`;
-            // Place cursor inside the li tag if it's a new list
             finalCursorStart = start + (listItems ? replacement.length : '<ul>\n  <li>'.length);
             finalCursorEnd = finalCursorStart;
         } else {
@@ -261,13 +264,14 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
         }
     }
   
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if(!validate()) {
             toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive' });
             return
         };
         
+        setIsSubmitting(true);
         try {
             const lessonData: Omit<Lesson, 'id' | 'downloadable'> = {
                 title,
@@ -276,16 +280,18 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
             };
 
             if(lesson) {
-                updateLesson(course.id, moduleId, lesson.id, lessonData);
+                await updateLesson(course.id, moduleId, lesson.id, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
             } else {
-                addLesson(course.id, moduleId, lessonData);
+                await addLesson(course.id, moduleId, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil ditambahkan.'});
             }
             onFinished();
         } catch(e) {
             const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
             toast({ title: 'Gagal', description: errorMessage, variant: 'destructive'});
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -397,7 +403,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
       </div>
       <DialogFooter className="mt-4">
         <DialogClose asChild><Button type="button" variant="ghost">Batal</Button></DialogClose>
-        <Button type="submit" disabled={isUploading || isGeneratingContent || isGeneratingTitle}>{isUploading ? 'Mengunggah...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
+        <Button type="submit" disabled={isUploading || isGeneratingContent || isGeneratingTitle || isSubmitting}>{isSubmitting ? 'Menyimpan...' : (lesson ? 'Simpan Perubahan' : 'Tambah Pelajaran')}</Button>
       </DialogFooter>
     </form>
   );
@@ -428,7 +434,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const handleFinished = () => {
     setModuleDialogOpen(false);
     setLessonDialogOpen(false);
-    onUpdate(); // Trigger parent component to re-fetch course data
+    onUpdate();
   }
 
   const openModuleDialog = (module?: Module) => {
@@ -447,23 +453,23 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
     setLessonDialogOpen(true);
   };
 
-  const handleDeleteModule = (moduleId: string) => {
+  const handleDeleteModule = async (moduleId: string) => {
     setOptimisticModules({action: 'delete_module', moduleId});
     try {
-        deleteModule(course.id, moduleId);
+        await deleteModule(course.id, moduleId);
         toast({ title: "Sukses", description: "Modul berhasil dihapus." });
         onUpdate();
     } catch(e) {
         const errorMessage = e instanceof Error ? e.message : 'Kesalahan tidak diketahui.';
         toast({ title: "Gagal", description: errorMessage, variant: "destructive" });
-        onUpdate(); // Re-fetch to revert optimistic update
+        onUpdate();
     }
   };
 
-  const handleDeleteLesson = (moduleId: string, lessonId: string) => {
+  const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
     setOptimisticModules({action: 'delete_lesson', moduleId, lessonId});
      try {
-        deleteLesson(course.id, moduleId, lessonId);
+        await deleteLesson(course.id, moduleId, lessonId);
         toast({ title: "Sukses", description: "Pelajaran berhasil dihapus." });
         onUpdate();
     } catch(e) {

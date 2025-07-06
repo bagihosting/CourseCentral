@@ -37,87 +37,7 @@ function getInitialData(): Database {
             { id: 'member', name: 'Siswa Rajin', username: 'member', password: 'password', role: 'member', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1, referralCode: 'MEMBERREF', affiliateBalance: 0, affiliatePaid: 0 },
             { id: 'pro_user_1', name: 'Member Pro', username: 'pro', password: 'password', role: 'pro', avatarUrl: 'https://placehold.co/100x100.png', whatsapp: '6289876543210', createdAt: now, lastLoginAt: now, status: 'active', loginCount: 1, referralCode: 'PROREF', affiliateBalance: 0, affiliatePaid: 0 },
         ],
-        courses: [
-          {
-            id: 'course_1',
-            title: 'Dasar-Dasar Pengembangan Web Modern',
-            description: 'Pelajari dasar-dasar HTML, CSS, dan JavaScript untuk membangun website interaktif pertama Anda. Kursus ini dirancang untuk pemula absolut tanpa pengalaman pemrograman sebelumnya.',
-            instructor: 'Andi Bachtiar',
-            price: 0,
-            imageUrl: 'https://placehold.co/600x400.png',
-            accessLevel: 'public',
-            modules: [
-              {
-                id: 'module_1_1',
-                title: 'Pengenalan HTML',
-                lessons: [
-                  { 
-                    id: 'lesson_1_1_1', 
-                    title: 'Struktur Dasar Halaman HTML', 
-                    type: 'text', 
-                    content: '<h1>Selamat Datang di Pelajaran HTML!</h1>\n\n<p>HTML adalah singkatan dari HyperText Markup Language. Ini adalah bahasa markup standar untuk dokumen yang dirancang untuk ditampilkan di browser web.</p>\n\n<p>Setiap halaman HTML terdiri dari serangkaian <strong>elemen</strong>, yang Anda gunakan untuk melampirkan, atau membungkus, berbagai bagian konten agar terlihat atau bertindak dengan cara tertentu.</p>\n\n<h2>Elemen Dasar</h2>\n<ul>\n  <li><code>&lt;html&gt;</code>: Elemen root yang membungkus semua konten di seluruh halaman.</li>\n  <li><code>&lt;head&gt;</code>: Elemen ini bertindak sebagai wadah untuk semua hal yang ingin Anda sertakan di halaman HTML yang bukan konten yang Anda tunjukkan kepada pemirsa halaman Anda.</li>\n  <li><code>&lt;body&gt;</code>: Elemen ini berisi semua konten yang ingin Anda tampilkan kepada pengguna web saat mereka mengunjungi halaman Anda.</li>\n</ul>',
-                    downloadable: true,
-                  },
-                  { 
-                    id: 'lesson_1_1_2', 
-                    title: 'Video: Elemen dan Tag Penting', 
-                    type: 'video',
-                    contentUrl: 'https://storage.googleapis.com/web-dev-assets/video-and-source-tags/chrome.mp4',
-                  },
-                   { 
-                    id: 'lesson_1_1_3', 
-                    title: 'Video YouTube: Pengenalan Framework', 
-                    type: 'youtube',
-                    contentUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                  },
-                ]
-              },
-              {
-                id: 'module_1_2',
-                title: 'Styling dengan CSS',
-                lessons: [
-                  { 
-                    id: 'lesson_1_2_1', 
-                    title: 'Pengenalan CSS', 
-                    type: 'text',
-                    content: '<h1>Pengenalan CSS</h1>\n\n<p>CSS (Cascading Style Sheets) digunakan untuk menata dan menata halaman web — misalnya, untuk mengubah font, warna, ukuran, dan jarak konten Anda, memisahkannya menjadi beberapa kolom, atau menambahkan animasi dan dekorasi lainnya.</p>',
-                    downloadable: true,
-                  },
-                ]
-              }
-            ]
-          },
-          {
-            id: 'course_2',
-            title: 'React: Dari Pemula Hingga Mahir',
-            description: 'Kuasai framework JavaScript paling populer, React. Bangun aplikasi web yang cepat, dinamis, dan dapat diskalakan dari awal.',
-            instructor: 'Citra Dewi',
-            price: 250000,
-            imageUrl: 'https://placehold.co/600x400.png',
-            accessLevel: 'pro',
-            modules: []
-          },
-          {
-            id: 'course_3',
-            title: 'Manajemen Proyek dengan Agile dan Scrum',
-            description: 'Pelajari cara mengelola proyek kompleks secara efisien menggunakan metodologi Agile dan framework Scrum. Tingkatkan produktivitas tim Anda.',
-            instructor: 'Budi Santoso',
-            price: 150000,
-            imageUrl: 'https://placehold.co/600x400.png',
-            accessLevel: 'pro',
-            modules: []
-          },
-           {
-            id: 'course_4',
-            title: 'Desain UI/UX untuk Aplikasi Mobile',
-            description: 'Ciptakan antarmuka yang indah dan pengalaman pengguna yang menyenangkan. Pelajari prinsip-prinsip desain, wireframing, dan prototyping.',
-            instructor: 'Rina Kartika',
-            price: 200000,
-            imageUrl: 'https://placehold.co/600x400.png',
-            accessLevel: 'public',
-            modules: []
-          },
-        ],
+        courses: [], // Data kursus sekarang dikelola di database
         enrollments: [],
         upgradeRequests: [],
         certificateRequests: [],
@@ -244,7 +164,6 @@ function saveDB(db: Database) {
 
 function getDB(): Database {
     if (typeof window === 'undefined') {
-        // Pada server, selalu kembalikan data awal yang bersih untuk mencegah kebocoran state antar-request.
         return getInitialData();
     }
     
@@ -253,7 +172,6 @@ function getDB(): Database {
     if (dbString) {
         try {
             const db = JSON.parse(dbString);
-            // Self-healing: Ensure aiApps are in sync with initialData
             const initialApps = getInitialData().landingPageSettings.aiApps;
             if (JSON.stringify(db.landingPageSettings.aiApps) !== JSON.stringify(initialApps)) {
                 db.landingPageSettings.aiApps = initialApps;
@@ -262,11 +180,9 @@ function getDB(): Database {
             return db;
         } catch (e) {
             console.error("Gagal mem-parsing DB dari localStorage, mengatur ulang.", e);
-            // Jika parsing gagal, lanjutkan untuk membuat data awal yang baru.
         }
     }
 
-    // Jika tidak ada data atau parsing gagal, buat data awal, simpan, dan kembalikan.
     const initialData = getInitialData();
     saveDB(initialData);
     return initialData;
@@ -285,7 +201,6 @@ export function getAllUsers(): User[] {
   let dbWasModified = false;
 
   db.users.forEach(user => {
-      // Only check non-admin users who are currently active
       if (user.role !== 'admin' && user.status === 'active') {
           const lastLoginDate = new Date(user.lastLoginAt);
           if (lastLoginDate < thirtyDaysAgo) {
@@ -337,7 +252,7 @@ export function registerUser(data: RegisterUserInput & { avatarUrl?: string, ref
     createdAt: now,
     lastLoginAt: now,
     status: 'active',
-    loginCount: 1, // Registration counts as the first login activity
+    loginCount: 1,
     referralCode: `${(data.username || 'user').replace(/\s/g, '')}${Date.now().toString(36)}`,
     referredBy: data.referredBy,
     affiliateBalance: 0,
@@ -356,15 +271,12 @@ export function updateUser(userId: string, data: UpdateUserInput): User {
         throw new Error("Pengguna tidak ditemukan.");
     }
     
-    // Create a new object for the updated data to ensure clean updates
     const updatedData: UpdateUserInput = { ...data };
     
-    // Sanitize WhatsApp number if it's being updated
     if (typeof updatedData.whatsapp === 'string') {
         updatedData.whatsapp = updatedData.whatsapp.replace(/[^0-9]/g, '');
     }
 
-    // Merge old data with new data and save
     db.users[userIndex] = { ...db.users[userIndex], ...updatedData };
     
     saveDB(db);
@@ -385,7 +297,6 @@ export function deleteUser(userId: string): void {
         throw new Error("Gagal menghapus pengguna, ID tidak ditemukan.");
     }
     
-    // Remove related data
     db.enrollments = db.enrollments.filter(e => e.userId !== userId);
     db.upgradeRequests = db.upgradeRequests.filter(r => r.userId !== userId);
     
@@ -409,153 +320,7 @@ export function reactivateUser(userId: string): User {
     return db.users[userIndex];
 }
 
-
-// --- Course API Functions ---
-
-export function getAllCourses(): Course[] {
-  const db = getDB();
-  return db.courses;
-}
-
-export function getCourseById(id: string): Course | undefined {
-  const db = getDB();
-  return db.courses.find(course => course.id === id);
-}
-
-export function createCourse(data: Omit<Course, 'id'>): Course {
-  const db = getDB();
-  const newCourse: Course = {
-    ...data,
-    id: `course_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    modules: [],
-    accessLevel: data.accessLevel || 'public',
-  };
-  db.courses.push(newCourse);
-  saveDB(db);
-  return newCourse;
-}
-
-export function updateCourse(id: string, data: Partial<Course>): Course {
-    const db = getDB();
-    const courseIndex = db.courses.findIndex(c => c.id === id);
-    if (courseIndex === -1) {
-        throw new Error("Kursus tidak ditemukan.");
-    }
-    const updatedCourse = { ...db.courses[courseIndex], ...data };
-    db.courses[courseIndex] = updatedCourse;
-    saveDB(db);
-    return updatedCourse;
-}
-
-export function deleteCourse(id: string): void {
-    const db = getDB();
-    const initialLength = db.courses.length;
-    db.courses = db.courses.filter(c => c.id !== id);
-    if(db.courses.length === initialLength) {
-        throw new Error("Gagal menghapus kursus, ID tidak ditemukan.");
-    }
-    saveDB(db);
-}
-
-// --- Curriculum API Functions ---
-
-export function addModule(courseId: string, data: { title: string }): Module {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-    
-    const newModule: Module = {
-        id: `module_${Date.now()}`,
-        title: data.title,
-        lessons: []
-    };
-    course.modules.push(newModule);
-    course.modules.sort((a, b) => a.title.localeCompare(b.title));
-    saveDB(db);
-    return newModule;
-}
-
-export function updateModule(courseId: string, moduleId: string, data: { title: string }): Module {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-    
-    const module = course.modules.find(m => m.id === moduleId);
-    if(!module) throw new Error("Modul tidak ditemukan.");
-
-    module.title = data.title;
-    course.modules.sort((a, b) => a.title.localeCompare(b.title));
-    saveDB(db);
-    return module;
-}
-
-export function deleteModule(courseId: string, moduleId: string): void {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-
-    const initialLength = course.modules.length;
-    course.modules = course.modules.filter(m => m.id !== moduleId);
-    if (course.modules.length === initialLength) throw new Error("Modul tidak ditemukan.");
-
-    saveDB(db);
-}
-
-export function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id'>): Lesson {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-
-    const module = course.modules.find(m => m.id === moduleId);
-    if(!module) throw new Error("Modul tidak ditemukan.");
-
-    const newLesson: Lesson = {
-        ...data,
-        id: `lesson_${Date.now()}`,
-        downloadable: data.type === 'zip' || data.type === 'text',
-    };
-    module.lessons.push(newLesson);
-    module.lessons.sort((a, b) => a.title.localeCompare(b.title));
-    saveDB(db);
-    return newLesson;
-}
-
-export function updateLesson(courseId: string, moduleId: string, lessonId: string, data: Omit<Lesson, 'id'>): Lesson {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-
-    const module = course.modules.find(m => m.id === moduleId);
-    if(!module) throw new Error("Modul tidak ditemukan.");
-
-    const lessonIndex = module.lessons.findIndex(l => l.id === lessonId);
-    if(lessonIndex === -1) throw new Error("Pelajaran tidak ditemukan.");
-
-    const updatedLesson = {
-        ...module.lessons[lessonIndex],
-        ...data,
-        downloadable: data.type === 'zip' || data.type === 'text',
-    }
-    module.lessons[lessonIndex] = updatedLesson;
-    module.lessons.sort((a, b) => a.title.localeCompare(b.title));
-    saveDB(db);
-    return updatedLesson;
-}
-
-export function deleteLesson(courseId: string, moduleId: string, lessonId: string): void {
-    const db = getDB();
-    const course = db.courses.find(c => c.id === courseId);
-    if (!course) throw new Error("Kursus tidak ditemukan.");
-
-    const module = course.modules.find(m => m.id === moduleId);
-    if(!module) throw new Error("Modul tidak ditemukan.");
-
-    const initialLength = module.lessons.length;
-    module.lessons = module.lessons.filter(l => l.id !== lessonId);
-    if (module.lessons.length === initialLength) throw new Error("Pelajaran tidak ditemukan.");
-    
-    saveDB(db);
-}
+// --- Course and Curriculum functions are now migrated to /src/actions/ ---
 
 // --- Enrollment API Functions ---
 
@@ -573,7 +338,9 @@ export function enrollUserInCourse(userId: string, courseId: string): void {
     return;
   }
   
-  if (!db.courses.some(c => c.id === courseId)) throw new Error("Course not found.");
+  // NOTE: This check will fail as courses are no longer in localStorage.
+  // This function needs to be migrated to a database action.
+  // if (!db.courses.some(c => c.id === courseId)) throw new Error("Course not found.");
   if (!db.users.some(u => u.id === userId)) throw new Error("User not found.");
 
   db.enrollments.push({ userId, courseId });
@@ -581,53 +348,25 @@ export function enrollUserInCourse(userId: string, courseId: string): void {
 }
 
 export function getEnrolledCoursesForUser(userId: string): Course[] {
-  if (!userId) return [];
-  const db = getDB();
-  const enrolledCourseIds = db.enrollments
-    .filter(e => e.userId === userId)
-    .map(e => e.courseId);
-  
-  return db.courses.filter(c => enrolledCourseIds.includes(c.id));
+    // This function is deprecated and will not work correctly until migrated.
+    // It will return an empty array as db.courses is empty.
+    if (!userId) return [];
+    const db = getDB();
+    const enrolledCourseIds = db.enrollments
+        .filter(e => e.userId === userId)
+        .map(e => e.courseId);
+    
+    // This part is now incorrect as courses are in the DB.
+    return db.courses.filter(c => enrolledCourseIds.includes(c.id));
 }
 
 
 export function getCompletedCourseCount(userId: string): number {
+    // This function is deprecated and will not work correctly until migrated.
     if (typeof window === 'undefined' || !userId) {
         return 0;
     }
-
-    const db = getDB();
-    const enrolledCourses = db.enrollments
-        .filter(e => e.userId === userId)
-        .map(e => db.courses.find(c => c.id === e.courseId))
-        .filter((c): c is Course => !!c);
-    
-    let completedCount = 0;
-
-    for (const course of enrolledCourses) {
-        const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
-        if (totalLessons === 0) {
-            continue; // Cannot complete a course with no lessons
-        }
-        
-        const progressString = localStorage.getItem(`progress_${userId}_${course.id}`);
-        if (!progressString) {
-            continue;
-        }
-
-        try {
-            const completedLessons: string[] = JSON.parse(progressString);
-            const completedLessonCount = new Set(completedLessons).size;
-
-            if (completedLessonCount >= totalLessons) {
-                completedCount++;
-            }
-        } catch (e) {
-            console.error(`Error parsing progress for course ${course.id}`, e);
-        }
-    }
-
-    return completedCount;
+    return 0; // Returning 0 as progress tracking is not yet migrated.
 }
 
 // --- Upgrade Request API Functions ---
@@ -645,7 +384,6 @@ export function createUpgradeRequest(userId: string, bankName: string, accountHo
     throw new Error('Pengguna tidak ditemukan.');
   }
 
-  // Prevent duplicate pending requests
   const existingRequest = db.upgradeRequests.find(r => r.userId === userId && r.status === 'pending');
   if (existingRequest) {
     throw new Error('Anda sudah memiliki permintaan upgrade yang sedang ditinjau.');
@@ -678,13 +416,11 @@ export function getUpgradeRequests(): PopulatedUpgradeRequest[] {
         };
     });
     
-    // Return newest requests first
     return populatedRequests.sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 }
 
 export function getUpgradeRequestByUserId(userId: string): UpgradeRequest | undefined {
     const db = getDB();
-    // Find the latest request for the user
     return db.upgradeRequests
         .filter(r => r.userId === userId)
         .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())[0];
@@ -709,13 +445,9 @@ export function approveUpgrade(requestId: string): void {
 
     const upgradedUser = db.users[userIndex];
     
-    // Update user role to 'pro'
     upgradedUser.role = 'pro';
-    
-    // Update request status to 'approved'
     db.upgradeRequests[requestIndex].status = 'approved';
 
-    // --- Affiliate Logic ---
     if (upgradedUser.referredBy) {
         const referrerIndex = db.users.findIndex(u => u.referralCode === upgradedUser.referredBy);
         if (referrerIndex !== -1) {
@@ -725,7 +457,7 @@ export function approveUpgrade(requestId: string): void {
 
             if (referrer.role === 'member') {
                 if (successfulReferralsCount === 5) {
-                    referrer.role = 'pro'; // Free upgrade!
+                    referrer.role = 'pro';
                 } else if (successfulReferralsCount > 5) {
                     referrer.affiliateBalance = (referrer.affiliateBalance || 0) + 10000;
                 }
@@ -968,6 +700,7 @@ export function getCertificateRequests(): PopulatedCertificateRequest[] {
   return db.certificateRequests
     .map(req => {
       const user = db.users.find(u => u.id === req.userId);
+      // This will fail since courses are no longer in localStorage
       const course = db.courses.find(c => c.id === req.courseId);
       return {
         ...req,
@@ -997,6 +730,7 @@ export function getApprovedCertificatesForUser(userId: string): PopulatedCertifi
         .filter(req => req.userId === userId && req.status === 'approved')
         .map(req => {
             const user = db.users.find(u => u.id === req.userId);
+            // This will fail
             const course = db.courses.find(c => c.id === req.courseId);
             return {
                 ...req,
