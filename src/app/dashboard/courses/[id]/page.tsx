@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course, Module, Lesson } from '@/types';
 import { getCourseById } from '@/actions/courses';
-import { isUserEnrolled, enrollUserInCourse, hasUserRequestedCertificate, createCertificateRequest } from '@/lib/data';
+import { isUserEnrolled, enrollUserInCourse, getCompletedLessonIds, trackLessonProgress } from '@/actions/enrollments';
+import { hasUserRequestedCertificate, createCertificateRequest } from '@/actions/requests';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -259,14 +260,13 @@ export default function CoursePage() {
                 const isPublicCourse = courseData.accessLevel === 'public';
                 
                 if (canAccessPro || isPublicCourse) {
-                    const isEnrolled = isUserEnrolled(user.id, courseData.id);
-                    setEnrolled(isEnrolled);
+                    const isEnrolledStatus = await isUserEnrolled(user.id, courseData.id);
+                    setEnrolled(isEnrolledStatus);
                     
-                    if (isEnrolled) {
-                        const storedProgress = localStorage.getItem(`progress_${user.id}_${courseData.id}`);
-                        const initialCompleted = storedProgress ? new Set(JSON.parse(storedProgress)) : new Set<string>();
+                    if (isEnrolledStatus) {
+                        const initialCompleted = await getCompletedLessonIds(user.id, courseData.id);
                         setCompletedLessons(initialCompleted);
-                        setHasRequestedCert(hasUserRequestedCertificate(user.id, courseData.id));
+                        setHasRequestedCert(await hasUserRequestedCertificate(user.id, courseData.id));
 
                         const allLessons = courseData.modules.flatMap(m => m.lessons);
                         const firstUncompleted = allLessons.find(l => !initialCompleted.has(l.id)) || allLessons[allLessons.length - 1] || null;
@@ -287,12 +287,6 @@ export default function CoursePage() {
     loadCourseData();
   }, [params.id, user, userLoading, router, toast]);
 
-  // Save progress whenever it changes
-  useEffect(() => {
-    if (course && user) {
-      localStorage.setItem(`progress_${user.id}_${course.id}`, JSON.stringify(Array.from(completedLessons)));
-    }
-  }, [completedLessons, course, user]);
 
   const allLessons = useMemo(() => course?.modules.flatMap(m => m.lessons) ?? [], [course]);
 
@@ -324,9 +318,10 @@ export default function CoursePage() {
     }
   };
 
-  const handleMarkAsComplete = useCallback(() => {
-    if (!activeLesson || completedLessons.has(activeLesson.id)) return;
-
+  const handleMarkAsComplete = useCallback(async () => {
+    if (!activeLesson || completedLessons.has(activeLesson.id) || !user) return;
+    
+    await trackLessonProgress(user.id, activeLesson.id);
     setCompletedLessons(prev => new Set(prev).add(activeLesson.id));
 
     const nextLesson = findNextLesson(activeLesson.id);
@@ -341,11 +336,11 @@ export default function CoursePage() {
         duration: 5000,
       });
     }
-  }, [activeLesson, completedLessons, findNextLesson, toast]);
+  }, [activeLesson, completedLessons, findNextLesson, toast, user]);
 
-  const handleEnroll = () => {
+  const handleEnroll = async () => {
     if (user && course) {
-        enrollUserInCourse(user.id, course.id);
+        await enrollUserInCourse(user.id, course.id);
         setEnrolled(true);
         const firstLesson = course.modules?.[0]?.lessons?.[0] || null;
         setActiveLesson(firstLesson);
@@ -356,11 +351,11 @@ export default function CoursePage() {
     }
   };
   
-  const handleRequestCertificate = () => {
+  const handleRequestCertificate = async () => {
     if (!user || !course) return;
     setIsRequestingCert(true);
     try {
-        createCertificateRequest(user.id, course.id);
+        await createCertificateRequest(user.id, course.id);
         setHasRequestedCert(true);
         toast({ title: 'Permintaan Terkirim', description: 'Permintaan sertifikat Anda telah dikirim. Admin akan segera meninjaunya.' });
     } catch (e) {

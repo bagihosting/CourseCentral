@@ -2,18 +2,16 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getAllUsers, updateUser, registerUser, deleteUser, reactivateUser } from '@/lib/data';
-import type { UpdateUserInput, RegisterUserInput } from '@/lib/data';
+import { getAllUsers, updateUser, registerUser, deleteUser, reactivateUser } from '@/actions/users';
+import type { UpdateUserInput, RegisterUserInput, User as UserType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX } from 'lucide-react';
-import type { User as UserType } from '@/types';
 import imageCompression from 'browser-image-compression';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -37,13 +35,15 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const refreshUsers = () => {
-    setUsers(getAllUsers());
+  const refreshUsers = async () => {
+    setLoading(true);
+    const usersData = await getAllUsers();
+    setUsers(usersData);
+    setLoading(false);
   };
 
   useEffect(() => {
     refreshUsers();
-    setLoading(false);
   }, []);
 
   const handleOpenDialog = (user: UserType | null) => {
@@ -103,17 +103,17 @@ export default function AdminPage() {
         if (password.trim() !== '') {
           updateData.password = password;
         }
-        updateUser(selectedUser.id, updateData);
+        await updateUser(selectedUser.id, updateData);
         toast({ title: 'Sukses', description: `Data pengguna ${name} berhasil diperbarui.` });
       } else {
         if (!username || password.trim() === '') {
           throw new Error('Nama pengguna dan kata sandi wajib diisi untuk anggota baru.');
         }
         const createData: RegisterUserInput & { avatarUrl?: string } = { name, username, password, whatsapp, avatarUrl: avatarPreview };
-        registerUser(createData);
+        await registerUser(createData);
         toast({ title: 'Sukses', description: `Anggota baru ${name} berhasil ditambahkan.` });
       }
-      refreshUsers();
+      await refreshUsers();
       setIsDialogOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
@@ -123,22 +123,22 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
-      deleteUser(userId);
+      await deleteUser(userId);
       toast({ title: 'Sukses', description: 'Member berhasil dihapus.' });
-      refreshUsers();
+      await refreshUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
     }
   };
   
-  const handleReactivateUser = (userId: string) => {
+  const handleReactivateUser = async (userId: string) => {
      try {
-      reactivateUser(userId);
+      await reactivateUser(userId);
       toast({ title: 'Sukses', description: 'Member berhasil diaktifkan kembali.' });
-      refreshUsers();
+      await refreshUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Aktivasi', description: errorMessage, variant: 'destructive' });
@@ -315,3 +315,4 @@ export default function AdminPage() {
     </>
   );
 }
+    

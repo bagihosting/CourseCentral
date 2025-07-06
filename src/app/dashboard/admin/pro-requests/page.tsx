@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, MessageSquare } from 'lucide-react';
-import { getUpgradeRequests, approveUpgrade } from '@/lib/data';
-import type { PopulatedUpgradeRequest } from '@/lib/data';
+import { getUpgradeRequests, approveUpgrade, type PopulatedUpgradeRequest } from '@/actions/requests';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,23 +18,27 @@ export default function ProRequestsPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const refreshRequests = () => {
-    setRequests(getUpgradeRequests());
+  const refreshRequests = async () => {
+    const reqs = await getUpgradeRequests();
+    setRequests(reqs);
   };
 
   useEffect(() => {
-    refreshRequests();
-    setLoading(false);
+    async function fetchData() {
+        await refreshRequests();
+        setLoading(false);
+    }
+    fetchData();
   }, []);
 
-  const handleApprove = (requestId: string) => {
+  const handleApprove = async (requestId: string) => {
     try {
-      approveUpgrade(requestId);
+      await approveUpgrade(requestId);
       toast({
         title: 'Sukses',
         description: 'Status pengguna telah berhasil ditingkatkan ke Pro.',
       });
-      refreshRequests(); // Refresh the list to show the new status
+      await refreshRequests();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getReferredUsers, PopulatedReferredUser } from '@/lib/data';
+import { getReferredUsers, PopulatedReferredUser } from '@/actions/affiliate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,15 @@ export default function AffiliatePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      setReferredUsers(getReferredUsers(user.id));
-      setReferralLink(`${window.location.origin}/login?ref=${user.referralCode}`);
+    async function fetchData() {
+        if (user) {
+            const users = await getReferredUsers(user.id);
+            setReferredUsers(users);
+            setReferralLink(`${window.location.origin}/login?ref=${user.referralCode}`);
+        }
+        setLoading(false);
     }
-    setLoading(false);
+    fetchData();
   }, [user]);
 
   const handleCopyLink = () => {

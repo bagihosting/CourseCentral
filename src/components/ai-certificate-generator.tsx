@@ -15,7 +15,10 @@ import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAllCourses, getSeoSettings, getAllUsers, getLandingPageSettings, awardCertificateToUser } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
+import { getAllUsers } from '@/actions/users';
+import { getSeoSettings, getLandingPageSettings } from '@/actions/settings';
+import { awardCertificateToUser } from '@/actions/requests';
 import type { Course, User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -40,23 +43,28 @@ export function AiCertificateGenerator() {
   const { toast } = useToast();
   
   useEffect(() => {
-    const courses = getAllCourses();
-    const users = getAllUsers().filter(u => u.role !== 'admin');
-    const seoSettings = getSeoSettings();
-    const landingPageSettings = getLandingPageSettings();
+    async function fetchInitialData() {
+        const [coursesData, usersData, seoSettingsData, landingPageSettingsData] = await Promise.all([
+            getAllCourses(),
+            getAllUsers(),
+            getSeoSettings(),
+            getLandingPageSettings()
+        ]);
+        
+        const filteredUsers = usersData.filter(u => u.role !== 'admin');
+        
+        setAllCourses(coursesData);
+        setAllUsers(filteredUsers);
+        setOrganizerName(seoSettingsData.platformName || 'Scriptify');
+        setLogoUrl(landingPageSettingsData.logoUrl || 'https://placehold.co/200x80.png');
 
-    setAllCourses(courses);
-    setAllUsers(users);
-    setOrganizerName(seoSettings.platformName || 'Scriptify');
-    setLogoUrl(landingPageSettings.logoUrl || 'https://placehold.co/200x80.png');
+        const initialUser = filteredUsers.find(u => u.id === selectedUserId);
+        if(initialUser) setParticipantName(initialUser.name);
 
-    // Sync state with stored IDs
-    const initialUser = users.find(u => u.id === selectedUserId);
-    if(initialUser) setParticipantName(initialUser.name);
-
-    const initialCourse = courses.find(c => c.id === selectedCourseId);
-    if(initialCourse) setCourseName(initialCourse.title);
-
+        const initialCourse = coursesData.find(c => c.id === selectedCourseId);
+        if(initialCourse) setCourseName(initialCourse.title);
+    }
+    fetchInitialData();
   }, [selectedUserId, selectedCourseId]);
 
   const handleGenerate = async () => {
@@ -105,7 +113,7 @@ export function AiCertificateGenerator() {
     setIsSaving(true);
     try {
         const cleanHtml = DOMPurify.sanitize(outputHtml, { WHOLE_DOCUMENT: true });
-        awardCertificateToUser(selectedUserId, selectedCourseId, cleanHtml);
+        await awardCertificateToUser(selectedUserId, selectedCourseId, cleanHtml);
         toast({
             title: 'Sukses!',
             description: 'Sertifikat telah disimpan untuk member dan akan muncul di halaman "Sertifikat Saya" mereka.',
@@ -308,3 +316,5 @@ export function AiCertificateGenerator() {
     </div>
   );
 }
+
+    

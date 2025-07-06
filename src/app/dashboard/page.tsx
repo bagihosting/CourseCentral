@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,7 +6,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllUsers, getEnrolledCoursesForUser } from '@/lib/data';
+import { getAllUsers } from '@/actions/users';
+import { getEnrolledCoursesForUser } from '@/actions/enrollments';
 import { getAllCourses } from '@/actions/courses';
 import type { Course, User as UserType } from '@/types';
 import { BookOpenCheck, Users, GraduationCap, ArrowRight } from 'lucide-react';
@@ -26,9 +28,11 @@ export default function DashboardPage() {
           const allCoursesData = await getAllCourses();
           setCourses(allCoursesData);
           if (user.role === 'admin') {
-            setUsers(getAllUsers());
+            const allUsersData = await getAllUsers();
+            setUsers(allUsersData);
           } else {
-            setEnrolledCourses(getEnrolledCoursesForUser(user.id));
+            const enrolledCoursesData = await getEnrolledCoursesForUser(user.id);
+            setEnrolledCourses(enrolledCoursesData);
           }
         }
         setLoading(false);
@@ -75,7 +79,7 @@ export default function DashboardPage() {
   
   const userName = user?.name || 'Pengguna';
   const totalLessons = courses.reduce((acc, course) => 
-    acc + course.modules.reduce((modAcc, mod) => modAcc + mod.lessons.length, 0), 0);
+    acc + (course.modules ? course.modules.reduce((modAcc, mod) => modAcc + (mod.lessons ? mod.lessons.length : 0), 0) : 0), 0);
 
   const recentCourses = [...courses].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
 
@@ -237,3 +241,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

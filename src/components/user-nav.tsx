@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +15,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getCompletedCourseCount } from '@/lib/data';
+import { getCompletedCourseCount } from '@/actions/enrollments';
 import { getRank } from '@/lib/ranks';
 import { RankBadge } from './rank-badge';
 
@@ -23,9 +24,13 @@ export function UserNav() {
   const [completedCourses, setCompletedCourses] = useState(0);
 
   useEffect(() => {
-    if (user && user.role === 'member') {
-      setCompletedCourses(getCompletedCourseCount(user.id));
+    async function fetchCompletedCount() {
+      if (user && (user.role === 'member' || user.role === 'pro')) {
+        const count = await getCompletedCourseCount(user.id);
+        setCompletedCourses(count);
+      }
     }
+    fetchCompletedCount();
   }, [user]);
 
   if (!user) {
@@ -79,3 +84,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

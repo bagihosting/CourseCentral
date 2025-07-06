@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,7 +6,7 @@ import { AdminCourseActions } from '@/components/admin-course-actions';
 import { AiSuggestions } from '@/components/ai-suggestions';
 import { CourseCard } from '@/components/course-card';
 import { getAllCourses } from '@/actions/courses';
-import { getSeoSettings } from '@/lib/data';
+import { getSeoSettings } from '@/actions/settings';
 import { useAuth } from '@/contexts/auth-context';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,7 +23,7 @@ export default function CoursesPage() {
     try {
       const coursesData = await getAllCourses();
       setCourses(coursesData);
-      const settings = getSeoSettings();
+      const settings = await getSeoSettings();
       setShowAiSuggestions(settings.enableAiSuggestions ?? true);
     } catch (error) {
       toast({
@@ -93,3 +94,5 @@ export default function CoursesPage() {
     </div>
   );
 }
+
+    

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, Loader2, Rocket, Eye, Link as LinkIcon } from 'lucide-react';
-import { getCustomAppRequests, approveCustomAppRequest, completeCustomAppRequest, PopulatedCustomAppRequest } from '@/lib/data';
+import { getCustomAppRequests, approveCustomAppRequest, completeCustomAppRequest, type PopulatedCustomAppRequest } from '@/actions/requests';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -70,14 +70,14 @@ function CompleteRequestDialog({ request, onComplete }: { request: PopulatedCust
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!resultLink) {
             toast({ title: 'Error', description: 'Link hasil aplikasi wajib diisi.', variant: 'destructive' });
             return;
         }
         setIsSaving(true);
         try {
-            completeCustomAppRequest(request.id, resultLink, adminNotes);
+            await completeCustomAppRequest(request.id, resultLink, adminNotes);
             toast({ title: 'Sukses!', description: 'Permintaan telah ditandai sebagai selesai.' });
             onComplete();
         } catch (e: any) {
@@ -122,8 +122,8 @@ export default function CustomAppRequestsPage() {
 
   const { toast } = useToast();
 
-  const refreshRequests = () => {
-    setRequests(getCustomAppRequests());
+  const refreshRequests = async () => {
+    setRequests(await getCustomAppRequests());
   };
 
   useEffect(() => {
@@ -134,12 +134,12 @@ export default function CustomAppRequestsPage() {
   const handleApprove = async (requestId: string) => {
     setApprovingId(requestId);
     try {
-        approveCustomAppRequest(requestId);
+        await approveCustomAppRequest(requestId);
         toast({
             title: 'Sukses',
             description: 'Pembayaran permintaan aplikasi telah disetujui.',
         });
-        refreshRequests();
+        await refreshRequests();
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
         toast({

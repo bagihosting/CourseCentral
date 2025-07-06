@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAllCourses, getApprovedCertificatesForUser } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
+import { getApprovedCertificatesForUser } from '@/actions/requests';
 import { Download, FileText, Film, Archive, Lock, Sparkles, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { Course, Lesson } from '@/types';
@@ -61,48 +62,48 @@ export default function DownloadsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userLoading && user && (user.role === 'admin' || user.role === 'pro')) {
-      const allCoursesData = getAllCourses();
-      
-      // Get all approved certificates for the user to determine which text lessons are downloadable as PDF
-      const approvedCertificates = getApprovedCertificatesForUser(user.id);
-      const completedCourseIds = new Set(approvedCertificates.map(cert => cert.courseId));
-      const coursesWithPdfAccess = allCoursesData.filter(course => completedCourseIds.has(course.id));
+    async function fetchData() {
+        if (!userLoading && user && (user.role === 'admin' || user.role === 'pro')) {
+            const allCoursesData = await getAllCourses();
+            
+            const approvedCertificates = await getApprovedCertificatesForUser(user.id);
+            const completedCourseIds = new Set(approvedCertificates.map(cert => cert.courseId));
+            const coursesWithPdfAccess = allCoursesData.filter(course => completedCourseIds.has(course.id));
 
-      // Regular downloadable files (ZIP, etc.) are available for ALL courses for Pro/Admin
-      const regularDownloads = allCoursesData.flatMap(course => 
-        course.modules.flatMap(module => 
-          module.lessons
-            .filter(lesson => lesson.downloadable && lesson.type !== 'text' && lesson.contentUrl)
-            .map(lesson => ({
-              courseTitle: course.title,
-              lessonTitle: lesson.title,
-              type: lesson.type,
-              downloadType: 'file' as const,
-              content: lesson.contentUrl!,
-            }))
-        )
-      );
+            const regularDownloads = allCoursesData.flatMap(course => 
+                course.modules.flatMap(module => 
+                module.lessons
+                    .filter(lesson => lesson.downloadable && lesson.type !== 'text' && lesson.contentUrl)
+                    .map(lesson => ({
+                    courseTitle: course.title,
+                    lessonTitle: lesson.title,
+                    type: lesson.type,
+                    downloadType: 'file' as const,
+                    content: lesson.contentUrl!,
+                    }))
+                )
+            );
 
-      // Text lessons from COMPLETED courses (i.e., certificate awarded) become downloadable PDFs
-      const pdfDownloads = coursesWithPdfAccess.flatMap(course => 
-        course.modules.flatMap(module => 
-          module.lessons
-            .filter(lesson => lesson.type === 'text' && lesson.content)
-            .map(lesson => ({
-              courseTitle: course.title,
-              lessonTitle: lesson.title,
-              type: lesson.type,
-              downloadType: 'pdf' as const,
-              content: lesson.content!,
-            }))
-        )
-      );
+            const pdfDownloads = coursesWithPdfAccess.flatMap(course => 
+                course.modules.flatMap(module => 
+                module.lessons
+                    .filter(lesson => lesson.type === 'text' && lesson.content)
+                    .map(lesson => ({
+                    courseTitle: course.title,
+                    lessonTitle: lesson.title,
+                    type: lesson.type,
+                    downloadType: 'pdf' as const,
+                    content: lesson.content!,
+                    }))
+                )
+            );
 
-      const combinedDownloads = [...regularDownloads, ...pdfDownloads];
-      setAllDownloads(combinedDownloads);
+            const combinedDownloads = [...regularDownloads, ...pdfDownloads];
+            setAllDownloads(combinedDownloads);
+            }
+        setLoading(false);
     }
-    setLoading(false);
+    fetchData();
   }, [user, userLoading]);
 
   const handleDownloadPdf = async (htmlContent: string, lessonTitle: string) => {
@@ -110,7 +111,6 @@ export default function DownloadsPage() {
     toast({ title: 'Mempersiapkan PDF...', description: 'Ini mungkin memerlukan beberapa saat.' });
 
     const tempContainer = document.createElement('div');
-    // Styling for A4-like layout
     tempContainer.style.width = '210mm';
     tempContainer.style.padding = '15mm';
     tempContainer.style.position = 'absolute';
@@ -123,7 +123,6 @@ export default function DownloadsPage() {
     tempContainer.style.boxSizing = 'border-box';
 
     const titleElement = `<h1>${lessonTitle}</h1><hr style="margin-bottom: 1em;"/>`;
-    // Using a class for prose styling allows better control if defined in globals.css
     tempContainer.innerHTML = `<div class="prose">${DOMPurify.sanitize(titleElement + htmlContent)}</div>`;
     
     document.body.appendChild(tempContainer);

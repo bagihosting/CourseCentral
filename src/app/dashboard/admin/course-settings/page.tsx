@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings, getConfirmationContacts, addConfirmationContact, updateConfirmationContact, deleteConfirmationContact } from '@/lib/data';
+import { getPaymentSettings, addPaymentAccount, updatePaymentAccount, deletePaymentAccount, getSeoSettings, updateSeoSettings, getConfirmationContacts, addConfirmationContact, updateConfirmationContact, deleteConfirmationContact } from '@/actions/settings';
 import type { PaymentAccount, SeoSettings, ConfirmationContact } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Pencil, Trash2, Globe, Wand2, MessageSquare } from 'lucide-react';
@@ -26,7 +26,7 @@ function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount,
     const [saving, setSaving] = useState(false);
     const { toast } = useToast();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!bankName || !accountNumber || !accountHolder) {
             toast({ title: "Gagal", description: "Semua kolom wajib diisi.", variant: "destructive" });
@@ -35,10 +35,10 @@ function PaymentAccountForm({ account, onFinished }: { account?: PaymentAccount,
         setSaving(true);
         try {
             if (account) {
-                updatePaymentAccount(account.id, { bankName, accountNumber, accountHolder });
+                await updatePaymentAccount(account.id, { bankName, accountNumber, accountHolder });
                 toast({ title: 'Sukses', description: 'Akun pembayaran berhasil diperbarui.' });
             } else {
-                addPaymentAccount({ bankName, accountNumber, accountHolder });
+                await addPaymentAccount({ bankName, accountNumber, accountHolder });
                 toast({ title: 'Sukses', description: 'Akun pembayaran berhasil ditambahkan.' });
             }
             onFinished();
@@ -81,7 +81,7 @@ function ConfirmationContactForm({ contact, onFinished }: { contact?: Confirmati
     const [saving, setSaving] = useState(false);
     const { toast } = useToast();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !whatsapp) {
             toast({ title: "Gagal", description: "Semua kolom wajib diisi.", variant: "destructive" });
@@ -90,10 +90,10 @@ function ConfirmationContactForm({ contact, onFinished }: { contact?: Confirmati
         setSaving(true);
         try {
             if (contact) {
-                updateConfirmationContact(contact.id, { name, whatsapp });
+                await updateConfirmationContact(contact.id, { name, whatsapp });
                 toast({ title: 'Sukses', description: 'Kontak berhasil diperbarui.' });
             } else {
-                addConfirmationContact({ name, whatsapp });
+                await addConfirmationContact({ name, whatsapp });
                 toast({ title: 'Sukses', description: 'Kontak berhasil ditambahkan.' });
             }
             onFinished();
@@ -149,22 +149,25 @@ export default function CourseSettingsPage() {
   const [enableAiSuggestions, setEnableAiSuggestions] = useState(true);
   const { toast } = useToast();
 
-  const refreshPaymentAccounts = () => {
-    setPaymentAccounts(getPaymentSettings());
+  const refreshPaymentAccounts = async () => {
+    setPaymentAccounts(await getPaymentSettings());
   };
   
-  const refreshConfirmationContacts = () => {
-    setConfirmationContacts(getConfirmationContacts());
+  const refreshConfirmationContacts = async () => {
+    setConfirmationContacts(await getConfirmationContacts());
   };
 
   useEffect(() => {
-    refreshPaymentAccounts();
-    refreshConfirmationContacts();
-    const settings = getSeoSettings();
-    setSeoSettings(settings);
-    setPlatformName(settings.platformName);
-    setEnableAiSuggestions(settings.enableAiSuggestions ?? true);
-    setLoading(false);
+    async function fetchData() {
+        await refreshPaymentAccounts();
+        await refreshConfirmationContacts();
+        const settings = await getSeoSettings();
+        setSeoSettings(settings);
+        setPlatformName(settings.platformName);
+        setEnableAiSuggestions(settings.enableAiSuggestions ?? true);
+        setLoading(false);
+    }
+    fetchData();
   }, []);
 
   const handleOpenPaymentForm = (account?: PaymentAccount) => {
@@ -187,9 +190,9 @@ export default function CourseSettingsPage() {
     refreshConfirmationContacts();
   };
 
-  const handleDeletePaymentAccount = (accountId: string) => {
+  const handleDeletePaymentAccount = async (accountId: string) => {
     try {
-      deletePaymentAccount(accountId);
+      await deletePaymentAccount(accountId);
       toast({ title: 'Sukses', description: 'Akun pembayaran berhasil dihapus.' });
       refreshPaymentAccounts();
     } catch (error) {
@@ -198,9 +201,9 @@ export default function CourseSettingsPage() {
     }
   };
   
-  const handleDeleteContact = (contactId: string) => {
+  const handleDeleteContact = async (contactId: string) => {
     try {
-      deleteConfirmationContact(contactId);
+      await deleteConfirmationContact(contactId);
       toast({ title: 'Sukses', description: 'Kontak konfirmasi berhasil dihapus.' });
       refreshConfirmationContacts();
     } catch (error) {
@@ -209,11 +212,11 @@ export default function CourseSettingsPage() {
     }
   };
 
-  const handleSaveSeo = () => {
+  const handleSaveSeo = async () => {
     if (!seoSettings) return;
     setIsSavingSeo(true);
     try {
-      updateSeoSettings(seoSettings);
+      await updateSeoSettings(seoSettings);
       toast({ title: 'Sukses', description: 'Pengaturan SEO berhasil disimpan.' });
     } catch (error) {
        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
@@ -283,14 +286,14 @@ export default function CourseSettingsPage() {
     }
   };
 
-  const handleSaveGeneral = () => {
+  const handleSaveGeneral = async () => {
     if (!platformName.trim()) {
       toast({ title: 'Input Diperlukan', description: 'Nama platform tidak boleh kosong.', variant: 'destructive' });
       return;
     }
     setIsSavingGeneral(true);
     try {
-      updateSeoSettings({ platformName, enableAiSuggestions });
+      await updateSeoSettings({ ...seoSettings, platformName, enableAiSuggestions });
       toast({ title: 'Sukses', description: 'Pengaturan umum berhasil disimpan.' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';

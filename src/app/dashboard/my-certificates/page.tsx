@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getApprovedCertificatesForUser, PopulatedCertificateRequest } from '@/lib/data';
+import { getApprovedCertificatesForUser, type PopulatedCertificateRequest } from '@/actions/requests';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,11 +20,17 @@ export default function MyCertificatesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      setCertificates(getApprovedCertificatesForUser(user.id));
+    async function fetchData() {
+        if (user) {
+            const certs = await getApprovedCertificatesForUser(user.id);
+            setCertificates(certs);
+        }
+        setLoading(false);
     }
-    setLoading(false);
-  }, [user]);
+    if (!userLoading) {
+        fetchData();
+    }
+  }, [user, userLoading]);
 
   const handleDownload = (htmlContent: string | undefined, participantName: string, courseName: string) => {
     if (!htmlContent) {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Wand2, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { CourseSuggestionOutput } from '@/ai/flows/suggest-courses';
 import Link from 'next/link';
-import { getAllCourses } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
 import { suggestCoursesAction } from '@/actions/ai';
 
 export function AiSuggestions() {
@@ -25,7 +26,7 @@ export function AiSuggestions() {
     setSuggestions([]);
 
     try {
-      const availableCourses = getAllCourses().map(c => ({ id: c.id, title: c.title, description: c.description }));
+      const availableCourses = (await getAllCourses()).map(c => ({ id: c.id, title: c.title, description: c.description }));
       const result = await suggestCoursesAction({ interest, courses: availableCourses });
       setSuggestions(result.suggestions);
     } catch (err) {
@@ -84,3 +85,5 @@ export function AiSuggestions() {
     </Card>
   );
 }
+
+    

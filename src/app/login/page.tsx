@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpenCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getSeoSettings, getConfirmationContacts } from '@/lib/data';
+import { getSeoSettings, getConfirmationContacts } from '@/actions/settings';
+import { registerUser } from '@/actions/users';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ToastAction } from '@/components/ui/toast';
+import type { ConfirmationContact } from '@/types';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -22,6 +24,15 @@ function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<ConfirmationContact[]>([]);
+  
+  useEffect(() => {
+    async function fetchContacts() {
+        const contactsData = await getConfirmationContacts();
+        setContacts(contactsData);
+    }
+    fetchContacts();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +48,6 @@ function LoginForm() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       if (errorMessage === 'ACCOUNT_INACTIVE') {
-        const contacts = getConfirmationContacts();
         const adminContact = contacts.length > 0 ? contacts[0].whatsapp : '';
         let whatsappUrl = '#';
         if(adminContact) {
@@ -82,7 +92,7 @@ function LoginForm() {
 }
 
 function RegisterForm() {
-  const { register } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const refCode = searchParams.get('ref');
@@ -142,9 +152,9 @@ function RegisterForm() {
     
     setLoading(true);
     try {
-      await register({ name, username, password, whatsapp, referredBy: refCode || undefined });
+      await registerUser({ name, username, password, whatsapp, referredBy: refCode || undefined });
       toast({ title: 'Pendaftaran Berhasil!', description: 'Anda sekarang dapat masuk dengan akun baru Anda.' });
-       // The context will handle redirection
+       await login(username, password);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Daftar', description: errorMessage, variant: 'destructive' });
@@ -209,11 +219,18 @@ function AuthPageContent() {
   const [platformName, setPlatformName] = useState('Aplikasi Kursus');
 
   useEffect(() => {
-    const settings = getSeoSettings();
-    if (settings && settings.platformName) {
-        setPlatformName(settings.platformName);
-        document.title = `Login - ${settings.platformName}`;
+    async function fetchSettings() {
+        try {
+            const settings = await getSeoSettings();
+            if (settings && settings.platformName) {
+                setPlatformName(settings.platformName);
+                document.title = `Login - ${settings.platformName}`;
+            }
+        } catch (error) {
+            console.error("Failed to fetch SEO settings:", error);
+        }
     }
+    fetchSettings();
   }, []);
 
   return (

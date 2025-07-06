@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/lib/data';
+import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/actions/settings';
 import type { LandingPageSettings, Testimonial, FAQItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle, Download } from 'lucide-react';
@@ -31,11 +31,11 @@ export default function LandingPageSettingsPage() {
     const [generatedHeroPreview, setGeneratedHeroPreview] = useState<string | null>(null);
     const { toast } = useToast();
 
-    const refreshData = useCallback(() => {
-        const settingsData = getLandingPageSettings();
+    const refreshData = useCallback(async () => {
+        const settingsData = await getLandingPageSettings();
         setSettings(settingsData);
         setFeaturedIds(settingsData.featuredTestimonialIds || []);
-        setTestimonials(getAllTestimonials());
+        setTestimonials(await getAllTestimonials());
         setFaqs(settingsData.faqs || []);
         setLoading(false);
     }, []);
@@ -57,11 +57,11 @@ export default function LandingPageSettingsPage() {
         );
     };
 
-    const handleDeleteTestimonial = (testimonialId: string) => {
+    const handleDeleteTestimonial = async (testimonialId: string) => {
         try {
-            deleteTestimonial(testimonialId);
+            await deleteTestimonial(testimonialId);
             toast({ title: 'Sukses', description: 'Testimoni telah dihapus.' });
-            refreshData(); // Refresh all data
+            await refreshData();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
             toast({ title: 'Gagal Menghapus', description: errorMessage, variant: 'destructive' });
@@ -139,13 +139,13 @@ export default function LandingPageSettingsPage() {
     };
 
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!settings) return;
         setIsSaving(true);
         try {
-            updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds, faqs });
+            await updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds, faqs });
             toast({ title: 'Sukses', description: 'Pengaturan halaman depan berhasil disimpan.' });
-            refreshData();
+            await refreshData();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
             toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { getLandingPageSettings, updateLandingPageSettings } from '@/lib/data';
+import { getLandingPageSettings, updateLandingPageSettings } from '@/actions/settings';
 import type { AiApp } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Pencil } from 'lucide-react';
@@ -28,9 +28,12 @@ export default function AppSettingsPage() {
 
 
     useEffect(() => {
-        const settings = getLandingPageSettings();
-        setApps(settings.aiApps || []);
-        setLoading(false);
+        async function fetchData() {
+            const settings = await getLandingPageSettings();
+            setApps(settings.aiApps || []);
+            setLoading(false);
+        }
+        fetchData();
     }, []);
 
     const handleToggle = (appId: string, enabled: boolean) => {
@@ -41,11 +44,10 @@ export default function AppSettingsPage() {
         );
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setIsSaving(true);
         try {
-            const currentSettings = getLandingPageSettings();
-            updateLandingPageSettings({ ...currentSettings, aiApps: apps });
+            await updateLandingPageSettings({ aiApps: apps });
             toast({
                 title: 'Sukses',
                 description: 'Pengaturan aplikasi berhasil disimpan.',

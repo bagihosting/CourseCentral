@@ -5,10 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { validateUser, getUserById } from '@/actions/auth';
-import { registerUser as registerUserData, updateUser as updateUserData, RegisterUserInput, UpdateUserInput } from '@/lib/data';
+import { registerUser as registerUserAction, updateUser as updateUserAction, RegisterUserInput, UpdateUserInput } from '@/actions/users';
 
-// Menggunakan localStorage untuk persistensi sesi yang lebih kuat.
-// Data akan tetap ada bahkan setelah browser ditutup, sampai pengguna logout.
 const SESSION_KEY = 'user_session_id';
 
 interface AuthContextType {
@@ -32,12 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const storedUserId = localStorage.getItem(SESSION_KEY);
             if (storedUserId) {
-                // `getUserById` sekarang adalah server action
                 const userData = await getUserById(storedUserId);
                 if (userData) {
                     setUser(userData);
                 } else {
-                    // Bersihkan sesi jika ID pengguna tidak valid
                     localStorage.removeItem(SESSION_KEY);
                 }
             }
@@ -52,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    // `validateUser` sekarang adalah server action
     const validatedUser = await validateUser(username, password);
     if (validatedUser) {
       setUser(validatedUser);
@@ -65,8 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const register = useCallback(async (data: RegisterUserInput & { referredBy?: string }) => {
-    const newUser = registerUserData(data);
-    // Masuk secara otomatis setelah registrasi
+    const newUser = await registerUserAction(data);
     setUser(newUser);
     localStorage.setItem(SESSION_KEY, newUser.id);
     router.push('/dashboard');
@@ -85,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Pengguna tidak diautentikasi.");
     }
     try {
-        const updatedUser = updateUserData(user.id, data);
-        setUser(updatedUser); // Update state pengguna di dalam context
+        const updatedUser = await updateUserAction(user.id, data);
+        setUser(updatedUser);
     } catch (error) {
         console.error("Gagal memperbarui pengguna:", error);
         throw error;
@@ -109,3 +103,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

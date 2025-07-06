@@ -1,6 +1,4 @@
 
-
-
 'use client';
 
 import {
@@ -37,7 +35,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getSeoSettings } from '@/lib/data';
+import { getSeoSettings } from '@/actions/settings';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -78,10 +76,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [loading, user, router]);
 
   useEffect(() => {
-    const settings = getSeoSettings();
-    if (settings && settings.platformName) {
-        setPlatformName(settings.platformName);
+    async function fetchSettings() {
+      const settings = await getSeoSettings();
+      if (settings && settings.platformName) {
+          setPlatformName(settings.platformName);
+      }
     }
+    fetchSettings();
   }, []);
 
   if (loading || !user) {

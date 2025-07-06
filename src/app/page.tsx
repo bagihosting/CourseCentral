@@ -1,20 +1,17 @@
 
-'use client';
-
-import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CourseCard } from '@/components/course-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { getLandingPageSettings, getAllTestimonials, getSeoSettings } from '@/lib/data';
+import { getLandingPageSettings, getAllTestimonials, getSeoSettings } from '@/actions/settings';
 import { getAllCourses } from '@/actions/courses';
-import type { Course, LandingPageSettings, Testimonial } from '@/types';
+import type { Course, Testimonial } from '@/types';
 import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import type { Metadata } from 'next';
 
 const featureIcons: { [key: string]: React.ElementType } = {
   ShieldCheck,
@@ -22,90 +19,61 @@ const featureIcons: { [key: string]: React.ElementType } = {
   Users,
 };
 
-function LandingPageSkeleton() {
-  return (
-    <div className="bg-background text-foreground">
-      <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
-        <div className="container mx-auto flex justify-between items-center">
-            <Skeleton className="h-7 w-36" />
-            <Skeleton className="h-10 w-28" />
-        </div>
-      </header>
-      <main>
-        <section className="py-20 md:py-32 bg-muted/30">
-          <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center px-4">
-            <div className="space-y-6">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-3/4" />
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-6 w-5/6" />
-              <div className="flex gap-4">
-                <Skeleton className="h-12 w-36" />
-                <Skeleton className="h-12 w-36" />
-              </div>
-            </div>
-            <Skeleton className="aspect-video rounded-2xl w-full max-w-lg mx-auto" />
-          </div>
-        </section>
-        <section id="courses" className="py-20 md:py-28 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <Skeleton className="h-10 w-1/2 mx-auto mb-12" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-40 w-full" />
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const seoSettings = await getSeoSettings();
+    const landingSettings = await getLandingPageSettings();
+    const testimonials = await getAllTestimonials();
+
+    let aggregateRating;
+    if (testimonials.length > 0) {
+        const totalRating = testimonials.reduce((acc, t) => acc + t.rating, 0);
+        const averageRating = totalRating / testimonials.length;
+        aggregateRating = {
+            '@type': 'AggregateRating',
+            ratingValue: averageRating.toFixed(1),
+            reviewCount: testimonials.length,
+        };
+    }
+    
+    return {
+      title: `${seoSettings.platformName} ${seoSettings.titleSuffix || ''}`.trim(),
+      description: landingSettings.heroSubheadline,
+      keywords: seoSettings.metaKeywords,
+      openGraph: {
+        title: `${seoSettings.platformName} ${seoSettings.titleSuffix || ''}`.trim(),
+        description: landingSettings.heroSubheadline,
+        images: [landingSettings.heroImageUrl],
+      },
+      other: {
+        'script[type="application/ld+json"]': JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: seoSettings.platformName,
+            url: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000', 
+            logo: landingSettings.logoUrl,
+            ...(aggregateRating && { aggregateRating }),
+        }),
+      }
+    };
+  } catch (error) {
+    console.error("Failed to generate metadata:", error);
+    return {
+      title: 'CourseCentral',
+      description: 'Platform kursus online untuk masa depan Anda.',
+    };
+  }
 }
 
-function LandingPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [settings, setSettings] = useState<LandingPageSettings | null>(null);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function LandingPage() {
+  const settings = await getLandingPageSettings();
+  const allCourses = await getAllCourses();
+  const allTestimonials = await getAllTestimonials();
+  const seoSettings = await getSeoSettings();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const seoData = getSeoSettings();
-      if (seoData && seoData.platformName) {
-        document.title = `${seoData.platformName} - ${seoData.titleSuffix || ''}`;
-      }
-      const landingData = getLandingPageSettings();
-      setSettings(landingData);
+  const courses = allCourses.slice(0, 4);
+  const testimonials = allTestimonials.filter(t => settings.featuredTestimonialIds.includes(t.id));
 
-      try {
-        const allCourses = await getAllCourses();
-        setCourses(allCourses.slice(0, 4));
-      } catch (error) {
-        console.error("Gagal memuat kursus:", error);
-      }
-
-      if (landingData && landingData.featuredTestimonialIds) {
-        const allTestimonials = getAllTestimonials();
-        const featured = allTestimonials.filter(t => landingData.featuredTestimonialIds.includes(t.id));
-        setTestimonials(featured);
-      }
-
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading || !settings) {
-    return <LandingPageSkeleton />;
-  }
-
-  const { platformName } = getSeoSettings();
   const features = settings.features.map(f => ({
       ...f,
       icon: React.createElement(featureIcons[f.icon] || ShieldCheck, { className: "h-10 w-10 text-primary" })
@@ -116,11 +84,11 @@ function LandingPage() {
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
           {settings.logoUrl ? (
-            <Image src={settings.logoUrl} alt={`${platformName} logo`} width={120} height={30} className="h-7 w-auto"/>
+            <Image src={settings.logoUrl} alt={`${seoSettings.platformName} logo`} width={120} height={30} className="h-7 w-auto"/>
           ) : (
             <>
               <BookOpenCheck className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold">{platformName}</span>
+              <span className="text-xl font-bold">{seoSettings.platformName}</span>
             </>
           )}
         </Link>
@@ -136,7 +104,6 @@ function LandingPage() {
       </div>
     </header>
   );
-
 
   return (
     <div className="bg-background text-foreground">
@@ -171,7 +138,7 @@ function LandingPage() {
         <section id="features" className="py-20 md:py-28">
             <div className="container mx-auto px-4 space-y-16">
                 <div className="text-center space-y-4">
-                     <h2 className="text-3xl md:text-4xl font-bold">Mengapa Belajar Skill di {platformName}?</h2>
+                     <h2 className="text-3xl md:text-4xl font-bold">Mengapa Belajar Skill di {seoSettings.platformName}?</h2>
                      <p className="text-muted-foreground max-w-2xl mx-auto">Kami menyediakan platform pembelajaran yang tidak hanya berkualitas, tetapi juga dirancang untuk kesuksesan karir Anda melalui sertifikasi online terpercaya.</p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8">
@@ -309,11 +276,9 @@ function LandingPage() {
                 <Link href="/terms-conditions" className="text-sm hover:text-primary transition-colors">Syarat & Ketentuan</Link>
                 <Link href="/contact" className="text-sm hover:text-primary transition-colors">Kontak</Link>
              </div>
-             <p>&copy; {new Date().getFullYear()} {platformName}. {settings.footerText}</p>
+             <p>&copy; {new Date().getFullYear()} {seoSettings.platformName}. {settings.footerText}</p>
           </div>
       </footer>
     </div>
   );
 }
-
-export default LandingPage;

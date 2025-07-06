@@ -20,7 +20,7 @@ import { AiSoapFormulaGenerator } from '@/components/ai-soap-formula-generator';
 import { AiMakalahGenerator } from '@/components/ai-makalah-generator';
 import { AiGenkitAppFactory } from '@/components/ai-genkit-app-factory';
 import Link from 'next/link';
-import { getLandingPageSettings } from '@/lib/data';
+import { getLandingPageSettings } from '@/actions/settings';
 import type { AiApp } from '@/types';
 
 type AppComponent = React.FC;
@@ -61,8 +61,11 @@ function ProFeatures() {
   const [availableApps, setAvailableApps] = useState<AiApp[]>([]);
 
   useEffect(() => {
-    const settings = getLandingPageSettings();
-    setAvailableApps(settings.aiApps?.filter(app => app.enabled) || []);
+    async function fetchSettings() {
+        const settings = await getLandingPageSettings();
+        setAvailableApps(settings.aiApps?.filter(app => app.enabled) || []);
+    }
+    fetchSettings();
   }, []);
 
   const handleAppSelect = (appId: AppId) => {

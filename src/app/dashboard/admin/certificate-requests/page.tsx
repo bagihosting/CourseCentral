@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, Loader2, Sparkles, FileClock } from 'lucide-react';
-import { getCertificateRequests, PopulatedCertificateRequest, getSeoSettings, getLandingPageSettings, approveCertificateRequest } from '@/lib/data';
+import { getCertificateRequests, approveCertificateRequest, type PopulatedCertificateRequest } from '@/actions/requests';
+import { getSeoSettings, getLandingPageSettings } from '@/actions/settings';
 import { generateCertificateAction } from '@/actions/ai';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -23,20 +24,24 @@ export default function CertificateRequestsPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const refreshRequests = () => {
-    setRequests(getCertificateRequests());
+  const refreshRequests = async () => {
+    const reqs = await getCertificateRequests();
+    setRequests(reqs);
   };
 
   useEffect(() => {
-    refreshRequests();
-    setLoading(false);
+    async function fetchData() {
+        await refreshRequests();
+        setLoading(false);
+    }
+    fetchData();
   }, []);
 
   const handleApprove = async (requestId: string) => {
     setApprovingId(requestId);
     
     try {
-        const allRequests = getCertificateRequests();
+        const allRequests = await getCertificateRequests();
         const request = allRequests.find(r => r.id === requestId);
 
         if (!request) {
@@ -46,8 +51,8 @@ export default function CertificateRequestsPage() {
             throw new Error('Permintaan ini sudah diproses.');
         }
 
-        const seoSettings = getSeoSettings();
-        const landingSettings = getLandingPageSettings();
+        const seoSettings = await getSeoSettings();
+        const landingSettings = await getLandingPageSettings();
 
         const generationInput: GenerateCertificateInput = {
             participantName: request.userName,
@@ -65,13 +70,13 @@ export default function CertificateRequestsPage() {
         }
         
         const cleanHtml = DOMPurify.sanitize(generationResult.certificateHtml, { WHOLE_DOCUMENT: true });
-        approveCertificateRequest(requestId, cleanHtml);
+        await approveCertificateRequest(requestId, cleanHtml);
 
         toast({
             title: 'Sukses',
             description: 'Sertifikat telah dibuat dan disetujui. Member dapat mengunduhnya sekarang.',
         });
-        refreshRequests();
+        await refreshRequests();
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
         toast({

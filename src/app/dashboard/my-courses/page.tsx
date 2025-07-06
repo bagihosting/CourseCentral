@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { CourseCard } from '@/components/course-card';
-import { getEnrolledCoursesForUser } from '@/lib/data';
+import { getEnrolledCoursesForUser } from '@/actions/enrollments';
 import { useAuth } from '@/contexts/auth-context';
 import type { Course } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,13 +16,21 @@ export default function MyCoursesPage() {
   const { user, loading: userLoading } = useAuth();
 
   useEffect(() => {
-    if (userLoading) return; // Wait for user to be loaded
-
-    if (user) {
-      setCourses(getEnrolledCoursesForUser(user.id));
+    async function fetchEnrolledCourses() {
+      if (user) {
+        try {
+          const enrolledCourses = await getEnrolledCoursesForUser(user.id);
+          setCourses(enrolledCourses);
+        } catch (error) {
+          console.error("Failed to fetch enrolled courses:", error);
+        }
+      }
+      setLoading(false);
     }
-    setLoading(false);
     
+    if (!userLoading) {
+      fetchEnrolledCourses();
+    }
   }, [user, userLoading]);
 
   if (loading || userLoading) {

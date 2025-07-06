@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { getLandingPageSettings, getConfirmationContacts, getSeoSettings } from '@/lib/data';
+import { getLandingPageSettings, getConfirmationContacts, getSeoSettings } from '@/actions/settings';
 import type { LandingPageSettings, ConfirmationContact } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ContactPage() {
   const [settings, setSettings] = useState<LandingPageSettings | null>(null);
   const [contacts, setContacts] = useState<ConfirmationContact[]>([]);
+  const [platformName, setPlatformName] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Form state
@@ -28,10 +29,25 @@ export default function ContactPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setSettings(getLandingPageSettings());
-    setContacts(getConfirmationContacts());
-    setLoading(false);
-  }, []);
+    async function fetchData() {
+        try {
+            const [settingsData, contactsData, seoData] = await Promise.all([
+                getLandingPageSettings(),
+                getConfirmationContacts(),
+                getSeoSettings()
+            ]);
+            setSettings(settingsData);
+            setContacts(contactsData);
+            setPlatformName(seoData.platformName);
+            document.title = `Kontak - ${seoData.platformName}`;
+        } catch (error) {
+            toast({ title: "Gagal memuat data halaman", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchData();
+  }, [toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +64,6 @@ export default function ContactPage() {
     setIsSubmitting(true);
     
     const targetWhatsapp = contacts[0].whatsapp.replace(/[^0-9]/g, '');
-    const platformName = getSeoSettings().platformName || 'Scriptify';
 
     const message = `
 *Pesan Baru dari Halaman Kontak ${platformName}*
@@ -81,7 +96,7 @@ ${formMessage}
           <div className="container mx-auto flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2">
                 <BookOpenCheck className="h-7 w-7 text-primary" />
-                <span className="text-xl font-bold">Scriptify</span>
+                <span className="text-xl font-bold">{platformName || 'Memuat...'}</span>
             </Link>
             <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
                 Kembali ke Aplikasi
@@ -125,7 +140,7 @@ ${formMessage}
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <BookOpenCheck className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">Scriptify</span>
+            <span className="text-xl font-bold">{platformName}</span>
           </Link>
           <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
             Kembali ke Aplikasi

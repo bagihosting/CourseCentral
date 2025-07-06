@@ -4,8 +4,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getCertificateRequests, getCourseById } from '@/lib/data';
-import type { PopulatedCertificateRequest, Course, Lesson } from '@/types';
+import { getCourseById } from '@/actions/courses';
+import { getCertificateRequests } from '@/actions/requests';
+import type { PopulatedCertificateRequest } from '@/actions/requests';
+import type { Course, Lesson } from '@/types';
 import { CheckCircle, Package, FileText, Award, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -22,37 +24,41 @@ export default function DownloadManagementPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const approvedRequests = getCertificateRequests().filter(req => req.status === 'approved');
-        
-        const completionDetails = approvedRequests.map(req => {
-            const course = getCourseById(req.courseId);
-            let pdfCount = 0;
-            let zipCount = 0;
+        async function fetchData() {
+            const approvedRequests = (await getCertificateRequests()).filter(req => req.status === 'approved');
+            
+            const completionDetailsPromises = approvedRequests.map(async req => {
+                const course = await getCourseById(req.courseId);
+                let pdfCount = 0;
+                let zipCount = 0;
 
-            if (course) {
-                course.modules.forEach(module => {
-                    module.lessons.forEach(lesson => {
-                        if (lesson.downloadable) {
-                            if (lesson.type === 'text') pdfCount++;
-                            if (lesson.type === 'zip') zipCount++;
-                        }
+                if (course) {
+                    course.modules.forEach(module => {
+                        module.lessons.forEach(lesson => {
+                            if (lesson.downloadable) {
+                                if (lesson.type === 'text') pdfCount++;
+                                if (lesson.type === 'zip') zipCount++;
+                            }
+                        });
                     });
-                });
-            }
+                }
 
-            const parts = [];
-            if (pdfCount > 0) parts.push(`${pdfCount} PDF`);
-            if (zipCount > 0) parts.push(`${zipCount} ZIP`);
-            const downloadableText = parts.join(', ') || 'Tidak ada';
+                const parts = [];
+                if (pdfCount > 0) parts.push(`${pdfCount} PDF`);
+                if (zipCount > 0) parts.push(`${zipCount} ZIP`);
+                const downloadableText = parts.join(', ') || 'Tidak ada';
 
-            return {
-                ...req,
-                downloadableText,
-            };
-        });
+                return {
+                    ...req,
+                    downloadableText,
+                };
+            });
 
-        setCompletions(completionDetails);
-        setLoading(false);
+            const completionDetails = await Promise.all(completionDetailsPromises);
+            setCompletions(completionDetails);
+            setLoading(false);
+        }
+        fetchData();
     }, []);
 
     if (loading) {

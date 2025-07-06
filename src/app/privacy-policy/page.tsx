@@ -1,15 +1,28 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpenCheck } from 'lucide-react';
 import Link from 'next/link';
+import { getSeoSettings } from '@/actions/settings';
+import type { Metadata } from 'next';
 
-export default function PrivacyPolicyPage() {
+export async function generateMetadata(): Promise<Metadata> {
+    const seoSettings = await getSeoSettings();
+    return {
+        title: `Kebijakan Privasi - ${seoSettings.platformName}`,
+    };
+}
+
+export default async function PrivacyPolicyPage() {
+  const seoSettings = await getSeoSettings();
+  const platformName = seoSettings.platformName || 'Scriptify';
+
   return (
     <div className="bg-muted/30 min-h-screen">
       <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <BookOpenCheck className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">Scriptify</span>
+            <span className="text-xl font-bold">{platformName}</span>
           </Link>
           <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
             Kembali ke Aplikasi
@@ -23,7 +36,7 @@ export default function PrivacyPolicyPage() {
             <p className="text-sm text-muted-foreground">Terakhir diperbarui: 25 Agustus 2024</p>
           </CardHeader>
           <CardContent className="prose dark:prose-invert max-w-none">
-            <p>Selamat datang di Scriptify. Kami menghargai privasi Anda dan berkomitmen untuk melindunginya. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda.</p>
+            <p>Selamat datang di {platformName}. Kami menghargai privasi Anda dan berkomitmen untuk melindunginya. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda.</p>
 
             <h2>1. Informasi yang Kami Kumpulkan</h2>
             <p>Kami dapat mengumpulkan informasi berikut:</p>
@@ -47,8 +60,8 @@ export default function PrivacyPolicyPage() {
             <h2>3. Keamanan Data</h2>
             <p>Kami menggunakan berbagai tindakan keamanan untuk menjaga keamanan informasi pribadi Anda. Data Anda disimpan di lingkungan yang aman dan hanya dapat diakses oleh sejumlah orang terbatas yang memiliki hak akses khusus ke sistem tersebut.</p>
 
-            <h2>4. Cookie</h2>
-            <p>Situs kami tidak secara aktif menggunakan cookie untuk melacak pengguna. Kami menggunakan `localStorage` dan `sessionStorage` untuk fungsionalitas aplikasi esensial, seperti menjaga Anda tetap masuk dan menyimpan kemajuan Anda.</p>
+            <h2>4. Penyimpanan Data</h2>
+            <p>Data Anda disimpan dalam database MariaDB yang aman. Kami tidak lagi menggunakan `localStorage` untuk menyimpan data pengguna inti.</p>
 
             <h2>5. Hak Anda</h2>
             <p>Anda memiliki hak untuk mengakses, memperbaiki, atau menghapus informasi pribadi Anda. Silakan hubungi kami jika Anda ingin menggunakan hak-hak ini.</p>

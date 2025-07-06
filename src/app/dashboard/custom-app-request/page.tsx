@@ -13,7 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getPaymentSettings, getConfirmationContacts, createCustomAppRequest, getCustomAppRequestsForUser } from '@/lib/data';
+import { getPaymentSettings, getConfirmationContacts } from '@/actions/settings';
+import { createCustomAppRequest, getCustomAppRequestsForUser } from '@/actions/requests';
 import type { PaymentAccount, ConfirmationContact, GenerateAppTopologyOutput, CustomAppRequest } from '@/types';
 import { generateAppTopologyAction } from '@/actions/ai';
 import { Sparkles, Loader2, Rocket, Banknote, ChevronRight, Send, CheckCircle, Clock, Link as LinkIcon, Server } from 'lucide-react';
@@ -92,11 +93,14 @@ export default function CustomAppRequestPage() {
     const [userRequests, setUserRequests] = useState<CustomAppRequest[]>([]);
     
     useEffect(() => {
-        if(user) {
-            setPaymentAccounts(getPaymentSettings());
-            setConfirmationContacts(getConfirmationContacts());
-            setUserRequests(getCustomAppRequestsForUser(user.id));
+        async function fetchData() {
+            if(user) {
+                setPaymentAccounts(await getPaymentSettings());
+                setConfirmationContacts(await getConfirmationContacts());
+                setUserRequests(await getCustomAppRequestsForUser(user.id));
+            }
         }
+        fetchData();
     }, [user]);
 
     const handleGenerateTopology = async () => {
@@ -133,7 +137,7 @@ export default function CustomAppRequestPage() {
         
         setIsSubmitting(true);
         try {
-            createCustomAppRequest(user.id, appName, appKeywords, topology, { bankName, accountHolder });
+            await createCustomAppRequest(user.id, appName, appKeywords, topology, { bankName, accountHolder });
             
             const message = `
 *Konfirmasi Pembayaran Aplikasi Kustom*
@@ -153,7 +157,7 @@ Mohon segera diproses. Bukti transfer akan saya kirimkan setelah ini. Terima kas
             toast({ title: 'Mengarahkan ke WhatsApp', description: 'Silakan lanjutkan untuk mengirim bukti transfer.' });
             
             setPageState('submitted');
-            setUserRequests(getCustomAppRequestsForUser(user.id)); // Refresh history
+            setUserRequests(await getCustomAppRequestsForUser(user.id)); // Refresh history
             
         } catch (e: any) {
             toast({ title: 'Gagal Mengirim Permintaan', description: e.message, variant: 'destructive' });

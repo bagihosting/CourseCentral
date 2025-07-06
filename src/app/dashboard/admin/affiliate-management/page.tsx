@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, DollarSign, Loader2, ArrowRight } from 'lucide-react';
-import { getAffiliateStats, processPayout, PopulatedAffiliateStat } from '@/lib/data';
+import { getAffiliateStats, processPayout, PopulatedAffiliateStat } from '@/actions/affiliate';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -19,28 +19,32 @@ export default function AffiliateManagementPage() {
   const [processingPayoutId, setProcessingPayoutId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const refreshStats = () => {
-    setAffiliateStats(getAffiliateStats());
+  const refreshStats = async () => {
+    const stats = await getAffiliateStats();
+    setAffiliateStats(stats);
   };
 
   useEffect(() => {
-    refreshStats();
-    setLoading(false);
+    async function fetchData() {
+        await refreshStats();
+        setLoading(false);
+    }
+    fetchData();
   }, []);
 
-  const handlePayout = (userId: string, amount: number) => {
+  const handlePayout = async (userId: string, amount: number) => {
     if (amount <= 0) {
       toast({ title: 'Tidak Ada Tindakan', description: 'Tidak ada saldo terutang untuk dibayarkan.', variant: 'default' });
       return;
     }
     setProcessingPayoutId(userId);
     try {
-      processPayout(userId);
+      await processPayout(userId);
       toast({
         title: 'Sukses',
         description: `Pembayaran komisi sebesar Rp${amount.toLocaleString('id-ID')} untuk pengguna telah berhasil diproses.`,
       });
-      refreshStats(); // Refresh the list to show the new status
+      await refreshStats();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({

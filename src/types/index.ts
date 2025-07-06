@@ -1,8 +1,3 @@
-
-
-
-
-
 export type User = {
   id: string;
   name: string;
@@ -20,6 +15,9 @@ export type User = {
   affiliateBalance: number;
   affiliatePaid: number;
 };
+
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid'> & { referredBy?: string };
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid'>>;
 
 export type Course = {
   id: string;

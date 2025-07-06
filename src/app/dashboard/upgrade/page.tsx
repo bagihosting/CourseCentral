@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Banknote, CheckCircle, ChevronRight, Loader2, Sparkles, Send, Clock, BadgeCheck } from 'lucide-react';
-import { createUpgradeRequest, getUpgradeRequestByUserId, getPaymentSettings, cancelUpgradeRequest, getConfirmationContacts } from '@/lib/data';
+import { createUpgradeRequest, getUpgradeRequestByUserId, cancelUpgradeRequest } from '@/actions/requests';
+import { getPaymentSettings, getConfirmationContacts } from '@/actions/settings';
 import type { UpgradeRequest, PaymentAccount, ConfirmationContact } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,11 +44,11 @@ function UpgradeForm({ onSubmitted, contacts }: { onSubmitted: () => void; conta
         toast({ title: 'Gagal', description: 'Nomor WhatsApp Admin tidak dikonfigurasi.', variant: 'destructive' });
         return;
     }
-
+    
     setLoading(true);
 
     try {
-      createUpgradeRequest(user.id, bankName, accountHolder);
+      await createUpgradeRequest(user.id, bankName, accountHolder);
 
       const message = `
 *Konfirmasi Pembayaran Upgrade Pro*
@@ -213,35 +215,38 @@ export default function UpgradePage() {
   const [confirmationContacts, setConfirmationContacts] = useState<ConfirmationContact[]>([]);
   const { toast } = useToast();
   
-  const refreshRequestStatus = () => {
+  const refreshRequestStatus = async () => {
     if (user) {
-      const userRequest = getUpgradeRequestByUserId(user.id);
+      const userRequest = await getUpgradeRequestByUserId(user.id);
       setRequest(userRequest);
     }
   }
 
   useEffect(() => {
-    if (!userLoading) {
-      if (user) {
-        refreshRequestStatus();
-      }
-      
-      const contacts = getConfirmationContacts().map(c => ({
-          ...c,
-          whatsapp: c.whatsapp.replace(/[^0-9]/g, '')
-      }));
+    async function fetchInitialData() {
+        if (!userLoading) {
+            if (user) {
+                await refreshRequestStatus();
+            }
+            const contactsData = await getConfirmationContacts();
+            const accountsData = await getPaymentSettings();
 
-      setConfirmationContacts(contacts);
-      setPaymentAccounts(getPaymentSettings());
+            setConfirmationContacts(contactsData.map(c => ({
+                ...c,
+                whatsapp: c.whatsapp.replace(/[^0-9]/g, '')
+            })));
+            setPaymentAccounts(accountsData);
+        }
     }
+    fetchInitialData();
   }, [user, userLoading]);
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!user) return;
     try {
-        cancelUpgradeRequest(user.id);
+        await cancelUpgradeRequest(user.id);
         toast({ title: "Permintaan Dibatalkan", description: "Permintaan upgrade Anda telah berhasil dibatalkan." });
-        refreshRequestStatus();
+        await refreshRequestStatus();
     } catch(e) {
         const errorMessage = e instanceof Error ? e.message : 'Terjadi kesalahan tidak diketahui.';
         toast({ title: 'Gagal Membatalkan', description: errorMessage, variant: 'destructive'});
@@ -256,7 +261,7 @@ export default function UpgradePage() {
     'Akses awal ke fitur-fitur baru.',
   ];
 
-  if(userLoading) {
+  if(userLoading || request === null) {
     return <Skeleton className="w-full h-96" />
   }
 

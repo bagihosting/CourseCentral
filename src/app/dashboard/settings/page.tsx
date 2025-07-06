@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
@@ -11,8 +12,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import imageCompression from 'browser-image-compression';
-import type { UpdateUserInput, Testimonial } from '@/types';
-import { getCompletedCourseCount, getTestimonialByUserId, addOrUpdateTestimonial } from '@/lib/data';
+import type { UpdateUserInput } from '@/actions/users';
+import { getCompletedCourseCount } from '@/actions/enrollments';
+import { getTestimonialByUserId, addOrUpdateTestimonial } from '@/actions/settings';
+import type { Testimonial } from '@/types';
 import { getRank } from '@/lib/ranks';
 import { RankBadge } from '@/components/rank-badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,17 +30,20 @@ function TestimonialForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const existingTestimonial = getTestimonialByUserId(user.id);
-      if (existingTestimonial) {
-        setTestimonial(existingTestimonial);
-        setQuote(existingTestimonial.quote);
-        setRating(existingTestimonial.rating);
+    async function fetchTestimonial() {
+      if (user) {
+        const existingTestimonial = await getTestimonialByUserId(user.id);
+        if (existingTestimonial) {
+          setTestimonial(existingTestimonial);
+          setQuote(existingTestimonial.quote);
+          setRating(existingTestimonial.rating);
+        }
       }
     }
+    fetchTestimonial();
   }, [user]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (rating === 0) {
@@ -51,7 +57,7 @@ function TestimonialForm() {
     
     setIsSubmitting(true);
     try {
-      addOrUpdateTestimonial({ userId: user.id, quote, rating });
+      await addOrUpdateTestimonial({ userId: user.id, quote, rating });
       toast({ title: 'Terima Kasih!', description: 'Testimoni Anda telah berhasil disimpan.' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
@@ -127,14 +133,18 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (user) {
-      setName(user.name);
-      setWhatsapp(user.whatsapp || '');
-      setAvatarPreview(user.avatarUrl);
-      if (user.role === 'member' || user.role === 'pro') {
-        setCompletedCourses(getCompletedCourseCount(user.id));
-      }
+    async function fetchInitialData() {
+        if (user) {
+            setName(user.name);
+            setWhatsapp(user.whatsapp || '');
+            setAvatarPreview(user.avatarUrl);
+            if (user.role === 'member' || user.role === 'pro') {
+                const count = await getCompletedCourseCount(user.id);
+                setCompletedCourses(count);
+            }
+        }
     }
+    fetchInitialData();
   }, [user]);
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
