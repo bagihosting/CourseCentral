@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import imageCompression from 'browser-image-compression';
-import type { UpdateUserInput } from '@/actions/users';
+import type { UpdateUserInput } from '@/types';
 import { getCompletedCourseCount } from '@/actions/enrollments';
 import { getTestimonialByUserId, addOrUpdateTestimonial } from '@/actions/settings';
 import type { Testimonial } from '@/types';
@@ -20,6 +20,7 @@ import { getRank } from '@/lib/ranks';
 import { RankBadge } from '@/components/rank-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { validatePassword } from '@/lib/validation';
 
 function TestimonialForm() {
   const { user } = useAuth();
@@ -174,12 +175,6 @@ export default function SettingsPage() {
         });
         console.error(error);
     }
-  };
-
-  const validatePassword = (password: string): boolean => {
-    // Requires 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-    return passwordRegex.test(password);
   };
 
   const handleSubmit = async (e: FormEvent) => {

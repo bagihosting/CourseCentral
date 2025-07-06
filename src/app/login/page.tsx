@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ToastAction } from '@/components/ui/toast';
 import type { ConfirmationContact } from '@/types';
+import { validatePassword } from '@/lib/validation';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -104,12 +105,6 @@ function RegisterForm() {
   const [whatsapp, setWhatsapp] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
-
-  const validatePassword = (password: string): boolean => {
-    // Requires 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-    return passwordRegex.test(password);
-  };
 
   const validateWhatsapp = (number: string): boolean => {
     if (!number) return true; // It's optional, so empty is valid.
