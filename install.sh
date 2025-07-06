@@ -225,8 +225,9 @@ echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmi
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-echo_info "Menguji dan memulai ulang Nginx..."
+echo_info "Menguji, mengaktifkan, dan memulai ulang Nginx..."
 nginx -t
+systemctl enable nginx
 systemctl restart nginx
 
 # --- 9. Konfigurasi Firewall (UFW) ---
@@ -259,3 +260,5 @@ echo_info "PENTING: ARAHKAN DOMAIN ANDA KE ALAMAT IP SERVER INI."
 echo_warn "Untuk mengaktifkan HTTPS (sangat disarankan), jalankan: sudo certbot --nginx"
 echo ""
 echo_success "Deployment selesai!"
+
+    
