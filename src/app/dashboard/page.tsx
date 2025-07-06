@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllCourses, getAllUsers, getEnrolledCoursesForUser } from '@/lib/data';
+import { getAllUsers, getEnrolledCoursesForUser } from '@/lib/data';
+import { getAllCourses } from '@/actions/courses';
 import type { Course, User as UserType } from '@/types';
 import { BookOpenCheck, Users, GraduationCap, ArrowRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,18 +21,22 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (userLoading) return; // Wait for user to be available
-
-    if (user) {
-      const allCourses = getAllCourses();
-      setCourses(allCourses);
-      if (user.role === 'admin') {
-        setUsers(getAllUsers());
-      } else {
-        setEnrolledCourses(getEnrolledCoursesForUser(user.id));
-      }
+    const fetchData = async () => {
+        if (user) {
+          const allCoursesData = await getAllCourses();
+          setCourses(allCoursesData);
+          if (user.role === 'admin') {
+            setUsers(getAllUsers());
+          } else {
+            setEnrolledCourses(getEnrolledCoursesForUser(user.id));
+          }
+        }
+        setLoading(false);
+    };
+    
+    if (!userLoading) {
+      fetchData();
     }
-    setLoading(false);
   }, [user, userLoading]);
 
   const isLoading = userLoading || loading;

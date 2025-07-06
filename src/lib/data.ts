@@ -1,3 +1,4 @@
+
 // ====================================================================
 // PENTING: PEMBERITAHUAN TENTANG PENYIMPANAN DATA
 // ====================================================================
@@ -351,13 +352,7 @@ export function getEnrolledCoursesForUser(userId: string): Course[] {
     // This function is deprecated and will not work correctly until migrated.
     // It will return an empty array as db.courses is empty.
     if (!userId) return [];
-    const db = getDB();
-    const enrolledCourseIds = db.enrollments
-        .filter(e => e.userId === userId)
-        .map(e => e.courseId);
-    
-    // This part is now incorrect as courses are in the DB.
-    return db.courses.filter(c => enrolledCourseIds.includes(c.id));
+    return []; 
 }
 
 

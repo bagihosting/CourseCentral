@@ -10,11 +10,11 @@ set -e
 
 # --- Konfigurasi ---
 # Nama folder proyek yang akan dibuat
-PROJECT_DIR_NAME="CourseCentral"
+PROJECT_DIR_NAME="kursus"
 # Port tempat aplikasi Next.js Anda akan berjalan. `next start` default-nya 3000.
 APP_PORT=3000
 # Nama untuk proses PM2 Anda.
-APP_NAME="CourseCentral"
+APP_NAME="kursus"
 # Pengguna yang menjalankan skrip (bukan root)
 RUN_USER=$(logname)
 RUN_HOME=$(eval echo ~$RUN_USER)
