@@ -1,3 +1,4 @@
+
 'use server';
 
 import { pool } from '@/lib/db';
@@ -5,6 +6,8 @@ import type { UpgradeRequest, CertificateRequest, CustomAppRequest } from '@/typ
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 const AFFILIATE_COMMISSION_RATE = 20000;
+const UPGRADE_FEE = 50000;
+const INSTRUCTOR_SECOND_LEVEL_COMMISSION_RATE = 0.05;
 
 // --- Upgrade Requests ---
 export type PopulatedUpgradeRequest = UpgradeRequest & {
@@ -68,16 +71,47 @@ export async function approveUpgrade(requestId: string): Promise<void> {
         
         await connection.query('UPDATE users SET role = "pro" WHERE id = ?', [request.userId]);
 
+        // --- START: Multi-Level Commission Logic ---
         if (user.referredBy) {
-            const [referrerRows] = await connection.query<RowDataPacket[]>('SELECT id FROM users WHERE referralCode = ?', [user.referredBy]);
-            if (referrerRows.length > 0) {
-                const referrerId = referrerRows[0].id;
+            // Find the direct referrer (Level 1)
+            const [l1ReferrerRows] = await connection.query<RowDataPacket[]>(
+                'SELECT id, role, referredBy FROM users WHERE referralCode = ?', 
+                [user.referredBy]
+            );
+
+            if (l1ReferrerRows.length > 0) {
+                const l1Referrer = l1ReferrerRows[0];
+
+                // Award direct commission to Level 1 referrer
                 await connection.query(
                     'UPDATE users SET affiliateBalance = affiliateBalance + ? WHERE id = ?',
-                    [AFFILIATE_COMMISSION_RATE, referrerId]
+                    [AFFILIATE_COMMISSION_RATE, l1Referrer.id]
                 );
+
+                // Check for a Level 2 referrer
+                if (l1Referrer.referredBy) {
+                    // Find the original referrer (Level 2)
+                    const [l2ReferrerRows] = await connection.query<RowDataPacket[]>(
+                        'SELECT id, role FROM users WHERE referralCode = ?', 
+                        [l1Referrer.referredBy]
+                    );
+
+                    if (l2ReferrerRows.length > 0) {
+                        const l2Referrer = l2ReferrerRows[0];
+
+                        // Award multi-level commission ONLY if the Level 2 referrer is an instructor
+                        if (l2Referrer.role === 'instructor') {
+                            const secondLevelCommission = UPGRADE_FEE * INSTRUCTOR_SECOND_LEVEL_COMMISSION_RATE;
+                            await connection.query(
+                                'UPDATE users SET affiliateBalance = affiliateBalance + ? WHERE id = ?',
+                                [secondLevelCommission, l2Referrer.id]
+                            );
+                        }
+                    }
+                }
             }
         }
+        // --- END: Multi-Level Commission Logic ---
         
         await connection.query('UPDATE upgrade_requests SET status = "approved" WHERE id = ?', [requestId]);
 
@@ -211,3 +245,5 @@ export async function approveCustomAppRequest(requestId: string): Promise<void> 
 export async function completeCustomAppRequest(requestId: string, resultLink: string, adminNotes: string): Promise<void> {
     await pool.query(`UPDATE custom_app_requests SET status = 'completed', resultLink = ?, adminNotes = ? WHERE id = ? AND status = 'in_progress'`, [resultLink, adminNotes, requestId]);
 }
+
+    
