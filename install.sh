@@ -10,17 +10,15 @@
 set -e
 
 # --- Konfigurasi ---
-# Nama folder proyek yang akan dibuat
-PROJECT_DIR_NAME="kursus"
 # Port tempat aplikasi Next.js Anda akan berjalan. `next start` default-nya 3000.
 APP_PORT=3000
 # Nama untuk proses PM2 Anda.
-APP_NAME="kursus"
+APP_NAME="coursecentral"
 # Pengguna yang menjalankan skrip (bukan root)
 RUN_USER=$(logname)
 RUN_HOME=$(eval echo ~$RUN_USER)
-# Path lengkap ke direktori proyek
-PROJECT_DIR="$RUN_HOME/$PROJECT_DIR_NAME"
+# Lokasi proyek akan dideteksi secara otomatis dari direktori tempat skrip dijalankan.
+PROJECT_DIR=$(pwd)
 
 
 # --- Fungsi Gaya ---
@@ -46,9 +44,16 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME..."
+echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME di direktori $PROJECT_DIR..."
 
-# --- 1. Pembaruan Sistem dan Pemasangan Dependensi Awal ---
+# --- 1. Validasi Lokasi Skrip ---
+if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
+    echo_error "File 'schema.sql' tidak ditemukan."
+    echo_error "Harap jalankan skrip ini dari dalam direktori utama proyek Anda."
+    exit 1
+fi
+
+# --- 2. Pembaruan Sistem dan Pemasangan Dependensi Awal ---
 echo_info "Memperbarui paket sistem dan memasang dependensi..."
 apt-get update
 apt-get upgrade -y
@@ -56,7 +61,7 @@ apt-get upgrade -y
 apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- 2. Setup Database MariaDB ---
+# --- 3. Setup Database MariaDB ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
@@ -79,22 +84,13 @@ mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_U
 mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
 
-# --- 3. Setup Direktori Proyek ---
-echo_info "Memeriksa direktori proyek di $PROJECT_DIR..."
-
-if [ ! -d "$PROJECT_DIR" ]; then
-    echo_error "Direktori proyek '$PROJECT_DIR' tidak ditemukan."
-    echo_error "Harap unggah folder proyek Anda ke direktori tersebut sebelum menjalankan skrip ini."
-    exit 1
-fi
-
-echo_info "Direktori proyek ditemukan. Mengimpor skema database..."
-cd "$PROJECT_DIR"
-mysql -u $DB_USER -p"$DB_PASS" $DB_NAME < schema.sql
+# --- 4. Impor Skema Database ---
+echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
+mysql -u $DB_USER -p"$DB_PASS" $DB_NAME < "$PROJECT_DIR/schema.sql"
 echo_success "Skema database berhasil diimpor."
 
 
-# --- 4. Pasang Node.js & PM2 ---
+# --- 5. Pasang Node.js & PM2 ---
 echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
@@ -113,7 +109,7 @@ else
     echo_info "PM2 sudah terpasang."
 fi
 
-# --- 5. Bangun Aplikasi ---
+# --- 6. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
 chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
@@ -124,7 +120,7 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
-# --- 6. Siapkan Variabel Lingkungan (.env.local) ---
+# --- 7. Siapkan Variabel Lingkungan (.env.local) ---
 echo_info "Membuat file .env.local..."
 ENV_FILE="$PROJECT_DIR/.env.local"
 
@@ -145,7 +141,7 @@ echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini! 
 echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
 echo_warn "======================================================================="
 
-# --- 7. Mulai Aplikasi dengan PM2 ---
+# --- 8. Mulai Aplikasi dengan PM2 ---
 # Hentikan proses apa pun yang mungkin berjalan di port aplikasi
 echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
 fuser -k $APP_PORT/tcp || true
@@ -160,7 +156,7 @@ sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- sta
 echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
-# --- 8. Konfigurasi Nginx ---
+# --- 9. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -178,11 +174,15 @@ NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
-    server_name _; # Ganti _ dengan nama domain Anda saat konfigurasi SSL
-    root /var/www/html; # Root untuk verifikasi SSL/umum
+
+    # Ganti 'domainanda.com' dengan nama domain Anda yang sebenarnya
+    # Anda bisa melakukannya setelah instalasi dan setelah mengarahkan domain Anda.
+    # Untuk awal, '_' sudah cukup untuk menangkap permintaan via IP.
+    server_name _;
+    
+    root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
 
-    # Lokasi untuk aplikasi Next.js
     location / {
         proxy_pass http://localhost:$APP_PORT;
         proxy_http_version 1.1;
@@ -195,7 +195,6 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 
-    # Lokasi untuk phpMyAdmin
     location /phpmyadmin {
         alias /usr/share/phpmyadmin;
         index index.php;
@@ -214,7 +213,6 @@ server {
         }
     }
 
-    # Blokir akses ke file .htaccess yang tidak digunakan oleh Nginx
     location ~ /\.ht {
         deny all;
     }
@@ -224,19 +222,19 @@ echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmi
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
-ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+ln -sf "/etc/nginx/sites-available/$APP_NAME" "/etc/nginx/sites-enabled/"
 echo_info "Menguji, mengaktifkan, dan memulai ulang Nginx..."
 nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-# --- 9. Konfigurasi Firewall (UFW) ---
+# --- 10. Konfigurasi Firewall (UFW) ---
 echo_info "Mengkonfigurasi firewall dengan UFW..."
 ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 10. Atur PM2 untuk memulai saat boot ---
+# --- 11. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
 sudo -u $RUN_USER pm2 save
@@ -256,9 +254,9 @@ echo_info "AKSES APLIKASI:"
 echo "  - Aplikasi Next.js: http://<ALAMAT_IP_SERVER_ANDA>"
 echo "  - phpMyAdmin      : http://<ALAMAT_IP_SERVER_ANDA>/phpmyadmin"
 echo ""
-echo_info "PENTING: ARAHKAN DOMAIN ANDA KE ALAMAT IP SERVER INI."
-echo_warn "Untuk mengaktifkan HTTPS (sangat disarankan), jalankan: sudo certbot --nginx"
+echo_info "LANGKAH SELANJUTNYA:"
+echo "  1. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
+echo "  2. Arahkan nama domain Anda ke alamat IP server ini."
+echo "  3. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
 echo ""
 echo_success "Deployment selesai!"
-
-    

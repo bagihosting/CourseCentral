@@ -73,16 +73,20 @@ Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses i
 3.  **Masuk ke Server dan Ekstrak**:
     - Masuk ke server Anda melalui SSH: `ssh username@alamat_ip_server`
     - Instal `unzip` jika belum ada: `sudo apt update && sudo apt install -y unzip`
-    - Ekstrak file proyek Anda. Ini akan membuat folder bernama `kursus`:
+    - Ekstrak file proyek Anda. Nama folder hasil ekstraksi tidak penting.
       ```bash
-      unzip proyek-kursus.zip -d kursus
+      unzip proyek-kursus.zip
       ```
 
 ### Langkah 2: Jalankan Skrip Instalasi
 
 Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
 
-1.  **Masuk ke Folder Proyek**: `cd kursus`
+1.  **Masuk ke Folder Proyek**: Masuk ke folder yang baru saja Anda ekstrak.
+    ```bash
+    # Contoh: jika zip Anda bernama proyek-kursus.zip, folder hasil ekstrak mungkin bernama 'proyek-kursus'
+    cd nama-folder-hasil-ekstrak
+    ```
 2.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
 3.  **Jalankan Skrip dengan Sudo**:
     ```bash
@@ -101,15 +105,22 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
 
 1.  **Isi API Key**: Skrip akan membuat file `.env.local` di dalam folder proyek. Anda **HARUS** mengedit file ini dan memasukkan `GEMINI_API_KEY` Anda.
     ```bash
-    nano ~/kursus/.env.local
+    # Pastikan Anda masih berada di dalam folder proyek Anda
+    nano .env.local
     ```
 2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`.
-3.  **Arahkan Domain**: Arahkan nama domain Anda ke alamat IP server melalui pengaturan DNS di registrar domain Anda (ubah **A Record**).
-4.  **(Sangat Disarankan) Aktifkan SSL/HTTPS**: Setelah domain diarahkan, jalankan perintah berikut untuk mendapatkan sertifikat SSL gratis dari Let's Encrypt.
-    ```bash
-    sudo apt install certbot python3-certbot-nginx -y
-    sudo certbot --nginx
-    ```
+3.  **Arahkan Domain**: Di registrar domain Anda (misalnya Namecheap, GoDaddy), ubah **A Record** untuk domain Anda agar menunjuk ke alamat IP server.
+4.  **(Sangat Disarankan) Atur Domain di Nginx & Aktifkan SSL/HTTPS**:
+    - Edit file konfigurasi Nginx: `sudo nano /etc/nginx/sites-available/coursecentral`
+    - Ubah baris `server_name _;` menjadi `server_name domainanda.com www.domainanda.com;`. Simpan dan tutup file.
+    - Uji konfigurasi Nginx: `sudo nginx -t`
+    - Restart Nginx: `sudo systemctl restart nginx`
+    - Jalankan Certbot untuk mendapatkan sertifikat SSL gratis:
+      ```bash
+      sudo apt install certbot python3-certbot-nginx -y
+      sudo certbot --nginx
+      ```
+      Ikuti petunjuk di layar.
 
 Selesai! Aplikasi Anda kini berjalan, aman, dan dapat diakses dari domain Anda.
 
