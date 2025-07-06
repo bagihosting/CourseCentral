@@ -40,6 +40,7 @@ export type Course = {
   status: 'draft' | 'pending_review' | 'published' | 'rejected';
   authorId: string;
   reviewNotes?: string;
+  created_at: string;
   updated_at: string;
 };
 

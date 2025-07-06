@@ -70,7 +70,7 @@ export function CourseForm({ course }: CourseFormProps) {
       const courseData = { title, description, instructor: finalInstructor, price: Number(price), imageUrl, accessLevel };
       
       if (course) {
-        await updateCourse(course.id, courseData);
+        await updateCourse(course.id, courseData, user.id);
         toast({ title: 'Sukses', description: 'Kursus berhasil diperbarui.' });
         if (user.role === 'instructor') {
           router.push('/dashboard/instructor/courses');

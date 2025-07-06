@@ -48,8 +48,14 @@ export async function getAllCoursesForAdmin(): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
     return rows.map(mapRowToCourse);
-  } catch (error) {
-    console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED') {
+        const dbHost = process.env.DB_HOST || 'localhost';
+        const dbPort = process.env.DB_PORT || 3306;
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+    } else {
+        console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
+    }
     return [];
   }
 }
@@ -59,8 +65,14 @@ export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? ORDER BY created_at DESC', [authorId]);
     return rows.map(mapRowToCourse);
-  } catch (error) {
-     console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED') {
+        const dbHost = process.env.DB_HOST || 'localhost';
+        const dbPort = process.env.DB_PORT || 3306;
+        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+    } else {
+        console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
+    }
      return [];
   }
 }
@@ -81,7 +93,13 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
             instructorName: row.instructorName
         })) as CourseForReview[];
     } catch (error) {
-        console.error("🔴 Gagal mengambil kursus untuk direview:", error);
+        if (error.code === 'ECONNREFUSED') {
+            const dbHost = process.env.DB_HOST || 'localhost';
+            const dbPort = process.env.DB_PORT || 3306;
+            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
+        } else {
+            console.error("🔴 Gagal mengambil kursus untuk direview:", error);
+        }
         return [];
     }
 }
@@ -106,7 +124,7 @@ export async function getCourseById(id: string): Promise<Course | null> {
     }
 }
 
-export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'authorId' | 'reviewNotes' | 'updated_at'>, authorId: string): Promise<Course> {
+export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'authorId' | 'reviewNotes' | 'created_at' | 'updated_at'>, authorId: string): Promise<Course> {
     const newId = `course_${Date.now()}`;
     const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
     
@@ -136,24 +154,35 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
     }
 }
 
-export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>): Promise<Course> {
+export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>, actorId: string): Promise<Course> {
+    const connection = await pool.getConnection();
     try {
-        const [existingRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
-        if (existingRows.length === 0) {
-            throw new Error("Kursus tidak ditemukan untuk diperbarui.");
-        }
+        await connection.beginTransaction();
 
-        const courseToUpdate = { ...mapRowToCourse(existingRows[0]), ...data };
+        const [actorRows] = await connection.query<RowDataPacket[]>('SELECT role FROM users WHERE id = ?', [actorId]);
+        if (actorRows.length === 0) throw new Error("Aktor tidak ditemukan.");
+        const actorRole = actorRows[0].role;
+        
+        const [existingRows] = await connection.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? FOR UPDATE', [id]);
+        if (existingRows.length === 0) throw new Error("Kursus tidak ditemukan untuk diperbarui.");
+
+        let courseToUpdate = mapRowToCourse(existingRows[0]);
+        
+        if (actorRole !== 'admin' && courseToUpdate.authorId !== actorId) {
+            throw new Error("Anda tidak memiliki izin untuk mengubah kursus ini.");
+        }
+        
+        courseToUpdate = { ...courseToUpdate, ...data };
         
         const query = `
             UPDATE courses SET 
             title = ?, description = ?, instructor = ?, price = ?, image_url = ?, 
-            access_level = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, modules = ?, updated_at = NOW(),
+            access_level = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, modules = ?,
             status = ?, reviewNotes = ?
             WHERE id = ?
         `;
 
-        await pool.query(query, [
+        await connection.query(query, [
             courseToUpdate.title,
             courseToUpdate.description,
             courseToUpdate.instructor,
@@ -169,25 +198,48 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
             id
         ]);
         
+        await connection.commit();
+
         const updatedCourse = await getCourseById(id);
         if (!updatedCourse) throw new Error('Gagal mengambil kursus setelah pembaruan.');
 
         return updatedCourse;
     } catch (error) {
+        await connection.rollback();
         console.error(`🔴 Gagal memperbarui kursus dengan ID ${id}:`, error);
         throw error;
+    } finally {
+        connection.release();
     }
 }
 
-export async function deleteCourse(id: string): Promise<void> {
+export async function deleteCourse(id: string, actorId: string): Promise<void> {
+    const connection = await pool.getConnection();
     try {
-        const [result] = await pool.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
+        await connection.beginTransaction();
+
+        const [actorRows] = await connection.query<RowDataPacket[]>('SELECT role FROM users WHERE id = ?', [actorId]);
+        if (actorRows.length === 0) throw new Error("Aktor tidak ditemukan.");
+        const actorRole = actorRows[0].role;
+
+        const [courseRows] = await connection.query<RowDataPacket[]>('SELECT authorId FROM courses WHERE id = ? FOR UPDATE', [id]);
+        if (courseRows.length === 0) throw new Error("Kursus tidak ditemukan untuk dihapus.");
+
+        if(actorRole !== 'admin' && courseRows[0].authorId !== actorId) {
+            throw new Error("Anda tidak memiliki izin untuk menghapus kursus ini.");
+        }
+
+        const [result] = await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             throw new Error("Gagal menghapus kursus, ID tidak ditemukan.");
         }
+        await connection.commit();
     } catch (error) {
+        await connection.rollback();
         console.error(`🔴 Gagal menghapus kursus dengan ID ${id}:`, error);
         throw error;
+    } finally {
+        connection.release();
     }
 }
 
@@ -219,3 +271,4 @@ export async function rejectCourse(courseId: string, reviewNotes: string): Promi
         [reviewNotes, courseId]
     );
 }
+

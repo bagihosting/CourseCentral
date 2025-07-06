@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,16 +25,22 @@ import {
 import { useState } from 'react';
 import { deleteCourse } from '@/actions/courses';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
 
 export function AdminCourseActions({ courseId, onCourseDeleted }: { courseId: string; onCourseDeleted: () => void; }) {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isPending, setPending] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleDelete = async () => {
+    if (!user) {
+        toast({ title: 'Gagal', description: 'Anda harus masuk untuk melakukan tindakan ini.', variant: 'destructive'});
+        return;
+    }
     setPending(true);
     try {
-      await deleteCourse(courseId);
+      await deleteCourse(courseId, user.id);
       toast({
         title: "Sukses",
         description: "Kursus berhasil dihapus.",
