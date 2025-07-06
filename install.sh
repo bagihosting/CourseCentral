@@ -51,9 +51,36 @@ echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME..."
 echo_info "Memperbarui paket sistem dan memasang dependensi (nginx, curl)..."
 apt-get update
 apt-get upgrade -y
-apt-get install -y nginx curl build-essential
+apt-get install -y nginx curl build-essential mariadb-server
 
-# --- 2. Setup Direktori Proyek ---
+# --- 2. Setup Database MariaDB ---
+echo_info "Mengkonfigurasi database MariaDB..."
+# Jalankan skrip setup keamanan secara non-interaktif
+mysql_secure_installation <<EOF
+
+n
+Y
+gantidenganpasswordrootyangaman
+gantidenganpasswordrootyangaman
+Y
+Y
+Y
+Y
+EOF
+
+DB_NAME="coursecentral_db"
+DB_USER="coursecentral_user"
+DB_PASS="gantidenganpassworduseryangaman"
+
+# Buat database dan pengguna, pastikan idempotensi
+mysql -u root -p"gantidenganpasswordrootyangaman" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+mysql -u root -p"gantidenganpasswordrootyangaman" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+mysql -u root -p"gantidenganpasswordrootyangaman" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+mysql -u root -p"gantidenganpasswordrootyangaman" -e "FLUSH PRIVILEGES;"
+echo_success "Database dan pengguna berhasil dikonfigurasi."
+echo_warn "Harap catat password root dan pengguna yang baru dibuat."
+
+# --- 3. Setup Direktori Proyek ---
 echo_info "Memeriksa direktori proyek di $PROJECT_DIR..."
 
 if [ ! -d "$PROJECT_DIR" ]; then
@@ -62,11 +89,13 @@ if [ ! -d "$PROJECT_DIR" ]; then
     exit 1
 fi
 
-echo_info "Direktori proyek ditemukan. Melanjutkan instalasi..."
+echo_info "Direktori proyek ditemukan. Mengimpor skema database..."
 cd "$PROJECT_DIR"
+mysql -u $DB_USER -p"$DB_PASS" $DB_NAME < schema.sql
+echo_success "Skema database berhasil diimpor."
 
 
-# --- 3. Pasang Node.js & PM2 ---
+# --- 4. Pasang Node.js & PM2 ---
 echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null; then
@@ -85,7 +114,7 @@ else
     echo_info "PM2 sudah terpasang."
 fi
 
-# --- 4. Bangun Aplikasi ---
+# --- 5. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
 chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
@@ -96,23 +125,28 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
-# --- 5. Siapkan Variabel Lingkungan (.env.local) ---
-echo_info "Memeriksa file .env.local..."
+# --- 6. Siapkan Variabel Lingkungan (.env.local) ---
+echo_info "Membuat file .env.local..."
 ENV_FILE="$PROJECT_DIR/.env.local"
-if [ ! -f "$ENV_FILE" ]; then
-  touch "$ENV_FILE"
-  echo "GEMINI_API_KEY=" >> "$ENV_FILE"
-  chown $RUN_USER:$RUN_USER "$ENV_FILE"
-  echo_success "File .env.local telah dibuat."
-  echo_warn "=========================================================="
-  echo_warn "PENTING: Aplikasi Anda tidak akan berjalan tanpa API Key!"
-  echo_warn "Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda."
-  echo_warn "=========================================================="
-else
-  echo_info "File .env.local sudah ada, tidak ada perubahan."
-fi
 
-# --- 6. Mulai Aplikasi dengan PM2 ---
+# Buat file .env.local dengan kredensial yang baru dibuat
+cat > "$ENV_FILE" << EOF
+GEMINI_API_KEY="PASTE_YOUR_GEMINI_API_KEY_HERE"
+DB_HOST="127.0.0.1"
+DB_PORT="3306"
+DB_USER="$DB_USER"
+DB_PASSWORD="$DB_PASS"
+DB_NAME="$DB_NAME"
+EOF
+
+chown $RUN_USER:$RUN_USER "$ENV_FILE"
+echo_success "File .env.local telah dibuat dengan kredensial database."
+echo_warn "======================================================================="
+echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini!  "
+echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
+echo_warn "======================================================================="
+
+# --- 7. Mulai Aplikasi dengan PM2 ---
 echo_info "Memulai atau me-restart aplikasi dengan PM2..."
 # Hapus instance yang ada untuk memastikan awal yang baru
 sudo -u "$RUN_USER" pm2 delete "$APP_NAME" || true
@@ -123,11 +157,12 @@ sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- sta
 echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
-# --- 7. Konfigurasi Nginx ---
+# --- 8. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
-if [ ! -f "$NGINX_CONFIG_FILE" ]; then
-    NGINX_CONFIG="
+
+# Selalu timpa konfigurasi Nginx untuk memastikan yang terbaru
+NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
@@ -145,11 +180,8 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 }"
-    echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-    echo_info "File konfigurasi Nginx dibuat."
-else
-    echo_info "File konfigurasi Nginx sudah ada."
-fi
+echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
+echo_info "File konfigurasi Nginx dibuat/diperbarui."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
@@ -158,13 +190,13 @@ echo_info "Menguji dan memulai ulang Nginx..."
 nginx -t
 systemctl restart nginx
 
-# --- 8. Konfigurasi Firewall (UFW) ---
+# --- 9. Konfigurasi Firewall (UFW) ---
 echo_info "Mengkonfigurasi firewall dengan UFW..."
 ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 9. Atur PM2 untuk memulai saat boot ---
+# --- 10. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
 sudo -u $RUN_USER pm2 save
