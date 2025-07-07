@@ -61,7 +61,7 @@ apt-get upgrade -y
 apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- 3. Setup Database MariaDB ---
+# --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
@@ -69,34 +69,39 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# Menjalankan semua perintah keamanan dasar dalam satu sesi
-mysql -u root --batch <<-EOSQL
-  -- Set root password for the localhost user. This is the most important step.
+# Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
+# Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
+sudo mariadb --batch <<-EOSQL
+  -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
-  -- Remove anonymous users if they exist.
+  -- Menghapus pengguna anonim untuk keamanan.
   DROP USER IF EXISTS ''@'localhost';
 
-  -- Remove the test database.
+  -- Menghapus database 'test' yang tidak diperlukan.
   DROP DATABASE IF EXISTS test;
 
-  -- Make sure that all changes are applied before creating new users.
-  FLUSH PRIVILEGES;
-EOSQL
-
-# --- 4. Buat Pengguna Aplikasi & Impor Skema ---
-echo_info "Membuat pengguna aplikasi dan mengimpor skema database..."
-# Sekarang kita menggunakan root dengan kata sandi barunya untuk membuat pengguna dan db aplikasi
-mysql -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
+  -- Membuat database aplikasi jika belum ada.
   CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+  
+  -- Membuat pengguna aplikasi dengan kata sandi yang aman.
   CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+  
+  -- Memberikan semua hak kepada pengguna aplikasi untuk database mereka.
   GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+  
+  -- Memuat ulang hak istimewa untuk menerapkan semua perubahan.
   FLUSH PRIVILEGES;
 EOSQL
 
+echo_success "Database dan pengguna berhasil dikonfigurasi."
+
+# --- 4. Impor Skema Database ---
 echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
+# Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
+# Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
 mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
-echo_success "Database dan pengguna berhasil dikonfigurasi dan skema berhasil diimpor."
+echo_success "Skema database berhasil diimpor."
 
 
 # --- 5. Pasang Node.js & PM2 ---
