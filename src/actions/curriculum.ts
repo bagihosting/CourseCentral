@@ -1,6 +1,25 @@
 
 'use server';
 
+// =======================================================================================
+// CATATAN PENTING TENTANG KEAMANAN URL KONTEN
+// =======================================================================================
+//
+// Untuk pelajaran bertipe 'video', 'youtube', atau 'zip', aplikasi ini hanya menyimpan
+// sebuah URL ke konten yang di-host di tempat lain. Ini adalah praktik keamanan yang
+// sangat baik karena memisahkan tanggung jawab.
+//
+// PASTIKAN BAHWA:
+// 1.  Server hosting file Anda (tempat Anda mengunggah video atau file ZIP) memiliki
+//     pemindai malware/virus (seperti ClamAV).
+// 2.  Hanya file yang sudah terverifikasi aman yang URL-nya Anda masukkan ke dalam
+//     formulir kurikulum.
+//
+// Dengan demikian, aplikasi utama Anda tetap aman dari potensi file berbahaya.
+//
+// =======================================================================================
+
+
 import { getCourseById, updateCourse } from './courses';
 import type { Lesson, Module } from '@/types';
 import DOMPurify from 'isomorphic-dompurify';
@@ -22,7 +41,7 @@ export async function addModule(courseId: string, authorId: string): Promise<voi
         lessons: []
     };
     course.modules.push(newModule);
-    await updateCourse(courseId, { modules: course.modules });
+    await updateCourse(courseId, { modules: course.modules }, authorId);
 }
 
 export async function updateModule(courseId: string, moduleId: string, data: { title: string }, authorId: string): Promise<void> {
@@ -35,7 +54,7 @@ export async function updateModule(courseId: string, moduleId: string, data: { t
 
     course.modules[moduleIndex].title = data.title;
     course.modules.sort((a, b) => a.title.localeCompare(b.title));
-    await updateCourse(courseId, { modules: course.modules });
+    await updateCourse(courseId, { modules: course.modules }, authorId);
 }
 
 export async function deleteModule(courseId: string, moduleId: string, authorId: string): Promise<void> {
@@ -47,7 +66,7 @@ export async function deleteModule(courseId: string, moduleId: string, authorId:
     course.modules = course.modules.filter(m => m.id !== moduleId);
     if (course.modules.length === initialLength) throw new Error("Modul tidak ditemukan untuk dihapus.");
 
-    await updateCourse(courseId, { modules: course.modules });
+    await updateCourse(courseId, { modules: course.modules }, authorId);
 }
 
 export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id'>, authorId: string): Promise<void> {
@@ -151,7 +170,7 @@ export async function updateLesson(courseId: string, moduleId: string, lessonId:
     }
     module.lessons[lessonIndex] = updatedLesson;
     module.lessons.sort((a, b) => a.title.localeCompare(b.title));
-    await updateCourse(courseId, { modules: course.modules });
+    await updateCourse(courseId, { modules: course.modules }, authorId);
 }
 
 export async function deleteLesson(courseId: string, moduleId: string, lessonId: string, authorId: string): Promise<void> {
@@ -166,5 +185,5 @@ export async function deleteLesson(courseId: string, moduleId: string, lessonId:
     module.lessons = module.lessons.filter(l => l.id !== lessonId);
     if (module.lessons.length === initialLength) throw new Error("Pelajaran tidak ditemukan untuk dihapus.");
     
-    await updateCourse(courseId, { modules: course.modules });
+    await updateCourse(courseId, { modules: course.modules }, authorId);
 }

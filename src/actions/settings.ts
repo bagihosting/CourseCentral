@@ -4,6 +4,7 @@
 import { pool } from '@/lib/db';
 import type { SeoSettings, LandingPageSettings, PaymentAccount, ConfirmationContact, Testimonial, User } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import DOMPurify from 'isomorphic-dompurify';
 
 // --- Default Settings ---
 const DEFAULT_SEO_SETTINGS: SeoSettings = {
@@ -72,8 +73,23 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
 }
 
 async function updateSetting<T>(key: string, data: Partial<T>): Promise<void> {
+    // SECURITY: Sanitize user-provided HTML content before saving
+    const sanitizedData = { ...data };
+    if ('heroHeadline' in sanitizedData && typeof sanitizedData.heroHeadline === 'string') {
+        sanitizedData.heroHeadline = DOMPurify.sanitize(sanitizedData.heroHeadline);
+    }
+    if ('footerText' in sanitizedData && typeof sanitizedData.footerText === 'string') {
+        sanitizedData.footerText = DOMPurify.sanitize(sanitizedData.footerText);
+    }
+    if ('faqs' in sanitizedData && Array.isArray(sanitizedData.faqs)) {
+         sanitizedData.faqs = sanitizedData.faqs.map(faq => ({
+            ...faq,
+            answer: DOMPurify.sanitize(faq.answer)
+         }));
+    }
+
     const currentSettings = await getSetting(key, {});
-    const newSettings = { ...currentSettings, ...data };
+    const newSettings = { ...currentSettings, ...sanitizedData };
     await pool.query('REPLACE INTO settings (`key`, `value`) VALUES (?, ?)', [key, JSON.stringify(newSettings)]);
 }
 
@@ -201,11 +217,12 @@ export async function getTestimonialByUserId(userId: string): Promise<Testimonia
 
 export async function addOrUpdateTestimonial(data: { userId: string, quote: string, rating: number }): Promise<void> {
     const existing = await getTestimonialByUserId(data.userId);
+    const sanitizedQuote = DOMPurify.sanitize(data.quote);
     if (existing) {
-        await pool.query('UPDATE testimonials SET quote = ?, rating = ?, createdAt = NOW() WHERE id = ?', [data.quote, data.rating, existing.id]);
+        await pool.query('UPDATE testimonials SET quote = ?, rating = ?, createdAt = NOW() WHERE id = ?', [sanitizedQuote, data.rating, existing.id]);
     } else {
         const id = `test_${Date.now()}`;
-        await pool.query('INSERT INTO testimonials (id, userId, quote, rating) VALUES (?, ?, ?, ?)', [id, data.userId, data.quote, data.rating]);
+        await pool.query('INSERT INTO testimonials (id, userId, quote, rating) VALUES (?, ?, ?, ?)', [id, data.userId, sanitizedQuote, data.rating]);
     }
 }
 
