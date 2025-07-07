@@ -4,6 +4,7 @@ Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda
 - **Metode 0** adalah untuk menjalankan aplikasi di komputer **lokal** Anda untuk development. **Mulai dari sini jika Anda baru pertama kali menjalankan proyek.**
 - **Metode 1** adalah cara deployment langsung di server VPS menggunakan Nginx dan PM2, diotomatisasi dengan skrip.
 - **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
+- **Metode Keamanan (Sangat Direkomendasikan)** menjelaskan cara menggunakan Cloudflare untuk proteksi DDoS, anti-scraping, dan menyembunyikan IP asli server Anda.
 
 ---
 
@@ -110,20 +111,7 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     nano .env.local
     ```
 2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`.
-3.  **Arahkan Domain**: Di registrar domain Anda (misalnya Namecheap, GoDaddy), ubah **A Record** untuk domain Anda agar menunjuk ke alamat IP server.
-4.  **(Sangat Disarankan) Atur Domain di Nginx & Aktifkan SSL/HTTPS**:
-    - Edit file konfigurasi Nginx: `sudo nano /etc/nginx/sites-available/coursecentral`
-    - Ubah baris `server_name _;` menjadi `server_name domainanda.com www.domainanda.com;`. Simpan dan tutup file.
-    - Uji konfigurasi Nginx: `sudo nginx -t`
-    - Restart Nginx: `sudo systemctl restart nginx`
-    - Jalankan Certbot untuk mendapatkan sertifikat SSL gratis:
-      ```bash
-      sudo apt install certbot python3-certbot-nginx -y
-      sudo certbot --nginx
-      ```
-      Ikuti petunjuk di layar.
-
-Selesai! Aplikasi Anda kini berjalan, aman, dan dapat diakses dari domain Anda.
+3.  **Arahkan Domain & Aktifkan Keamanan**: Lanjutkan ke **Metode Keamanan Server** di bawah untuk mengarahkan domain Anda melalui Cloudflare dan mengaktifkan proteksi DDoS.
 
 ---
 
@@ -168,7 +156,7 @@ Ini adalah cara termudah dan paling andal untuk memulai. `docker-compose` akan s
     - `--build`: Memaksa Docker untuk membangun image aplikasi baru dari `Dockerfile`.
     - `-d`: Menjalankan kontainer di latar belakang (detached mode).
 
-2.  **Selesai!** Aplikasi Anda dan database MariaDB sekarang berjalan di dalam kontainer Docker. Anda bisa lanjut ke Langkah 5 untuk mengarahkan domain. Gunakan Portainer untuk memantau dan mengelola kontainer yang sudah berjalan.
+2.  **Selesai!** Aplikasi Anda dan database MariaDB sekarang berjalan di dalam kontainer Docker. Lanjutkan ke **Metode Keamanan Server** untuk mengarahkan domain dan mengaktifkan proteksi.
 
 ### Langkah 4: (Alternatif) Deploy Murni dari Portainer
 
@@ -185,39 +173,51 @@ Gunakan metode ini jika Anda lebih suka melakukan semuanya dari antarmuka web Po
     - Gulir ke bawah ke bagian "Environment variables".
     - **PENTING**: Alih-alih menambahkan variabel satu per satu, klik tombol **"Load variables from .env file"** dan unggah file `.env` yang sudah Anda isi pada Langkah 2.
 7.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan membaca file compose, membangun image, dan menjalankan kontainer aplikasi dan database Anda.
+8.  **Arahkan Domain & Aktifkan Keamanan**: Lanjutkan ke **Metode Keamanan Server** di bawah ini.
 
-### Langkah 5: Konfigurasi Reverse Proxy & Domain
+---
 
-Setelah aplikasi berjalan di Docker (di port 3000), Anda masih perlu Nginx sebagai *reverse proxy* untuk mengarahkan domain Anda ke kontainer tersebut.
+## Metode Keamanan Server (Sangat Direkomendasikan)
 
-1.  **Buat File Konfigurasi Nginx**:
-    ```bash
-    sudo nano /etc/nginx/sites-available/coursecentral
-    ```
-2.  **Tempelkan Konfigurasi Berikut**: Ganti `domainanda.com` dengan nama domain Anda.
-    ```nginx
-    server {
-        listen 80;
-        listen [::]:80;
-        
-        # Ganti dengan nama domain Anda
-        server_name domainanda.com www.domainanda.com;
+Metode ini menggunakan **Cloudflare** sebagai lapisan pelindung pertama untuk server Anda. Ini adalah praktik terbaik untuk aplikasi produksi.
 
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-    ```
-3.  **Aktifkan Konfigurasi**:
-    ```bash
-    sudo ln -s /etc/nginx/sites-available/coursecentral /etc/nginx/sites-enabled/
-    sudo nginx -t      # Uji konfigurasi
-    sudo systemctl restart nginx
-    ```
-4.  **Arahkan Domain Anda dan Aktifkan HTTPS**: Lakukan Langkah 4 dari Metode 1 untuk mengarahkan domain dan mengaktifkan SSL dengan `certbot`.
+**Keuntungan menggunakan Cloudflare (Gratis):**
+-   **Anti-DDoS**: Secara otomatis memblokir serangan DDoS yang dapat melumpuhkan server Anda.
+-   **Anti-Scraping & Bot Jahat**: Fitur "Bot Fight Mode" akan menyaring lalu lintas dari bot berbahaya.
+-   **Menyembunyikan IP Asli Server**: Pengunjung hanya akan melihat IP Cloudflare, bukan IP server VPS Anda, sehingga lebih aman dari serangan langsung.
+-   **SSL/HTTPS Gratis**: Menyediakan sertifikat SSL untuk mengenkripsi koneksi antara pengunjung dan server.
+-   **CDN (Content Delivery Network)**: Mempercepat waktu muat situs Anda di seluruh dunia.
 
-Sekarang aplikasi Anda berjalan melalui Docker dan dapat diakses dari domain Anda! Anda dapat memantau, menghentikan, atau melihat log kontainer melalui antarmuka Portainer.
+### Langkah 1: Daftar dan Tambahkan Domain Anda ke Cloudflare
+
+1.  Buat akun gratis di [cloudflare.com](https://cloudflare.com).
+2.  Klik **"Add a site"** dan masukkan nama domain Anda (contoh: `domainanda.com`). Pilih paket **Free**.
+3.  Cloudflare akan memindai DNS record Anda. Anda tidak perlu mengubah apa pun di sini, cukup klik **"Continue"**.
+4.  Cloudflare akan menampilkan dua **Nameserver**. Anda perlu mengganti nameserver lama Anda di registrar domain (tempat Anda membeli domain, seperti Namecheap, GoDaddy, dll.) dengan dua nameserver dari Cloudflare ini. Proses ini mungkin memerlukan waktu hingga 24 jam untuk aktif.
+
+### Langkah 2: Konfigurasi DNS di Cloudflare
+
+Setelah nameserver Anda aktif, kembali ke dasbor Cloudflare Anda.
+1.  Buka menu **DNS > Records**.
+2.  Klik **"Add record"** dan buat `A record`:
+    -   **Type**: `A`
+    -   **Name**: `@` (ini mewakili domain utama Anda)
+    -   **IPv4 address**: Masukkan **alamat IP server VPS Anda**.
+    -   **Proxy status**: Pastikan ikon awan berwarna **oranye** (Proxied). Ini yang mengaktifkan semua fitur keamanan Cloudflare.
+3.  (Opsional) Jika Anda ingin subdomain `www` juga berfungsi, buat `CNAME record`:
+    -   **Type**: `CNAME`
+    -   **Name**: `www`
+    -   **Target**: `@` atau `domainanda.com`
+    -   **Proxy status**: Pastikan ikon awan berwarna **oranye** (Proxied).
+
+### Langkah 3: Konfigurasi Keamanan di Cloudflare
+
+1.  Buka menu **SSL/TLS**. Di tab **Overview**, pastikan mode enkripsi Anda adalah **Full (Strict)**. Ini adalah yang paling aman.
+2.  Agar mode **Full (Strict)** berfungsi, Anda harus menginstal sertifikat SSL di server Anda.
+    -   **Jika menggunakan Metode 1 (Nginx)**: Jalankan `sudo certbot --nginx` di server Anda setelah mengarahkan domain.
+    -   **Jika menggunakan Metode 2 (Docker)**: Biasanya, Anda akan menempatkan Nginx atau reverse proxy lain (seperti Traefik) di depan Docker untuk menangani SSL. Konfigurasi Nginx dari **Metode 1** dapat diadaptasi untuk ini.
+3.  Buka menu **Security > Bots**. Aktifkan **Bot Fight Mode**. Ini akan secara otomatis memblokir banyak bot jahat.
+
+### Selesai!
+
+Sekarang, semua lalu lintas ke domain Anda akan melewati Cloudflare terlebih dahulu. Server Anda terlindungi dari DDoS, bot jahat, dan IP aslinya tersembunyi.

@@ -157,9 +157,19 @@ EOF
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
 echo_success "File .env.local telah dibuat dengan kredensial database."
 echo_warn "======================================================================="
+echo_warn "                                                                       "
+echo_warn "  ██████╗  █████╗ ███╗   ███╗████████╗██╗███╗   ██╗ ██╗  ██╗             "
+echo_warn "  ██╔══██╗██╔══██╗████╗ ████║╚══██╔══╝██║████╗  ██║ ██║  ██║             "
+echo_warn "  ██████╔╝███████║██╔████╔██║   ██║   ██║██╔██╗ ██║ ███████║             "
+echo_warn "  ██╔═══╝ ██╔══██║██║╚██╔╝██║   ██║   ██║██║╚██╗██║ ██╔══██║             "
+echo_warn "  ██║     ██║  ██║██║ ╚═╝ ██║   ██║   ██║██║ ╚████║ ██║  ██║             "
+echo_warn "  ╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═╝  ╚═╝             "
+echo_warn "                                                                       "
 echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini!  "
 echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
+echo_warn "                                                                       "
 echo_warn "======================================================================="
+
 
 # --- 8. Mulai Aplikasi dengan PM2 ---
 # Hentikan proses apa pun yang mungkin berjalan di port aplikasi
