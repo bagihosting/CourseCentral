@@ -46,31 +46,6 @@ fi
 
 echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME di direktori $PROJECT_DIR..."
 
-# --- LANGKAH BARU: Pembersihan Instalasi Lama (jika ada) ---
-echo_info "Memeriksa dan membersihkan instalasi database lama..."
-# Menggunakan '|| true' untuk mencegah skrip berhenti jika paket tidak ditemukan
-if dpkg -l | grep -qw mariadb-server; then
-    echo_warn "Instalasi MariaDB lama terdeteksi. Melakukan pembersihan..."
-    systemctl stop mariadb || true
-    apt-get purge --auto-remove -y mariadb-server mariadb-client
-    rm -rf /var/lib/mysql
-    echo_success "MariaDB lama berhasil dihapus."
-else
-    echo_info "Tidak ada instalasi MariaDB lama yang ditemukan. Melanjutkan."
-fi
-
-if dpkg -l | grep -qw phpmyadmin; then
-    echo_warn "Instalasi phpMyAdmin lama terdeteksi. Melakukan pembersihan..."
-    apt-get purge --auto-remove -y phpmyadmin
-    # Menghapus konfigurasi sisa jika ada
-    rm -f /etc/nginx/sites-available/phpmyadmin
-    rm -f /etc/nginx/sites-enabled/phpmyadmin
-    echo_success "phpMyAdmin lama berhasil dihapus."
-else
-    echo_info "Tidak ada instalasi phpMyAdmin lama yang ditemukan. Melanjutkan."
-fi
-# --- AKHIR LANGKAH BARU ---
-
 # --- 1. Validasi Lokasi Skrip ---
 if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
     echo_error "File 'schema.sql' tidak ditemukan."
@@ -82,15 +57,14 @@ fi
 echo_info "Memperbarui paket sistem dan memasang dependensi..."
 apt-get update
 apt-get upgrade -y
-# Tambahkan psmisc (untuk fuser), phpmyadmin dan dependensi php-nya
-apt-get install -y nginx curl build-essential mariadb-server psmisc \
+# Tambahkan DEBIAN_FRONTEND untuk mencegah prompt interaktif, meningkatkan keandalan.
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
 # --- [LANGKAH BARU] Perbaikan Tabel Sistem Database ---
 echo_info "Memeriksa dan memperbaiki tabel sistem MariaDB..."
 # Perintah ini sangat penting setelah upgrade dan dapat memperbaiki error 'invalid view'.
-# Jalankan dengan sudo untuk memastikan memiliki hak akses yang benar.
-sudo mariadb-upgrade
+mariadb-upgrade
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
@@ -102,7 +76,7 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-sudo mariadb --batch <<-EOSQL
+mariadb --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
@@ -140,7 +114,8 @@ echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
     echo_info "Memasang Node.js v20 LTS..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    # Menjalankan sebagai root, jadi sudo tidak diperlukan di sini
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
 else
     echo_info "Node.js v20 sudah terpasang."
