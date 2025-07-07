@@ -11,9 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Check, X, Loader2, GraduationCap } from 'lucide-react';
 import { getInstructorApplications, approveInstructorApplication, rejectInstructorApplication } from '@/actions/instructor';
 import type { InstructorApplication } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RelativeTime } from '@/components/relative-time';
 
 export default function InstructorRequestsPage() {
   const [requests, setRequests] = useState<InstructorApplication[]>([]);
@@ -113,7 +112,7 @@ export default function InstructorRequestsPage() {
                       </div>
                     </TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(req.requestDate), { addSuffix: true, locale: id })}
+                        <RelativeTime date={req.requestDate} />
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                         {processingId === req.id ? (

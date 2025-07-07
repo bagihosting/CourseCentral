@@ -9,13 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Check, X, Eye, BookOpen, User, Loader2 } from 'lucide-react';
 import { getCoursesForAdminReview, publishCourse, rejectCourse, type CourseForReview } from '@/actions/courses';
-import { formatDistanceToNow } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { RelativeTime } from '@/components/relative-time';
 
 function RejectDialog({ courseId, onFinished }: { courseId: string; onFinished: () => void }) {
     const [notes, setNotes] = useState('');
@@ -140,7 +139,7 @@ export default function CourseReviewPage() {
                     <TableCell className="font-medium">{course.title}</TableCell>
                     <TableCell>{course.instructorName}</TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(course.updated_at), { addSuffix: true, locale: id })}
+                        <RelativeTime date={course.updated_at} />
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                         <Button variant="outline" size="sm" asChild>

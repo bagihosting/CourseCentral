@@ -10,9 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, MessageSquare, Loader2 } from 'lucide-react';
 import { getUpgradeRequests, approveUpgrade, type PopulatedUpgradeRequest } from '@/actions/requests';
-import { formatDistanceToNow } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RelativeTime } from '@/components/relative-time';
 
 export default function ProRequestsPage() {
   const [requests, setRequests] = useState<PopulatedUpgradeRequest[]>([]);
@@ -119,7 +118,7 @@ export default function ProRequestsPage() {
                         <p className="text-xs text-muted-foreground">{req.bankName}</p>
                     </TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(req.requestDate), { addSuffix: true, locale: id })}
+                        <RelativeTime date={req.requestDate} />
                     </TableCell>
                     <TableCell>
                       {req.status === 'pending' ? (

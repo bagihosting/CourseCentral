@@ -10,13 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, Loader2, Rocket, Eye, Link as LinkIcon } from 'lucide-react';
 import { getCustomAppRequests, approveCustomAppRequest, completeCustomAppRequest, type PopulatedCustomAppRequest } from '@/actions/requests';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RelativeTime } from '@/components/relative-time';
 
 
 function RequestDetailsDialog({ request }: { request: PopulatedCustomAppRequest }) {
@@ -26,7 +27,7 @@ function RequestDetailsDialog({ request }: { request: PopulatedCustomAppRequest 
             <DialogHeader>
                 <DialogTitle>Detail: {request.appName}</DialogTitle>
                 <DialogDescription>
-                    Diajukan oleh {request.userName} - {formatDistanceToNow(new Date(request.requestDate), { addSuffix: true, locale: id })}
+                    Diajukan oleh {request.userName} - <RelativeTime date={request.requestDate} />
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -220,7 +221,7 @@ export default function CustomAppRequestsPage() {
                     </TableCell>
                     <TableCell>{req.appName}</TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(req.requestDate), { addSuffix: true, locale: id })}
+                        <RelativeTime date={req.requestDate} />
                     </TableCell>
                     <TableCell>
                         {getStatusBadge(req.status)}

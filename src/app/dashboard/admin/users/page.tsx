@@ -16,8 +16,9 @@ import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX, 
 import imageCompression from 'browser-image-compression';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { RelativeTime } from '@/components/relative-time';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -225,7 +226,7 @@ export default function AdminUsersPage() {
                           )}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id }) : 'Belum pernah'}
+                        <RelativeTime date={user.lastLoginAt} fallback="Belum pernah" />
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id }) : '-'}

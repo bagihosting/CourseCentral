@@ -12,11 +12,12 @@ import { User, CheckCircle, Clock, Loader2, Sparkles, FileClock } from 'lucide-r
 import { getCertificateRequests, approveCertificateRequest, type PopulatedCertificateRequest } from '@/actions/requests';
 import { getSeoSettings, getLandingPageSettings } from '@/actions/settings';
 import { generateCertificateAction } from '@/actions/ai';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GenerateCertificateInput } from '@/ai/flows/generate-certificate';
 import DOMPurify from 'isomorphic-dompurify';
+import { RelativeTime } from '@/components/relative-time';
 
 export default function CertificateRequestsPage() {
   const [requests, setRequests] = useState<PopulatedCertificateRequest[]>([]);
@@ -151,7 +152,7 @@ export default function CertificateRequestsPage() {
                     </TableCell>
                     <TableCell>{req.courseTitle}</TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(req.requestDate), { addSuffix: true, locale: id })}
+                        <RelativeTime date={req.requestDate} />
                     </TableCell>
                     <TableCell>
                       {req.status === 'pending' ? (

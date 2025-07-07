@@ -10,12 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle, Clock, Loader2, Banknote, XCircle } from 'lucide-react';
 import { getWithdrawalRequests, approveWithdrawalRequest, rejectWithdrawalRequest, PopulatedWithdrawalRequest } from '@/actions/withdrawals';
-import { format, formatDistanceToNow } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RelativeTime } from '@/components/relative-time';
 
 function RejectDialog({ requestId, onFinished }: { requestId: string; onFinished: () => void }) {
     const [notes, setNotes] = useState('');
@@ -163,7 +162,7 @@ export default function WithdrawalRequestsPage() {
                         <p className="text-xs text-muted-foreground">{req.bankName} - {req.accountNumber}</p>
                     </TableCell>
                      <TableCell>
-                        {formatDistanceToNow(new Date(req.requestDate), { addSuffix: true, locale: id })}
+                        <RelativeTime date={req.requestDate} />
                     </TableCell>
                     <TableCell>{getStatusBadge(req.status)}</TableCell>
                     <TableCell className="text-right space-x-2">
