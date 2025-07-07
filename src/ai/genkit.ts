@@ -16,6 +16,7 @@ if (apiKey) {
 
 export const ai = genkit({
   plugins,
-  // Conditionally set the default model only if the plugin is loaded
-  ...(apiKey && {model: 'googleai/gemini-2.0-flash'}),
+  // Conditionally set the default model only if the plugin is loaded.
+  // Using a 'latest' model tag is more stable for production.
+  ...(apiKey && {model: 'googleai/gemini-1.5-flash-latest'}),
 });
