@@ -13,25 +13,24 @@ interface RelativeTimeProps {
 }
 
 export function RelativeTime({ date, fallback = '...' }: RelativeTimeProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client, after the component has mounted
-    setIsMounted(true);
+    setIsClient(true);
   }, []);
 
   if (!date) {
     return <span>{fallback}</span>;
   }
 
-  // On the server, and on the initial client render, `isMounted` will be `false`.
-  // We return a static, non-relative date format to ensure consistency and prevent mismatch.
-  if (!isMounted) {
-    try {
-        return <span title={new Date(date).toISOString()}>{format(new Date(date), 'dd MMM yyyy', { locale: id })}</span>;
-    } catch (e) {
-        return <span>{fallback}</span>;
-    }
+  // To prevent hydration errors, we ensure that the initial render on the client
+  // is exactly the same as the server-rendered output. We only render the
+  // dynamic relative time after the component has safely mounted on the client.
+  if (!isClient) {
+    // Render nothing or a placeholder on the server and initial client render
+    // This guarantees no mismatch.
+    return <span title={new Date(date).toISOString()}>{fallback}</span>;
   }
 
   // After mounting on the client, we can safely render the dynamic relative time.

@@ -16,8 +16,6 @@ import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX, 
 import imageCompression from 'browser-image-compression';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { RelativeTime } from '@/components/relative-time';
 
 export default function AdminUsersPage() {
@@ -229,7 +227,7 @@ export default function AdminUsersPage() {
                         <RelativeTime date={user.lastLoginAt} fallback="Belum pernah" />
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id }) : '-'}
+                        <RelativeTime date={user.createdAt} />
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                           {user.role !== 'admin' && user.status === 'inactive' && (
@@ -278,7 +276,7 @@ export default function AdminUsersPage() {
                 <DialogTitle>{selectedUser ? `Ubah Pengguna: ${selectedUser.name}` : 'Tambah Member Baru'}</DialogTitle>
                 {selectedUser && (
                      <DialogDescription>
-                        Terdaftar: {format(new Date(selectedUser.createdAt), "dd MMMM yyyy", { locale: id })} | Total Login: {selectedUser.loginCount}
+                        Terdaftar: <RelativeTime date={selectedUser.createdAt} /> | Total Login: {selectedUser.loginCount}
                     </DialogDescription>
                 )}
             </DialogHeader>
