@@ -1,22 +1,15 @@
-import {genkit, type GenkitPlugin} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
-const plugins: GenkitPlugin[] = [];
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (apiKey) {
-  plugins.push(googleAI({apiKey}));
-} else {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn(
-      'WARNING: GEMINI_API_KEY is not set. AI features will not be available.'
-    );
-  }
-}
-
+// The googleAI() plugin will automatically look for the GEMINI_API_KEY
+// in the environment variables (e.g., from your .env.local file).
+// If the key is not found, Genkit will throw a clear error on server start,
+// which is better for debugging than failing silently.
 export const ai = genkit({
-  plugins,
-  // Conditionally set the default model only if the plugin is loaded.
-  // Using a 'latest' model tag is more stable for production.
-  ...(apiKey && {model: 'googleai/gemini-1.5-flash-latest'}),
+  plugins: [
+    googleAI(),
+  ],
+  // Set a default model to use for all AI generation calls.
+  // Using a 'latest' model tag is generally more stable for production.
+  model: 'googleai/gemini-1.5-flash-latest',
 });
