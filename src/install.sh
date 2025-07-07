@@ -70,11 +70,22 @@ DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Jalankan skrip setup keamanan secara non-interaktif
-mysql -u root -e "UPDATE mysql.user SET password=PASSWORD('$DB_ROOT_PASS') WHERE user='root';"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='';"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '127.0.0.1', '::1');"
+# Menggunakan perintah modern yang kompatibel dengan MariaDB 10.4+ untuk menghindari error 'invalid view'.
+# 1. Set root password
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
+
+# 2. Hapus pengguna anonim. Menggunakan DELETE langsung ke tabel asli `global_priv`
+# untuk menghindari masalah dengan view `mysql.user` di MariaDB versi baru.
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.global_priv WHERE User='';"
+
+# 3. Hapus akses root dari jarak jauh.
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+
+# 4. Hapus database 'test' dan hak aksesnya.
 mysql -u root -p"$DB_ROOT_PASS" -e "DROP DATABASE IF EXISTS test;"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE db='test' OR db='test\\_%';"
+mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+
+# 5. Muat ulang hak akses.
 mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
 
 # Buat database dan pengguna, pastikan idempotensi
