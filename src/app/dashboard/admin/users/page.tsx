@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
@@ -223,8 +222,12 @@ export default function AdminUsersPage() {
                              <Badge variant="destructive"><BadgeX className="mr-1 h-3 w-3" />Tidak Aktif</Badge>
                         )}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id })}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id })}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id }) : 'Belum pernah'}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id }) : '-'}
+                    </TableCell>
                     <TableCell className="text-right space-x-1">
                         {user.role !== 'admin' && user.status === 'inactive' && (
                              <Button variant="secondary" size="sm" onClick={() => handleReactivateUser(user.id)}>
@@ -322,3 +325,4 @@ export default function AdminUsersPage() {
     </>
   );
 }
+    
