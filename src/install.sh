@@ -70,29 +70,28 @@ DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Jalankan skrip setup keamanan secara non-interaktif
-# Menggunakan perintah modern yang kompatibel dengan MariaDB 10.4+ untuk menghindari error 'invalid view'.
+# Menggunakan perintah modern yang kompatibel dengan MariaDB 10.4+ dan mengandalkan autentikasi soket (sudo) untuk pengguna root.
 # 1. Set root password
 mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
 
-# 2. Hapus pengguna anonim. Menggunakan DELETE langsung ke tabel asli `global_priv`
-# untuk menghindari masalah dengan view `mysql.user` di MariaDB versi baru.
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.global_priv WHERE User='';"
+# 2. Hapus pengguna anonim.
+mysql -u root -e "DELETE FROM mysql.global_priv WHERE User='';"
 
-# 3. Hapus akses root dari jarak jauh.
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+# 3. Disallow root login remotely.
+mysql -u root -e "DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
 
 # 4. Hapus database 'test' dan hak aksesnya.
-mysql -u root -p"$DB_ROOT_PASS" -e "DROP DATABASE IF EXISTS test;"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+mysql -u root -e "DROP DATABASE IF EXISTS test;"
+mysql -u root -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
 
 # 5. Muat ulang hak akses.
-mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+mysql -u root -e "FLUSH PRIVILEGES;"
 
 # Buat database dan pengguna, pastikan idempotensi
-mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
-mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+mysql -u root -e "FLUSH PRIVILEGES;"
 echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
 
 # --- 4. Impor Skema Database ---
