@@ -1,5 +1,5 @@
---
--- MariaDB dump 10.19  Distrib 10.6.18-MariaDB, for Linux (x86_64)
+
+-- MariaDB dump 10.19  Distrib 10.6.18-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: coursecentral_db
 -- ------------------------------------------------------
@@ -17,86 +17,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `coursecentral_db`
---
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `coursecentral_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
-
-USE `coursecentral_db`;
-
---
--- Table structure for table `users`
---
-
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `users` (
-  `id` varchar(255) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `username` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` enum('admin','member','pro','instructor') NOT NULL DEFAULT 'member',
-  `avatarUrl` varchar(255) DEFAULT 'https://placehold.co/256x256.png',
-  `whatsapp` varchar(20) DEFAULT NULL,
-  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
-  `lastLoginAt` timestamp NULL DEFAULT NULL,
-  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
-  `loginCount` int(11) NOT NULL DEFAULT 0,
-  `referralCode` varchar(255) NOT NULL,
-  `referredBy` varchar(255) DEFAULT NULL,
-  `affiliateBalance` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `affiliatePaid` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `instructorStatus` enum('none','pending','approved','rejected') NOT NULL DEFAULT 'none',
-  `lessons_created_today` int(11) NOT NULL DEFAULT 0,
-  `last_lesson_created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `referralCode` (`referralCode`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `users`
---
-
-LOCK TABLES `users` WRITE;
-/*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` (`id`, `name`, `username`, `password`, `role`, `avatarUrl`, `whatsapp`, `createdAt`, `lastLoginAt`, `status`, `loginCount`, `referralCode`, `referredBy`, `affiliateBalance`, `affiliatePaid`, `instructorStatus`, `lessons_created_today`, `last_lesson_created_at`) VALUES ('admin_user_01','Admin','admin','$2a$10$wOKi.XhY3j.M1SgYqjVl.e1r.lX6Y.S7oN8q.8v9g.1B6w.J5b.6i','admin','https://placehold.co/256x256.png',NULL,'2024-08-27 06:18:24',NULL,'active',0,'ADMINREF',NULL,0.00,0.00,'none',0,NULL);
-/*!40000 ALTER TABLE `users` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `courses`
---
-
-DROP TABLE IF EXISTS `courses`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `courses` (
-  `id` varchar(255) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `instructor` varchar(255) DEFAULT NULL,
-  `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `image_url` varchar(255) DEFAULT NULL,
-  `modules` json DEFAULT NULL,
-  `access_level` enum('public','pro') NOT NULL DEFAULT 'public',
-  `seo_title` varchar(255) DEFAULT NULL,
-  `seo_description` text DEFAULT NULL,
-  `seo_keywords` text DEFAULT NULL,
-  `status` enum('draft','pending_review','published','rejected') NOT NULL DEFAULT 'draft',
-  `authorId` varchar(255) NOT NULL,
-  `reviewNotes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `authorId` (`authorId`),
-  CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `certificate_requests`
 --
 
@@ -109,7 +29,7 @@ CREATE TABLE `certificate_requests` (
   `courseId` varchar(255) NOT NULL,
   `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('pending','approved') NOT NULL DEFAULT 'pending',
-  `certificateHtml` mediumtext DEFAULT NULL,
+  `certificateHtml` text DEFAULT NULL,
   `approvedAt` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `userId` (`userId`),
@@ -129,11 +49,40 @@ DROP TABLE IF EXISTS `confirmation_contacts`;
 CREATE TABLE `confirmation_contacts` (
   `id` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `whatsapp` varchar(20) NOT NULL,
+  `whatsapp` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `courses`
+--
+
+DROP TABLE IF EXISTS `courses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `courses` (
+  `id` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `instructor` varchar(255) NOT NULL,
+  `price` decimal(10,0) NOT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `modules` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`modules`)),
+  `access_level` enum('public','pro') NOT NULL DEFAULT 'public',
+  `seo_title` varchar(255) DEFAULT NULL,
+  `seo_description` text DEFAULT NULL,
+  `seo_keywords` text DEFAULT NULL,
+  `status` enum('draft','pending_review','published','rejected') NOT NULL DEFAULT 'draft',
+  `authorId` varchar(255) NOT NULL,
+  `reviewNotes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `authorId` (`authorId`),
+  CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `custom_app_requests`
@@ -147,10 +96,10 @@ CREATE TABLE `custom_app_requests` (
   `userId` varchar(255) NOT NULL,
   `appName` varchar(255) NOT NULL,
   `appKeywords` text NOT NULL,
-  `topology` json NOT NULL,
+  `topology` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`topology`)),
   `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('pending_approval','in_progress','completed','rejected') NOT NULL DEFAULT 'pending_approval',
-  `paymentDetails` json NOT NULL,
+  `paymentDetails` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`paymentDetails`)),
   `adminNotes` text DEFAULT NULL,
   `resultLink` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -172,7 +121,7 @@ CREATE TABLE `enrollments` (
   `courseId` varchar(255) NOT NULL,
   `enrolledAt` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_course` (`userId`,`courseId`),
+  UNIQUE KEY `userId_courseId` (`userId`,`courseId`),
   KEY `courseId` (`courseId`),
   CONSTRAINT `enrollments_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `enrollments_ibfk_2` FOREIGN KEY (`courseId`) REFERENCES `courses` (`id`) ON DELETE CASCADE
@@ -228,8 +177,8 @@ CREATE TABLE `lesson_progress` (
   `lessonId` varchar(255) NOT NULL,
   `completedAt` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_lesson` (`userId`,`lessonId`),
-  CONSTRAINT `lesson_progress_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  UNIQUE KEY `userId_lessonId` (`userId`,`lessonId`),
+  KEY `userId` (`userId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -258,7 +207,7 @@ DROP TABLE IF EXISTS `settings`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `settings` (
   `key` varchar(255) NOT NULL,
-  `value` json NOT NULL,
+  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`value`)),
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -275,9 +224,9 @@ CREATE TABLE `testimonials` (
   `userId` varchar(255) NOT NULL,
   `quote` text NOT NULL,
   `rating` int(11) NOT NULL,
-  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `userId` (`userId`),
+  UNIQUE KEY `userId` (`userId`),
   CONSTRAINT `testimonials_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -303,6 +252,48 @@ CREATE TABLE `upgrade_requests` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `users`
+--
+
+DROP TABLE IF EXISTS `users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `users` (
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `whatsapp` varchar(255) DEFAULT NULL,
+  `role` enum('admin','member','pro','instructor') NOT NULL DEFAULT 'member',
+  `avatarUrl` varchar(255) DEFAULT 'https://placehold.co/256x256.png',
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `lastLoginAt` timestamp NULL DEFAULT NULL,
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `loginCount` int(11) NOT NULL DEFAULT 0,
+  `referralCode` varchar(255) NOT NULL,
+  `referredBy` varchar(255) DEFAULT NULL,
+  `affiliateBalance` decimal(10,0) NOT NULL DEFAULT 0,
+  `affiliatePaid` decimal(10,0) NOT NULL DEFAULT 0,
+  `instructorStatus` enum('none','pending','approved','rejected') NOT NULL DEFAULT 'none',
+  `lessons_created_today` int(11) DEFAULT 0,
+  `last_lesson_created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `referralCode` (`referralCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `users`
+--
+
+LOCK TABLES `users` WRITE;
+/*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES ('user_admin_default','Admin','admin','password',NULL,'admin','https://placehold.co/256x256.png','2024-08-25 00:00:00',NULL,'active',0,'ADMINREF',NULL,0,0,'none',0,NULL);
+/*!40000 ALTER TABLE `users` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `withdrawal_requests`
 --
 
@@ -312,7 +303,7 @@ DROP TABLE IF EXISTS `withdrawal_requests`;
 CREATE TABLE `withdrawal_requests` (
   `id` varchar(255) NOT NULL,
   `userId` varchar(255) NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
+  `amount` decimal(10,0) NOT NULL,
   `bankName` varchar(255) NOT NULL,
   `accountHolder` varchar(255) NOT NULL,
   `accountNumber` varchar(255) NOT NULL,
@@ -334,3 +325,5 @@ CREATE TABLE `withdrawal_requests` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2024-08-25 15:00:00

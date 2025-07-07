@@ -22,7 +22,7 @@ export type User = {
   customDomain: string | null;
 };
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'> & { referredBy?: string };
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'> & { referredBy?: string, avatarUrl?: string };
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
 
 export type Course = {
@@ -60,8 +60,10 @@ export type Lesson = {
 };
 
 export type Enrollment = {
+  id: string;
   userId: string;
   courseId: string;
+  enrolledAt: string;
 };
 
 export type UpgradeRequest = {

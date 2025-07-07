@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { User, CheckCircle, Clock, MessageSquare, Loader2 } from 'lucide-react';
 import { getUpgradeRequests, approveUpgrade, type PopulatedUpgradeRequest } from '@/actions/requests';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -16,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ProRequestsPage() {
   const [requests, setRequests] = useState<PopulatedUpgradeRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const refreshRequests = async () => {
@@ -32,6 +34,7 @@ export default function ProRequestsPage() {
   }, []);
 
   const handleApprove = async (requestId: string) => {
+    setProcessingId(requestId);
     try {
       await approveUpgrade(requestId);
       toast({
@@ -46,6 +49,8 @@ export default function ProRequestsPage() {
         description: errorMessage,
         variant: 'destructive',
       });
+    } finally {
+        setProcessingId(null);
     }
   };
   
@@ -138,8 +143,12 @@ export default function ProRequestsPage() {
                         </Button>
                       )}
                       {req.status === 'pending' && (
-                        <Button size="sm" onClick={() => handleApprove(req.id)}>
-                          Approve
+                        <Button size="sm" onClick={() => handleApprove(req.id)} disabled={processingId === req.id}>
+                          {processingId === req.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                              'Approve'
+                          )}
                         </Button>
                       )}
                     </TableCell>
