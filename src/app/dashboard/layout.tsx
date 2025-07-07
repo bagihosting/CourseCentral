@@ -43,6 +43,67 @@ import { useEffect, useState } from 'react';
 import { getSeoSettings } from '@/actions/settings';
 import { ReferredByBadge } from '@/components/referred-by-badge';
 
+// Define navigation items as constants for clarity and reliability
+const adminNavItems = [
+  { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
+  { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
+  { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
+  { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
+  { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
+  { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
+  { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
+  { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
+  { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
+  { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
+  { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Penarikan Dana' },
+  { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
+  { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
+  { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
+];
+
+const instructorNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+  { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
+  { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+  { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
+  { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
+  { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
+  { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
+  { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
+];
+
+const proNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+  { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
+  { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+  { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
+  { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
+  { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
+  { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
+];
+
+const memberNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+  { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
+  { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+  { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
+  { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
+];
+
+const defaultNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+];
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -75,69 +136,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const getNavItems = () => {
     switch (user.role) {
       case 'admin':
-        return [
-          { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
-          { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
-          { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
-          { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
-          { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
-          { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
-          { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
-          { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
-          { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
-          { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
-          { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Penarikan Dana' },
-          { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
-          { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
-          { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
-        ];
-      
+        return adminNavItems;
       case 'instructor':
-        return [
-          { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-          { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
-          { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
-          { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
-          { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
-          { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-          { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
-          { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
-          { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
-          { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
-          { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
-        ];
-      
+        return instructorNavItems;
       case 'pro':
-        return [
-          { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-          { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
-          { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
-          { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
-          { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
-          { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-          { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
-          { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
-          { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
-          { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
-        ];
-
+        return proNavItems;
       case 'member':
-        return [
-          { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-          { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
-          { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
-          { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
-          { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
-          { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-          { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' },
-          { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
-        ];
-
+        return memberNavItems;
       default:
-        return [
-          { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
-          { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
-        ];
+        return defaultNavItems;
     }
   };
 
