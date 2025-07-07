@@ -46,6 +46,31 @@ fi
 
 echo_info "Memulai proses instalasi/pembaruan untuk $APP_NAME di direktori $PROJECT_DIR..."
 
+# --- LANGKAH BARU: Pembersihan Instalasi Lama (jika ada) ---
+echo_info "Memeriksa dan membersihkan instalasi database lama..."
+# Menggunakan '|| true' untuk mencegah skrip berhenti jika paket tidak ditemukan
+if dpkg -l | grep -qw mariadb-server; then
+    echo_warn "Instalasi MariaDB lama terdeteksi. Melakukan pembersihan..."
+    systemctl stop mariadb || true
+    apt-get purge --auto-remove -y mariadb-server mariadb-client
+    rm -rf /var/lib/mysql
+    echo_success "MariaDB lama berhasil dihapus."
+else
+    echo_info "Tidak ada instalasi MariaDB lama yang ditemukan. Melanjutkan."
+fi
+
+if dpkg -l | grep -qw phpmyadmin; then
+    echo_warn "Instalasi phpMyAdmin lama terdeteksi. Melakukan pembersihan..."
+    apt-get purge --auto-remove -y phpmyadmin
+    # Menghapus konfigurasi sisa jika ada
+    rm -f /etc/nginx/sites-available/phpmyadmin
+    rm -f /etc/nginx/sites-enabled/phpmyadmin
+    echo_success "phpMyAdmin lama berhasil dihapus."
+else
+    echo_info "Tidak ada instalasi phpMyAdmin lama yang ditemukan. Melanjutkan."
+fi
+# --- AKHIR LANGKAH BARU ---
+
 # --- 1. Validasi Lokasi Skrip ---
 if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
     echo_error "File 'schema.sql' tidak ditemukan."
