@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-function WithdrawalDialog({ userBalance, onFinished }: { userBalance: number, onFinished: () => void }) {
+function WithdrawalDialog({ userBalance, userId, onFinished }: { userBalance: number; userId: string; onFinished: () => void }) {
     const [amount, setAmount] = useState(0);
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -45,7 +45,7 @@ function WithdrawalDialog({ userBalance, onFinished }: { userBalance: number, on
 
         setIsSubmitting(true);
         try {
-            await createWithdrawalRequest({ amount, bankName, accountNumber, accountHolder });
+            await createWithdrawalRequest({ amount, bankName, accountNumber, accountHolder }, userId);
             toast({ title: 'Sukses!', description: 'Permintaan penarikan Anda telah dikirim dan sedang menunggu persetujuan admin.' });
             onFinished();
         } catch (error) {
@@ -138,11 +138,19 @@ export default function AffiliatePage() {
     };
   }, [referredUsers, user]);
 
-  const isEligibleForFreePro = user?.role === 'member' && stats.successfulReferrals < 5;
-  
-  const memberSinceDays = user ? (new Date().getTime() - new Date(user.createdAt).getTime()) / (1000 * 3600 * 24) : 0;
+  const memberSinceDays = useMemo(() => {
+    if (!user?.createdAt) return 0;
+    const registrationDate = new Date(user.createdAt);
+    if (isNaN(registrationDate.getTime())) {
+      return 0; // Guard against invalid date format
+    }
+    const diffTime = Math.abs(new Date().getTime() - registrationDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [user]);
+
   const isEligibleForWithdrawal = user?.role === 'pro' || (user?.role === 'instructor' && memberSinceDays >= 40);
   const hasPendingWithdrawal = withdrawalHistory.some(req => req.status === 'pending');
+  const isEligibleForFreePro = user?.role === 'member' && stats.successfulReferrals < 5;
 
   const getStatusBadge = (status: WithdrawalRequest['status']) => {
     switch (status) {
@@ -321,7 +329,7 @@ export default function AffiliatePage() {
                     Masukkan jumlah yang ingin Anda tarik beserta detail rekening bank. Permintaan akan ditinjau oleh admin.
                 </DialogDescription>
             </DialogHeader>
-            <WithdrawalDialog userBalance={stats.balance} onFinished={() => { setWithdrawalDialogOpen(false); fetchData(); }} />
+            <WithdrawalDialog userBalance={stats.balance} userId={user.id} onFinished={() => { setWithdrawalDialogOpen(false); fetchData(); }} />
         </DialogContent>
     </Dialog>
     </>
