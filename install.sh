@@ -61,7 +61,13 @@ apt-get upgrade -y
 apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- 3. Setup Database MariaDB ---
+# --- [LANGKAH BARU] Perbaikan Tabel Sistem Database ---
+echo_info "Memeriksa dan memperbaiki tabel sistem MariaDB..."
+# Perintah ini sangat penting setelah upgrade dan dapat memperbaiki error 'invalid view'.
+# Jalankan dengan sudo untuk memastikan memiliki hak akses yang benar.
+sudo mariadb-upgrade
+
+# --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
@@ -69,24 +75,38 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# Jalankan skrip setup keamanan secara non-interaktif
-mysql -u root -e "UPDATE mysql.user SET password=PASSWORD('$DB_ROOT_PASS') WHERE user='root';"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='';"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '127.0.0.1', '::1');"
-mysql -u root -p"$DB_ROOT_PASS" -e "DROP DATABASE IF EXISTS test;"
-mysql -u root -p"$DB_ROOT_PASS" -e "DELETE FROM mysql.db WHERE db='test' OR db='test\\_%';"
-mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+# Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
+# Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
+sudo mariadb --batch <<-EOSQL
+  -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
+  ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
-# Buat database dan pengguna, pastikan idempotensi
-mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
-mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
-echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
+  -- Menghapus pengguna anonim untuk keamanan.
+  DROP USER IF EXISTS ''@'localhost';
+
+  -- Menghapus database 'test' yang tidak diperlukan.
+  DROP DATABASE IF EXISTS test;
+
+  -- Membuat database aplikasi jika belum ada.
+  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+  
+  -- Membuat pengguna aplikasi dengan kata sandi yang aman.
+  CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+  
+  -- Memberikan semua hak kepada pengguna aplikasi untuk database mereka.
+  GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+  
+  -- Memuat ulang hak istimewa untuk menerapkan semua perubahan.
+  FLUSH PRIVILEGES;
+EOSQL
+
+echo_success "Database dan pengguna berhasil dikonfigurasi."
 
 # --- 4. Impor Skema Database ---
 echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
-mysql -u $DB_USER -p"$DB_PASS" $DB_NAME < "$PROJECT_DIR/schema.sql"
+# Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
+# Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
+mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Skema database berhasil diimpor."
 
 
@@ -230,6 +250,10 @@ systemctl restart nginx
 
 # --- 10. Konfigurasi Firewall (UFW) ---
 echo_info "Mengkonfigurasi firewall dengan UFW..."
+# Aturan keamanan dasar: tolak semua koneksi masuk secara default, izinkan semua keluar.
+ufw default deny incoming
+ufw default allow outgoing
+# Izinkan koneksi yang diperlukan.
 ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
@@ -258,5 +282,6 @@ echo_info "LANGKAH SELANJUTNYA:"
 echo "  1. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
 echo "  2. Arahkan nama domain Anda ke alamat IP server ini."
 echo "  3. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
+echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
