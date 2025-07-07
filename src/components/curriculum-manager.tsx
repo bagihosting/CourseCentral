@@ -54,7 +54,6 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const handleGenerateTitle = async () => {
     setIsGenerating(true);
@@ -72,7 +71,6 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     if (title.length < 3) {
       setError('Judul modul minimal 3 karakter.');
       return;
@@ -82,11 +80,11 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
     try {
       if (module) {
-        await updateModule(course.id, module.id, { title }, user.id);
+        await updateModule(course.id, module.id, { title });
         toast({ title: 'Sukses', description: 'Modul berhasil diperbarui.'});
       } else {
-        await addModule(course.id, user.id);
-        toast({ title: 'Sukses', description: 'Modul berhasil ditambahkan.'});
+        await addModule(course.id);
+        toast({ title: 'Sukses', description: 'Modul baru berhasil ditambahkan.'});
       }
       onFinished();
     } catch(e) {
@@ -122,7 +120,6 @@ function ModuleForm({ course, module, onFinished }: { course: Course, module?: M
 
 // --- Lesson Form ---
 function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, moduleId: string, lesson?: Lesson, onFinished: () => void }) {
-    const { user } = useAuth();
     const [title, setTitle] = useState(lesson?.title || '');
     const [type, setType] = useState<Lesson['type']>(lesson?.type || 'text');
     const [contentUrl, setContentUrl] = useState(lesson?.contentUrl || '');
@@ -220,7 +217,7 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
   
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if(!validate() || !user) {
+        if(!validate()) {
             toast({ title: 'Gagal', description: 'Harap periksa kembali isian Anda.', variant: 'destructive' });
             return
         };
@@ -234,10 +231,10 @@ function LessonForm({ course, moduleId, lesson, onFinished }: { course: Course, 
             };
 
             if(lesson) {
-                await updateLesson(course.id, moduleId, lesson.id, lessonData, user.id);
+                await updateLesson(course.id, moduleId, lesson.id, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil diperbarui.'});
             } else {
-                await addLesson(course.id, moduleId, lessonData, user.id);
+                await addLesson(course.id, moduleId, lessonData);
                 toast({ title: 'Sukses', description: 'Pelajaran berhasil ditambahkan.'});
             }
             onFinished();
@@ -416,7 +413,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const handleDeleteModule = async (moduleId: string) => {
     setOptimisticModules({action: 'delete_module', moduleId});
     try {
-        await deleteModule(course.id, moduleId, user.id);
+        await deleteModule(course.id, moduleId);
         toast({ title: "Sukses", description: "Modul berhasil dihapus." });
         onUpdate();
     } catch(e) {
@@ -429,7 +426,7 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
   const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
     setOptimisticModules({action: 'delete_lesson', moduleId, lessonId});
      try {
-        await deleteLesson(course.id, moduleId, lessonId, user.id);
+        await deleteLesson(course.id, moduleId, lessonId);
         toast({ title: "Sukses", description: "Pelajaran berhasil dihapus." });
         onUpdate();
     } catch(e) {
@@ -541,7 +538,6 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
         )}
       </CardContent>
 
-      {/* Module Dialog */}
       <Dialog open={isModuleDialogOpen} onOpenChange={setModuleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -552,7 +548,6 @@ export function CurriculumManager({ course, onUpdate }: { course: Course; onUpda
         </DialogContent>
       </Dialog>
       
-      {/* Lesson Dialog */}
       <Dialog open={isLessonDialogOpen} onOpenChange={setLessonDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>

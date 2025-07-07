@@ -1,25 +1,6 @@
 
 'use server';
 
-// =======================================================================================
-// CATATAN PENTING TENTANG KEAMANAN URL KONTEN
-// =======================================================================================
-//
-// Untuk pelajaran bertipe 'video', 'youtube', atau 'zip', aplikasi ini hanya menyimpan
-// sebuah URL ke konten yang di-host di tempat lain. Ini adalah praktik keamanan yang
-// sangat baik karena memisahkan tanggung jawab.
-//
-// PASTIKAN BAHWA:
-// 1.  Server hosting file Anda (tempat Anda mengunggah video atau file ZIP) memiliki
-//     pemindai malware/virus (seperti ClamAV).
-// 2.  Hanya file yang sudah terverifikasi aman yang URL-nya Anda masukkan ke dalam
-//     formulir kurikulum.
-//
-// Dengan demikian, aplikasi utama Anda tetap aman dari potensi file berbahaya.
-//
-// =======================================================================================
-
-
 import { getCourseById, updateCourse } from './courses';
 import type { Lesson, Module } from '@/types';
 import DOMPurify from 'isomorphic-dompurify';
@@ -78,7 +59,6 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
     await connection.beginTransaction();
 
     try {
-        // 1. Get user and course info
         const author = await getAuthUser(connection);
         const [userRows] = await connection.query<RowDataPacket[]>('SELECT role, lessons_created_today, last_lesson_created_at FROM users WHERE id = ? FOR UPDATE', [author.id]);
         if (userRows.length === 0) throw new Error("Pengajar tidak ditemukan.");
@@ -86,13 +66,12 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
 
         const [courseRows] = await connection.query<RowDataPacket[]>("SELECT * FROM courses WHERE id = ? FOR UPDATE", [courseId]);
         if(courseRows.length === 0) throw new Error("Kursus tidak ditemukan.");
-        const course = JSON.parse(JSON.stringify(courseRows[0])); // Simple deep copy to avoid mutation issues
+        const course = JSON.parse(JSON.stringify(courseRows[0]));
         course.modules = JSON.parse(course.modules || '[]');
 
 
         if (course.authorId !== author.id && author.role !== 'admin') throw new Error("Anda tidak berhak menambah pelajaran ke kursus ini.");
 
-        // 2. Check permissions and limits
         if (user.role !== 'admin' && user.role !== 'instructor') {
             throw new Error("Hanya pengajar atau admin yang bisa menambah pelajaran.");
         }
@@ -103,7 +82,7 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
             
             let lessonsToday = user.lessons_created_today;
             if (lastCreationDate !== today) {
-                lessonsToday = 0; // Reset counter if it's a new day
+                lessonsToday = 0;
             }
             
             if (lessonsToday >= INSTRUCTOR_DAILY_LESSON_LIMIT) {
@@ -111,7 +90,6 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
             }
         }
 
-        // 3. Prepare and add the lesson
         if (data.type === 'text' && data.content) {
             data.content = DOMPurify.sanitize(data.content);
         }
@@ -128,7 +106,6 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
             [JSON.stringify(course.modules), courseId]
         );
 
-        // 4. Update instructor stats and handle commission
         if (user.role === 'instructor') {
             await connection.query(
                 "UPDATE users SET lessons_created_today = IF(DATE(last_lesson_created_at) = CURDATE(), lessons_created_today + 1, 1), last_lesson_created_at = NOW() WHERE id = ?",

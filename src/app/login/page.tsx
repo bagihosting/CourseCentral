@@ -44,8 +44,7 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(username, password);
-      toast({ title: 'Selamat Datang!', description: 'Anda berhasil masuk.'});
-      // The context will handle redirection
+      // No need to show toast on success, redirection is enough
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       if (errorMessage === 'ACCOUNT_INACTIVE') {
@@ -70,7 +69,8 @@ function LoginForm() {
       } else {
         toast({ title: 'Gagal Masuk', description: errorMessage, variant: 'destructive'});
       }
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -107,8 +107,7 @@ function RegisterForm() {
   const [agreed, setAgreed] = useState(false);
 
   const validateWhatsapp = (number: string): boolean => {
-    if (!number) return true; // It's optional, so empty is valid.
-    // Starts with 08, followed by 8-11 digits. Total length 10-13.
+    if (!number) return true; 
     const whatsappRegex = /^08[1-9][0-9]{7,10}$/;
     return whatsappRegex.test(number);
   }
@@ -148,12 +147,13 @@ function RegisterForm() {
     setLoading(true);
     try {
       await registerUser({ name, username, password, whatsapp, referredBy: refCode || undefined });
-      toast({ title: 'Pendaftaran Berhasil!', description: 'Anda sekarang dapat masuk dengan akun baru Anda.' });
-       await login(username, password);
+      toast({ title: 'Pendaftaran Berhasil!', description: 'Anda akan dialihkan ke dasbor.' });
+      await login(username, password);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       toast({ title: 'Gagal Daftar', description: errorMessage, variant: 'destructive' });
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 

@@ -65,12 +65,11 @@ export function CourseForm({ course }: CourseFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Use user's name as instructor if the field is empty
       const finalInstructor = instructor.trim() === '' ? user.name : instructor;
       const courseData = { title, description, instructor: finalInstructor, price: Number(price), imageUrl, accessLevel };
       
       if (course) {
-        await updateCourse(course.id, courseData, user.id);
+        await updateCourse(course.id, courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil diperbarui.' });
         if (user.role === 'instructor') {
           router.push('/dashboard/instructor/courses');
@@ -78,7 +77,7 @@ export function CourseForm({ course }: CourseFormProps) {
           router.push('/dashboard/admin/courses');
         }
       } else {
-        const newCourse = await createCourse(courseData, user.id);
+        const newCourse = await createCourse(courseData);
         toast({ title: 'Sukses', description: 'Kursus berhasil dibuat.' });
         router.push(`/dashboard/courses/${newCourse.id}/edit`);
       }
@@ -117,7 +116,7 @@ export function CourseForm({ course }: CourseFormProps) {
             const imageFile = dataURItoFile(result.imageUrl, 'thumbnail.png');
             
             const options = {
-                maxSizeMB: 0.2, // Target kompresi 200KB
+                maxSizeMB: 0.2,
                 maxWidthOrHeight: 800,
                 useWebWorker: true,
                 fileType: 'image/jpeg',
@@ -135,7 +134,7 @@ export function CourseForm({ course }: CourseFormProps) {
 
         } catch (compressionError) {
             console.error("Compression Error:", compressionError);
-            setImageUrl(result.imageUrl); // Fallback ke gambar asli jika kompresi gagal
+            setImageUrl(result.imageUrl);
             setIsGeneratingThumbnail(false);
             toast({ title: 'Sukses', description: 'Thumbnail berhasil dibuat, namun gagal dikompres.', variant: 'default' });
         }

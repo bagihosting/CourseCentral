@@ -93,7 +93,7 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
         return rows.map(row => ({
             ...mapRowToCourse(row),
             instructorName: row.instructorName
-        })) as CourseForReview[];
+        })) as CourseForReview;
     } catch (error) {
         if (error.code === 'ECONNREFUSED') {
             const dbHost = process.env.DB_HOST || 'localhost';
@@ -127,9 +127,12 @@ export async function getCourseById(id: string): Promise<Course | null> {
 }
 
 export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'reviewNotes' | 'created_at' | 'updated_at' | 'authorId'>): Promise<Course> {
-    const newId = `course_${Date.now()}`;
     const author = await getAuthUser();
+    if (author.role !== 'admin' && author.role !== 'instructor') {
+        throw new Error("Hanya admin atau pengajar yang dapat membuat kursus.");
+    }
     
+    const newId = `course_${Date.now()}`;
     const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
     
     try {
@@ -174,7 +177,6 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
             throw new Error("Anda tidak memiliki izin untuk mengubah kursus ini.");
         }
         
-        // Merge updates
         const updatedData = { ...courseToUpdate, ...data };
         
         const query = `
@@ -225,7 +227,6 @@ export async function deleteCourse(id: string): Promise<void> {
 
         const [courseRows] = await connection.query<RowDataPacket[]>('SELECT authorId FROM courses WHERE id = ? FOR UPDATE', [id]);
         if (courseRows.length === 0) {
-             // If not found, commit and return silently to avoid client errors on double-deletes
             await connection.commit();
             return;
         }
@@ -234,7 +235,7 @@ export async function deleteCourse(id: string): Promise<void> {
             throw new Error("Anda tidak memiliki izin untuk menghapus kursus ini.");
         }
 
-        const [result] = await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
+        await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
         
         await connection.commit();
     } catch (error) {
@@ -255,7 +256,7 @@ export async function submitCourseForReview(courseId: string): Promise<void> {
         [courseId, actor.id]
     );
     if (result.affectedRows === 0) {
-        throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft.");
+        throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft atau ditolak.");
     }
 }
 
