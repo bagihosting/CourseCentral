@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -211,7 +211,15 @@ function RegisterForm() {
 }
 
 function AuthPageContent() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [platformName, setPlatformName] = useState('Aplikasi Kursus');
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -227,6 +235,14 @@ function AuthPageContent() {
     }
     fetchSettings();
   }, []);
+
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

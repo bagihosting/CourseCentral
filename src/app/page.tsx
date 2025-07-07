@@ -9,10 +9,11 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { getLandingPageSettings, getAllTestimonials, getSeoSettings } from '@/actions/settings';
 import { getAllCourses } from '@/actions/courses';
 import type { Course, Testimonial } from '@/types';
-import { BookOpenCheck, ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Clock, Users, Star } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Metadata } from 'next';
+import { LandingHeader } from '@/components/landing-header';
 
 const featureIcons: { [key: string]: React.ElementType } = {
   ShieldCheck,
@@ -80,35 +81,9 @@ export default async function LandingPage() {
       icon: React.createElement(featureIcons[f.icon] || ShieldCheck, { className: "h-10 w-10 text-primary" })
   }));
 
-  const Header = () => (
-    <header className="py-4 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2">
-          {settings.logoUrl ? (
-            <Image src={settings.logoUrl} alt={`${seoSettings.platformName} logo`} width={120} height={30} className="h-7 w-auto"/>
-          ) : (
-            <>
-              <BookOpenCheck className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold">{seoSettings.platformName}</span>
-            </>
-          )}
-        </Link>
-        <nav className="hidden md:flex gap-6 items-center">
-          <Link href="#courses" className="text-sm font-medium hover:text-primary transition-colors">Kursus</Link>
-          <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Fitur</Link>
-          <Link href="#testimonials" className="text-sm font-medium hover:text-primary transition-colors">Testimoni</Link>
-          <Link href="#faq" className="text-sm font-medium hover:text-primary transition-colors">FAQ</Link>
-        </nav>
-        <Button asChild>
-          <Link href="/login">Masuk / Daftar</Link>
-        </Button>
-      </div>
-    </header>
-  );
-
   return (
     <div className="bg-background text-foreground">
-      <Header />
+      <LandingHeader logoUrl={settings.logoUrl} platformName={seoSettings.platformName} />
       <main>
         {/* Hero Section */}
         <section className="py-20 md:py-32 bg-muted/30">
