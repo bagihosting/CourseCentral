@@ -48,6 +48,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [platformName, setPlatformName] = useState('Aplikasi Saya');
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [loading, user, router]);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const settings = await getSeoSettings();
+      if (settings && settings.platformName) {
+          setPlatformName(settings.platformName);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // --- Navigation Items Definitions ---
   const baseNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
     { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
@@ -76,69 +101,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
   ];
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [loading, user, router]);
-
-  useEffect(() => {
-    async function fetchSettings() {
-      const settings = await getSeoSettings();
-      if (settings && settings.platformName) {
-          setPlatformName(settings.platformName);
-      }
-    }
-    fetchSettings();
-  }, []);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
   const getNavItems = () => {
-    const navItems = [...baseNavItems];
-
-    // Admin has a completely separate navigation
-    if (user.role === 'admin') {
-      return [...baseNavItems, ...adminNavItems];
-    }
-
-    // Common items for all non-admin users
-    navItems.push(
-      { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
-      { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
-      { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' }
-    );
-
-    // Role-specific additions
-    if (user.role === 'member') {
-      navItems.push({ href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' });
-    }
-
-    if (user.role === 'pro' || user.role === 'instructor') {
-      navItems.push(
+    const myContentItems = [
+        { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+        { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+    ];
+    const affiliateItem = { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' };
+    const settingsItem = { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' };
+    const proMenuItems = [
         { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
-        { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' }
-      );
+        { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
+    ];
+
+    switch (user.role) {
+        case 'admin':
+            return [...baseNavItems, ...adminNavItems];
+        
+        case 'instructor':
+            return [...baseNavItems, ...myContentItems, affiliateItem, ...proMenuItems, ...instructorNavItems, settingsItem];
+        
+        case 'pro':
+            const becomeInstructorItem = { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' };
+            return [...baseNavItems, ...myContentItems, affiliateItem, ...proMenuItems, becomeInstructorItem, settingsItem];
+
+        case 'member':
+            const upgradeItem = { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' };
+            return [...baseNavItems, ...myContentItems, affiliateItem, upgradeItem, settingsItem];
+
+        default:
+            return baseNavItems;
     }
-
-    if (user.role === 'pro') {
-      navItems.push({ href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' });
-    }
-
-    if (user.role === 'instructor') {
-      navItems.push(...instructorNavItems);
-    }
-
-    // Settings for all non-admin users
-    navItems.push({ href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' });
-
-    return navItems;
   };
 
   const navItems = getNavItems();
