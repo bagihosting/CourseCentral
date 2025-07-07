@@ -54,17 +54,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
   ];
 
-  const memberNavItems = [
-    { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
-    { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
-    { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-    { href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro', roles: ['member'] },
-    { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar', roles: ['pro'] },
-    { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi', roles: ['pro', 'admin'] },
-    { href: '/dashboard/downloads', icon: Download, label: 'Unduhan', roles: ['pro', 'admin'] },
-    { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
-  ];
-
   const instructorNavItems = [
      { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
      { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
@@ -112,15 +101,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   
   const getNavItems = () => {
-      let items = [...baseNavItems];
-      if (user.role === 'admin') {
-          items = [...items, ...adminNavItems];
-      } else if (user.role === 'instructor') {
-          items = [...items, ...instructorNavItems, ...memberNavItems];
-      } else {
-          items = [...items, ...memberNavItems];
-      }
-      return items.filter(item => !item.roles || item.roles.includes(user.role));
+    const navItems = [...baseNavItems];
+
+    // Admin has a completely separate navigation
+    if (user.role === 'admin') {
+      return [...baseNavItems, ...adminNavItems];
+    }
+
+    // Common items for all non-admin users
+    navItems.push(
+      { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+      { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+      { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' }
+    );
+
+    // Role-specific additions
+    if (user.role === 'member') {
+      navItems.push({ href: '/dashboard/upgrade', icon: Sparkles, label: 'Upgrade ke Pro' });
+    }
+
+    if (user.role === 'pro' || user.role === 'instructor') {
+      navItems.push(
+        { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
+        { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' }
+      );
+    }
+
+    if (user.role === 'pro') {
+      navItems.push({ href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' });
+    }
+
+    if (user.role === 'instructor') {
+      navItems.push(...instructorNavItems);
+    }
+
+    // Settings for all non-admin users
+    navItems.push({ href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' });
+
+    return navItems;
   };
 
   const navItems = getNavItems();
@@ -139,7 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.label}>
+              <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild type="button" tooltip={item.label}>
                   <Link href={item.href}>
                     <item.icon />
