@@ -12,7 +12,7 @@ interface CourseCardProps {
 
 export function CourseCard({ course }: CourseCardProps) {
   return (
-    <Link href={`/dashboard/courses/${course.id}`}>
+    <Link href={`/courses/${course.id}`}>
       <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
         <CardHeader className="p-0">
           <div className="aspect-video relative">

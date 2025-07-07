@@ -23,9 +23,11 @@ const featureIcons: { [key: string]: React.ElementType } = {
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const seoSettings = await getSeoSettings();
-    const landingSettings = await getLandingPageSettings();
-    const testimonials = await getAllTestimonials();
+    const [seoSettings, landingSettings, testimonials] = await Promise.all([
+        getSeoSettings(),
+        getLandingPageSettings(),
+        getAllTestimonials(),
+    ]);
 
     let aggregateRating;
     if (testimonials.length > 0) {
@@ -37,14 +39,17 @@ export async function generateMetadata(): Promise<Metadata> {
             reviewCount: testimonials.length,
         };
     }
+
+    const title = `${seoSettings.platformName} ${seoSettings.titleSuffix || ''}`.trim();
+    const description = seoSettings.metaDescription;
     
     return {
-      title: `${seoSettings.platformName} ${seoSettings.titleSuffix || ''}`.trim(),
-      description: landingSettings.heroSubheadline,
+      title: title,
+      description: description,
       keywords: seoSettings.metaKeywords,
       openGraph: {
-        title: `${seoSettings.platformName} ${seoSettings.titleSuffix || ''}`.trim(),
-        description: landingSettings.heroSubheadline,
+        title: title,
+        description: description,
         images: [landingSettings.heroImageUrl],
       },
       other: {
