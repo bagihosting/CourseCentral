@@ -210,7 +210,7 @@ function RequestStatus({ request, onCancel }: { request: UpgradeRequest, onCance
 
 export default function UpgradePage() {
   const { user, loading: userLoading } = useAuth();
-  const [request, setRequest] = useState<UpgradeRequest | undefined | null>(null);
+  const [request, setRequest] = useState<UpgradeRequest | null | undefined>(undefined);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [confirmationContacts, setConfirmationContacts] = useState<ConfirmationContact[]>([]);
   const { toast } = useToast();
@@ -261,7 +261,7 @@ export default function UpgradePage() {
     'Akses awal ke fitur-fitur baru.',
   ];
 
-  if(userLoading || request === null) {
+  if(userLoading || request === undefined) {
     return <Skeleton className="w-full h-96" />
   }
 
