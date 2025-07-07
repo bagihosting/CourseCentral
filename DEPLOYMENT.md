@@ -1,3 +1,4 @@
+
 Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda.
 
 - **Metode 0** adalah untuk menjalankan aplikasi di komputer **lokal** Anda untuk development. **Mulai dari sini jika Anda baru pertama kali menjalankan proyek.**
@@ -19,7 +20,7 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
 1. Buka `phpMyAdmin` dari panel kontrol XAMPP/Laragon Anda.
 2. Buat database baru dengan nama `coursecentral_db`. Pastikan collation diatur ke `utf8mb4_unicode_ci`.
 3. Setelah database dibuat, klik tab "SQL" atau "Import".
-4. Buka file `schema.sql` dari folder proyek Anda, salin seluruh isinya, dan tempelkan ke dalam kotak teks SQL, lalu jalankan. Ini akan membuat semua tabel yang diperlukan beserta data admin default.
+4. Buka file `schema.sql` dari folder proyek Anda, salin seluruh isinya, dan tempelkan ke dalam kotak teks SQL, lalu jalankan. Ini akan membuat semua tabel yang diperlukan beserta data admin default. **Username dan password default untuk admin adalah `admin` dan `password`.**
 
 ### Langkah 2: Konfigurasi File Environment
 1. Di folder utama proyek, buat salinan dari file `.env.example` dan ganti namanya menjadi `.env.local`.
