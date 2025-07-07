@@ -111,7 +111,10 @@ export default function AffiliatePage() {
         ]);
         setReferredUsers(users);
         setWithdrawalHistory(withdrawals);
-        setReferralLink(`${window.location.origin}/login?ref=${user.referralCode}`);
+        
+        // Use custom domain for referral link if it exists
+        const origin = user.customDomain ? `https://${user.customDomain}` : window.location.origin;
+        setReferralLink(`${origin}/login?ref=${user.referralCode}`);
     }
     setLoading(false);
   };
