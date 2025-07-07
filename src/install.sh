@@ -69,38 +69,34 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# Menjalankan semua perintah keamanan dan setup dalam satu sesi tunggal
-# untuk menghindari masalah otentikasi setelah kata sandi root diubah.
+# Menjalankan semua perintah keamanan dasar dalam satu sesi
 mysql -u root --batch <<-EOSQL
-  -- Set root password
+  -- Set root password for the localhost user. This is the most important step.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
-  -- Hapus pengguna anonim.
-  DELETE FROM mysql.global_priv WHERE User='';
-  
-  -- Jangan izinkan root login dari jarak jauh.
-  DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-  
-  -- Hapus database 'test' dan hak aksesnya.
-  DROP DATABASE IF EXISTS test;
-  DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-  
-  -- Buat database dan pengguna aplikasi
-  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
-  CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-  GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+  -- Remove anonymous users if they exist.
+  DROP USER IF EXISTS ''@'localhost';
 
-  -- Muat ulang hak akses untuk menerapkan semua perubahan
+  -- Remove the test database.
+  DROP DATABASE IF EXISTS test;
+
+  -- Make sure that all changes are applied before creating new users.
   FLUSH PRIVILEGES;
 EOSQL
 
-echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
+# --- 4. Buat Pengguna Aplikasi & Impor Skema ---
+echo_info "Membuat pengguna aplikasi dan mengimpor skema database..."
+# Sekarang kita menggunakan root dengan kata sandi barunya untuk membuat pengguna dan db aplikasi
+mysql -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
+  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+  CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+  GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+  FLUSH PRIVILEGES;
+EOSQL
 
-# --- 4. Impor Skema Database ---
 echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
-# Sekarang kita menggunakan pengguna dan kata sandi yang baru dibuat untuk mengimpor skema
 mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
-echo_success "Skema database berhasil diimpor."
+echo_success "Database dan pengguna berhasil dikonfigurasi dan skema berhasil diimpor."
 
 
 # --- 5. Pasang Node.js & PM2 ---
@@ -212,7 +208,7 @@ server {
         alias /usr/share/phpmyadmin;
         index index.php;
         
-        location ~ ^/phpmyadmin(.+\\\.php)$ {
+        location ~ ^/phpmyadmin(.+\.php)$ {
             try_files \$uri =404;
             root /usr/share/;
             fastcgi_pass unix:$PHP_SOCKET_PATH;
@@ -221,12 +217,12 @@ server {
             include fastcgi_params;
         }
 
-        location ~* ^/phpmyadmin(.+\\.(jpg|jpeg|gif|css|js))$ {
+        location ~* ^/phpmyadmin(.+\.(jpg|jpeg|gif|css|js))$ {
             root /usr/share/;
         }
     }
 
-    location ~ /\\.ht {
+    location ~ /\.ht {
         deny all;
     }
 }"
