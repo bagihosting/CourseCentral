@@ -4,6 +4,7 @@
 import { pool } from '@/lib/db';
 import type { Course } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { getAuthUser } from './utils';
 
 function mapRowToCourse(row: any): Course {
     if (!row) return row;
@@ -22,6 +23,7 @@ function mapRowToCourse(row: any): Course {
         status: row.status,
         authorId: row.authorId,
         reviewNotes: row.reviewNotes,
+        created_at: row.created_at,
         updated_at: row.updated_at,
     };
 }
@@ -124,8 +126,10 @@ export async function getCourseById(id: string): Promise<Course | null> {
     }
 }
 
-export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'authorId' | 'reviewNotes' | 'created_at' | 'updated_at'>, authorId: string): Promise<Course> {
+export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'reviewNotes' | 'created_at' | 'updated_at' | 'authorId'>): Promise<Course> {
     const newId = `course_${Date.now()}`;
+    const author = await getAuthUser();
+    
     const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
     
     try {
@@ -141,7 +145,7 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
             data.seoDescription || '',
             data.seoKeywords || '',
             '[]', // Start with empty modules
-            authorId
+            author.id
         ]);
         
         const createdCourse = await getCourseById(newId);
@@ -154,25 +158,24 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
     }
 }
 
-export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>, actorId: string): Promise<Course> {
+export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>): Promise<Course> {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
-        const [actorRows] = await connection.query<RowDataPacket[]>('SELECT role FROM users WHERE id = ?', [actorId]);
-        if (actorRows.length === 0) throw new Error("Aktor tidak ditemukan.");
-        const actorRole = actorRows[0].role;
+        const actor = await getAuthUser(connection);
         
         const [existingRows] = await connection.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? FOR UPDATE', [id]);
         if (existingRows.length === 0) throw new Error("Kursus tidak ditemukan untuk diperbarui.");
 
         let courseToUpdate = mapRowToCourse(existingRows[0]);
         
-        if (actorRole !== 'admin' && courseToUpdate.authorId !== actorId) {
+        if (actor.role !== 'admin' && courseToUpdate.authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk mengubah kursus ini.");
         }
         
-        courseToUpdate = { ...courseToUpdate, ...data };
+        // Merge updates
+        const updatedData = { ...courseToUpdate, ...data };
         
         const query = `
             UPDATE courses SET 
@@ -183,18 +186,18 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
         `;
 
         await connection.query(query, [
-            courseToUpdate.title,
-            courseToUpdate.description,
-            courseToUpdate.instructor,
-            courseToUpdate.price,
-            courseToUpdate.imageUrl,
-            courseToUpdate.accessLevel,
-            courseToUpdate.seoTitle,
-            courseToUpdate.seoDescription,
-            courseToUpdate.seoKeywords,
-            JSON.stringify(courseToUpdate.modules || []),
-            courseToUpdate.status,
-            courseToUpdate.reviewNotes,
+            updatedData.title,
+            updatedData.description,
+            updatedData.instructor,
+            updatedData.price,
+            updatedData.imageUrl,
+            updatedData.accessLevel,
+            updatedData.seoTitle,
+            updatedData.seoDescription,
+            updatedData.seoKeywords,
+            JSON.stringify(updatedData.modules || []),
+            updatedData.status,
+            updatedData.reviewNotes,
             id
         ]);
         
@@ -213,26 +216,26 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
     }
 }
 
-export async function deleteCourse(id: string, actorId: string): Promise<void> {
+export async function deleteCourse(id: string): Promise<void> {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
-        const [actorRows] = await connection.query<RowDataPacket[]>('SELECT role FROM users WHERE id = ?', [actorId]);
-        if (actorRows.length === 0) throw new Error("Aktor tidak ditemukan.");
-        const actorRole = actorRows[0].role;
+        const actor = await getAuthUser(connection);
 
         const [courseRows] = await connection.query<RowDataPacket[]>('SELECT authorId FROM courses WHERE id = ? FOR UPDATE', [id]);
-        if (courseRows.length === 0) throw new Error("Kursus tidak ditemukan untuk dihapus.");
+        if (courseRows.length === 0) {
+             // If not found, commit and return silently to avoid client errors on double-deletes
+            await connection.commit();
+            return;
+        }
 
-        if(actorRole !== 'admin' && courseRows[0].authorId !== actorId) {
+        if(actor.role !== 'admin' && courseRows[0].authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk menghapus kursus ini.");
         }
 
         const [result] = await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            throw new Error("Gagal menghapus kursus, ID tidak ditemukan.");
-        }
+        
         await connection.commit();
     } catch (error) {
         await connection.rollback();
@@ -245,10 +248,11 @@ export async function deleteCourse(id: string, actorId: string): Promise<void> {
 
 // --- Course Status Management ---
 
-export async function submitCourseForReview(courseId: string, authorId: string): Promise<void> {
+export async function submitCourseForReview(courseId: string): Promise<void> {
+    const actor = await getAuthUser();
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND status IN ('draft', 'rejected')",
-        [courseId, authorId]
+        [courseId, actor.id]
     );
     if (result.affectedRows === 0) {
         throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft.");
@@ -256,6 +260,9 @@ export async function submitCourseForReview(courseId: string, authorId: string):
 }
 
 export async function publishCourse(courseId: string): Promise<void> {
+    const actor = await getAuthUser();
+    if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat mempublikasikan kursus.");
+    
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'published' WHERE id = ? AND status = 'pending_review'",
         [courseId]
@@ -266,9 +273,11 @@ export async function publishCourse(courseId: string): Promise<void> {
 }
 
 export async function rejectCourse(courseId: string, reviewNotes: string): Promise<void> {
+    const actor = await getAuthUser();
+    if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat menolak kursus.");
+
     await pool.query(
         "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review'",
         [reviewNotes, courseId]
     );
 }
-

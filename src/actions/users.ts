@@ -7,6 +7,7 @@ import { getUserById } from '@/actions/auth';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { getAuthUser } from './utils';
 
 function generateReferralCode(length = 8) {
   return crypto.randomBytes(Math.ceil(length / 2))
@@ -112,9 +113,15 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
 }
 
 export async function deleteUser(id: string): Promise<void> {
+    const actor = await getAuthUser();
+    if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa menghapus pengguna.");
+    if(actor.id === id) throw new Error("Anda tidak bisa menghapus akun Anda sendiri.");
+    
     await pool.query('DELETE FROM users WHERE id = ?', [id]);
 }
 
 export async function reactivateUser(id: string): Promise<void> {
+    const actor = await getAuthUser();
+    if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa mengaktifkan pengguna.");
     await pool.query('UPDATE users SET status = "active" WHERE id = ?', [id]);
 }

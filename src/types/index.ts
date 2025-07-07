@@ -4,7 +4,7 @@ export type User = {
   id: string;
   name: string;
   username: string;
-  password: string;
+  password?: string; // Should be optional on client, required on server
   role: 'admin' | 'member' | 'pro' | 'instructor';
   avatarUrl: string;
   whatsapp?: string;
@@ -13,7 +13,7 @@ export type User = {
   status: 'active' | 'inactive';
   loginCount: number;
   referralCode: string;
-  referredBy?: string;
+  referredBy?: string | null;
   affiliateBalance: number;
   affiliatePaid: number;
   instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
@@ -22,7 +22,9 @@ export type User = {
   customDomain: string | null;
 };
 
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'> & { referredBy?: string, avatarUrl?: string };
+// For registering a new user, password is required
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
+// For updating, all fields are optional
 export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
 
 export type Course = {

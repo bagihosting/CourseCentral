@@ -4,6 +4,7 @@
 import { pool } from '@/lib/db';
 import type { UpgradeRequest, CertificateRequest, CustomAppRequest } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { getAuthUser } from './utils';
 
 const AFFILIATE_COMMISSION_RATE = 20000;
 const UPGRADE_FEE = 50000;
@@ -63,7 +64,7 @@ export async function approveUpgrade(requestId: string): Promise<void> {
         if (userRows.length === 0) throw new Error('Pengguna tidak ditemukan.');
 
         const user = userRows[0];
-        if (user.role === 'pro' || user.role === 'admin') {
+        if (user.role === 'pro' || user.role === 'admin' || user.role === 'instructor') {
             await connection.query('UPDATE upgrade_requests SET status = "approved" WHERE id = ?', [requestId]);
             await connection.commit();
             return;
@@ -185,19 +186,29 @@ export async function approveCertificateRequest(requestId: string, certificateHt
 }
 
 export async function awardCertificateToUser(userId: string, courseId: string, certificateHtml: string): Promise<void> {
-    const [existing] = await pool.query<RowDataPacket[]>('SELECT id FROM certificate_requests WHERE userId = ? AND courseId = ?', [userId, courseId]);
-    if (existing.length > 0) {
-        const requestId = existing[0].id;
-         await pool.query(
-            'UPDATE certificate_requests SET status = "approved", certificateHtml = ?, approvedAt = NOW() WHERE id = ?',
-            [certificateHtml, requestId]
-        );
-    } else {
-        const requestId = `certreq_${Date.now()}`;
-        await pool.query(
-            'INSERT INTO certificate_requests (id, userId, courseId, requestDate, status, certificateHtml, approvedAt) VALUES (?, ?, ?, NOW(), "approved", ?, NOW())',
-            [requestId, userId, courseId, certificateHtml]
-        );
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    try {
+        const [existing] = await connection.query<RowDataPacket[]>('SELECT id FROM certificate_requests WHERE userId = ? AND courseId = ?', [userId, courseId]);
+        if (existing.length > 0) {
+            const requestId = existing[0].id;
+            await connection.query(
+                'UPDATE certificate_requests SET status = "approved", certificateHtml = ?, approvedAt = NOW() WHERE id = ?',
+                [certificateHtml, requestId]
+            );
+        } else {
+            const requestId = `certreq_${Date.now()}`;
+            await connection.query(
+                'INSERT INTO certificate_requests (id, userId, courseId, requestDate, status, certificateHtml, approvedAt) VALUES (?, ?, ?, NOW(), "approved", ?, NOW())',
+                [requestId, userId, courseId, certificateHtml]
+            );
+        }
+        await connection.commit();
+    } catch(e) {
+        await connection.rollback();
+        throw e;
+    } finally {
+        connection.release();
     }
 }
 
@@ -239,11 +250,13 @@ export async function getCustomAppRequestsForUser(userId: string): Promise<Custo
 }
 
 export async function approveCustomAppRequest(requestId: string): Promise<void> {
+    const actor = await getAuthUser();
+    if (actor.role !== 'admin') throw new Error("Hanya admin yang dapat menyetujui permintaan.");
     await pool.query(`UPDATE custom_app_requests SET status = 'in_progress' WHERE id = ? AND status = 'pending_approval'`, [requestId]);
 }
 
 export async function completeCustomAppRequest(requestId: string, resultLink: string, adminNotes: string): Promise<void> {
+     const actor = await getAuthUser();
+    if (actor.role !== 'admin') throw new Error("Hanya admin yang dapat menyelesaikan permintaan.");
     await pool.query(`UPDATE custom_app_requests SET status = 'completed', resultLink = ?, adminNotes = ? WHERE id = ? AND status = 'in_progress'`, [resultLink, adminNotes, requestId]);
 }
-
-    

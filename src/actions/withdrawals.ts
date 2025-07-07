@@ -24,10 +24,14 @@ export async function createWithdrawalRequest(data: WithdrawalInput, userId: str
         
         // --- 1. Validate Eligibility ---
         const memberSinceDays = (new Date().getTime() - new Date(user.createdAt).getTime()) / (1000 * 3600 * 24);
-        const isEligible = user.role === 'pro' || user.role === 'admin' || (user.role === 'instructor' && memberSinceDays >= MIN_INSTRUCTOR_AGE_DAYS);
+        const isEligible = user.role === 'pro' || user.role === 'admin' || user.role === 'instructor';
         
         if (!isEligible) {
-            throw new Error(`Anda tidak memenuhi syarat. Anda harus menjadi member Pro atau menjadi Pengajar selama lebih dari ${MIN_INSTRUCTOR_AGE_DAYS} hari.`);
+            throw new Error(`Anda tidak memenuhi syarat.`);
+        }
+        
+        if (user.role === 'instructor' && memberSinceDays < MIN_INSTRUCTOR_AGE_DAYS) {
+            throw new Error(`Anda harus menjadi Pengajar selama minimal ${MIN_INSTRUCTOR_AGE_DAYS} hari untuk dapat melakukan penarikan dana.`);
         }
 
         // --- 2. CRITICAL: Server-Side Balance Validation ---

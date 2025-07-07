@@ -168,7 +168,7 @@ function RegisterForm() {
         <Input id="register-username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="johndoe" required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="register-whatsapp">Nomor WhatsApp</Label>
+        <Label htmlFor="register-whatsapp">Nomor WhatsApp (Opsional)</Label>
         <Input id="register-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" />
         <p className="text-xs text-muted-foreground">
             Hanya nomor provider Indonesia yang diizinkan (diawali dengan 08).

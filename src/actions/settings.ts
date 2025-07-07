@@ -82,7 +82,7 @@ async function updateSetting<T>(key: string, data: Partial<T>): Promise<void> {
         sanitizedData.footerText = DOMPurify.sanitize(sanitizedData.footerText);
     }
     if ('faqs' in sanitizedData && Array.isArray(sanitizedData.faqs)) {
-         sanitizedData.faqs = sanitizedData.faqs.map(faq => ({
+         sanitizedData.faqs = (sanitizedData.faqs as any[]).map(faq => ({
             ...faq,
             answer: DOMPurify.sanitize(faq.answer)
          }));

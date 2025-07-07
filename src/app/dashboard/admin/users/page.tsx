@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
@@ -11,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAllUsers, updateUser, registerUser, deleteUser, reactivateUser } from '@/actions/users';
 import type { UpdateUserInput, RegisterUserInput, User as UserType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX, Link as LinkIcon } from 'lucide-react';
+import { User, Pencil, Loader2, Camera, PlusCircle, Trash2, BadgeCheck, BadgeX, Link as LinkIcon, ShieldAlert } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -109,7 +110,7 @@ export default function AdminUsersPage() {
         if (!username || password.trim() === '') {
           throw new Error('Nama pengguna dan kata sandi wajib diisi untuk anggota baru.');
         }
-        const createData: RegisterUserInput & { avatarUrl?: string } = { name, username, password, whatsapp, avatarUrl: avatarPreview };
+        const createData: RegisterUserInput = { name, password, username, whatsapp, avatarUrl: avatarPreview };
         await registerUser(createData);
         toast({ title: 'Sukses', description: `Anggota baru ${name} berhasil ditambahkan.` });
       }
@@ -184,86 +185,88 @@ export default function AdminUsersPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama Pengguna</TableHead>
-                  <TableHead className="hidden md:table-cell">Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Login Terakhir</TableHead>
-                  <TableHead className="hidden lg:table-cell">Terdaftar</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className={user.status === 'inactive' ? 'bg-muted/30' : ''}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatarUrl} alt={user.name} />
-                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p>{user.name}</p>
-                            <Badge variant="secondary" className="font-normal capitalize">{user.role}</Badge>
-                            {user.role === 'instructor' && user.customDomain && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                <LinkIcon className="h-3 w-3" />
-                                <span>{user.customDomain}</span>
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                        {user.status === 'active' ? (
-                            <Badge variant="outline" className="border-green-600 text-green-700"><BadgeCheck className="mr-1 h-3 w-3" />Aktif</Badge>
-                        ) : (
-                             <Badge variant="destructive"><BadgeX className="mr-1 h-3 w-3" />Tidak Aktif</Badge>
-                        )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id }) : 'Belum pernah'}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id }) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right space-x-1">
-                        {user.role !== 'admin' && user.status === 'inactive' && (
-                             <Button variant="secondary" size="sm" onClick={() => handleReactivateUser(user.id)}>
-                                Re-aktivasi
-                            </Button>
-                        )}
-                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)}>
-                          <Pencil className="h-3 w-3 mr-2" />
-                          Ubah
-                        </Button>
-                       {user.role !== 'admin' && (
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="icon" className="h-8 w-8">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Hapus Member Ini?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Tindakan ini akan menghapus member secara permanen, termasuk semua data terkait seperti pendaftaran kursus dan testimoni.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Ya, Hapus</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                       )}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Pengguna</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">Login Terakhir</TableHead>
+                    <TableHead className="hidden lg:table-cell">Terdaftar</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className={user.status === 'inactive' ? 'bg-muted/30' : ''}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatarUrl} alt={user.name} />
+                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                          </Avatar>
+                          <div>
+                              <p>{user.name}</p>
+                              <Badge variant="secondary" className="font-normal capitalize">{user.role}</Badge>
+                              {user.role === 'instructor' && user.customDomain && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                  <LinkIcon className="h-3 w-3" />
+                                  <span>{user.customDomain}</span>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                          {user.status === 'active' ? (
+                              <Badge variant="outline" className="border-green-600 text-green-700"><BadgeCheck className="mr-1 h-3 w-3" />Aktif</Badge>
+                          ) : (
+                              <Badge variant="destructive"><BadgeX className="mr-1 h-3 w-3" />Tidak Aktif</Badge>
+                          )}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {user.lastLoginAt ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true, locale: id }) : 'Belum pernah'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: id }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                          {user.role !== 'admin' && user.status === 'inactive' && (
+                              <Button variant="secondary" size="sm" onClick={() => handleReactivateUser(user.id)}>
+                                  Re-aktivasi
+                              </Button>
+                          )}
+                        <Button variant="outline" size="sm" onClick={() => handleOpenDialog(user)}>
+                            <Pencil className="h-3 w-3 mr-2" />
+                            Ubah
+                          </Button>
+                        {user.role !== 'admin' && (
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="icon" className="h-8 w-8">
+                                      <Trash2 className="h-4 w-4" />
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Hapus Member Ini?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Tindakan ini akan menghapus member secara permanen, termasuk semua data terkait seperti pendaftaran kursus dan testimoni.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Ya, Hapus</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -325,4 +328,3 @@ export default function AdminUsersPage() {
     </>
   );
 }
-    

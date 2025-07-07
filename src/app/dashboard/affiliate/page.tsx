@@ -42,6 +42,10 @@ function WithdrawalDialog({ userBalance, userId, onFinished }: { userBalance: nu
             toast({ title: 'Gagal', description: 'Jumlah penarikan melebihi saldo Anda.', variant: 'destructive' });
             return;
         }
+        if (!userId) {
+             toast({ title: 'Gagal', description: 'ID Pengguna tidak ditemukan. Silakan muat ulang halaman.', variant: 'destructive' });
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -112,8 +116,8 @@ export default function AffiliatePage() {
         setReferredUsers(users);
         setWithdrawalHistory(withdrawals);
         
-        // Use custom domain for referral link if it exists
-        const origin = user.customDomain ? `https://${user.customDomain}` : window.location.origin;
+        // Use custom domain for referral link if it exists and it's set
+        const origin = user.customDomain ? `https://${user.customDomain}` : (typeof window !== 'undefined' ? window.location.origin : '');
         setReferralLink(`${origin}/login?ref=${user.referralCode}`);
     }
     setLoading(false);
@@ -132,7 +136,7 @@ export default function AffiliatePage() {
   };
   
   const stats = useMemo(() => {
-    const successfulReferrals = referredUsers.filter(u => u.role === 'pro').length;
+    const successfulReferrals = referredUsers.filter(u => u.role === 'pro' || u.role === 'instructor' || u.role === 'admin').length;
     return {
       totalReferrals: referredUsers.length,
       successfulReferrals,
@@ -142,16 +146,15 @@ export default function AffiliatePage() {
   }, [referredUsers, user]);
 
   const memberSinceDays = useMemo(() => {
-    if (!user?.createdAt) return 0;
-    const registrationDate = new Date(user.createdAt);
-    if (isNaN(registrationDate.getTime())) {
+    if (!user?.createdAt || isNaN(new Date(user.createdAt).getTime())) {
       return 0; // Guard against invalid date format
     }
+    const registrationDate = new Date(user.createdAt);
     const diffTime = Math.abs(new Date().getTime() - registrationDate.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, [user]);
 
-  const isEligibleForWithdrawal = user?.role === 'pro' || (user?.role === 'instructor' && memberSinceDays >= 40);
+  const isEligibleForWithdrawal = user?.role === 'pro' || user?.role === 'admin' || (user?.role === 'instructor' && memberSinceDays >= 40);
   const hasPendingWithdrawal = withdrawalHistory.some(req => req.status === 'pending');
   const isEligibleForFreePro = user?.role === 'member' && stats.successfulReferrals < 5;
 
