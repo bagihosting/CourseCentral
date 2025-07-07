@@ -69,34 +69,37 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# Jalankan skrip setup keamanan secara non-interaktif
-# Menggunakan perintah modern yang kompatibel dengan MariaDB 10.4+ dan mengandalkan autentikasi soket (sudo) untuk pengguna root.
-# 1. Set root password
-mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
+# Menjalankan semua perintah keamanan dan setup dalam satu sesi tunggal
+# untuk menghindari masalah otentikasi setelah kata sandi root diubah.
+mysql -u root --batch <<-EOSQL
+  -- Set root password
+  ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
-# 2. Hapus pengguna anonim.
-mysql -u root -e "DELETE FROM mysql.global_priv WHERE User='';"
+  -- Hapus pengguna anonim.
+  DELETE FROM mysql.global_priv WHERE User='';
+  
+  -- Jangan izinkan root login dari jarak jauh.
+  DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+  
+  -- Hapus database 'test' dan hak aksesnya.
+  DROP DATABASE IF EXISTS test;
+  DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+  
+  -- Buat database dan pengguna aplikasi
+  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+  CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+  GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
 
-# 3. Disallow root login remotely.
-mysql -u root -e "DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+  -- Muat ulang hak akses untuk menerapkan semua perubahan
+  FLUSH PRIVILEGES;
+EOSQL
 
-# 4. Hapus database 'test' dan hak aksesnya.
-mysql -u root -e "DROP DATABASE IF EXISTS test;"
-mysql -u root -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
-
-# 5. Muat ulang hak akses.
-mysql -u root -e "FLUSH PRIVILEGES;"
-
-# Buat database dan pengguna, pastikan idempotensi
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
-mysql -u root -e "FLUSH PRIVILEGES;"
 echo_success "Database dan pengguna berhasil dikonfigurasi dengan password acak."
 
 # --- 4. Impor Skema Database ---
 echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
-mysql -u $DB_USER -p"$DB_PASS" $DB_NAME < "$PROJECT_DIR/schema.sql"
+# Sekarang kita menggunakan pengguna dan kata sandi yang baru dibuat untuk mengimpor skema
+mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Skema database berhasil diimpor."
 
 
@@ -209,7 +212,7 @@ server {
         alias /usr/share/phpmyadmin;
         index index.php;
         
-        location ~ ^/phpmyadmin(.+\.php)$ {
+        location ~ ^/phpmyadmin(.+\\\.php)$ {
             try_files \$uri =404;
             root /usr/share/;
             fastcgi_pass unix:$PHP_SOCKET_PATH;
@@ -218,12 +221,12 @@ server {
             include fastcgi_params;
         }
 
-        location ~* ^/phpmyadmin(.+\.(jpg|jpeg|gif|css|js))$ {
+        location ~* ^/phpmyadmin(.+\\.(jpg|jpeg|gif|css|js))$ {
             root /usr/share/;
         }
     }
 
-    location ~ /\.ht {
+    location ~ /\\.ht {
         deny all;
     }
 }"
