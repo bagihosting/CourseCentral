@@ -47,6 +47,7 @@ import { ReferredByBadge } from '@/components/referred-by-badge';
 const adminNavItems = [
   { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
   { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
+  { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
   { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
   { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
   { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
