@@ -35,15 +35,9 @@ export async function getAllUsers(): Promise<User[]> {
         lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,
         customDomain: row.customDomain
     })) as User[];
-  } catch (error: any) {
-    if (error.code === 'ECONNREFUSED') {
-        const dbHost = process.env.DB_HOST || 'localhost';
-        const dbPort = process.env.DB_PORT || 3306;
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-    } else {
-        console.error("🔴 Gagal mengambil semua pengguna:", error);
-    }
-    return [];
+  } catch (error) {
+    console.error("🔴 Gagal mengambil semua pengguna:", error);
+    throw error;
   }
 }
 
@@ -55,15 +49,9 @@ export async function getUserByReferralCode(referralCode: string): Promise<Pick<
       return rows[0] as Pick<User, 'name'>;
     }
     return null;
-  } catch (error: any) {
-    if (error.code === 'ECONNREFUSED') {
-        const dbHost = process.env.DB_HOST || 'localhost';
-        const dbPort = process.env.DB_PORT || 3306;
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-    } else {
-        console.error(`🔴 Gagal mengambil pengguna dengan kode referral ${referralCode}:`, error);
-    }
-    return null;
+  } catch (error) {
+    console.error(`🔴 Gagal mengambil pengguna dengan kode referral ${referralCode}:`, error);
+    throw error;
   }
 }
 

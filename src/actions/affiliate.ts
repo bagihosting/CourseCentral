@@ -26,49 +26,64 @@ export async function getAffiliateStatsForUser(userId: string): Promise<{
     unpaidBalance: number;
     totalPaid: number;
 }> {
-    const [userRows] = await pool.query<RowDataPacket[]>('SELECT affiliateBalance, affiliatePaid FROM users WHERE id = ?', [userId]);
-    const [referralRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE referredBy = (SELECT referralCode FROM users WHERE id = ?)', [userId]);
-    
-    if (userRows.length === 0) return { referralCount: 0, unpaidBalance: 0, totalPaid: 0 };
-    
-    return {
-        referralCount: referralRows[0].count,
-        unpaidBalance: Number(userRows[0].affiliateBalance),
-        totalPaid: Number(userRows[0].affiliatePaid)
-    };
+    try {
+        const [userRows] = await pool.query<RowDataPacket[]>('SELECT affiliateBalance, affiliatePaid FROM users WHERE id = ?', [userId]);
+        const [referralRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE referredBy = (SELECT referralCode FROM users WHERE id = ?)', [userId]);
+        
+        if (userRows.length === 0) return { referralCount: 0, unpaidBalance: 0, totalPaid: 0 };
+        
+        return {
+            referralCount: referralRows[0].count,
+            unpaidBalance: Number(userRows[0].affiliateBalance),
+            totalPaid: Number(userRows[0].affiliatePaid)
+        };
+    } catch (error) {
+        console.error("Gagal mengambil statistik afiliasi:", error);
+        throw error;
+    }
 }
 
 export async function getCommissionHistory(userId: string): Promise<Commission[]> {
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT c.*, u.name AS sourceUserName 
-        FROM commissions c
-        LEFT JOIN users u ON c.sourceUserId = u.id
-        WHERE c.userId = ? 
-        ORDER BY c.createdAt DESC
-    `, [userId]);
-    return rows.map(row => ({
-        ...row,
-        amount: Number(row.amount),
-        createdAt: new Date(row.createdAt).toISOString(),
-    })) as Commission[];
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT c.*, u.name AS sourceUserName 
+            FROM commissions c
+            LEFT JOIN users u ON c.sourceUserId = u.id
+            WHERE c.userId = ? 
+            ORDER BY c.createdAt DESC
+        `, [userId]);
+        return rows.map(row => ({
+            ...row,
+            amount: Number(row.amount),
+            createdAt: new Date(row.createdAt).toISOString(),
+        })) as Commission[];
+    } catch (error) {
+        console.error("Gagal mengambil riwayat komisi:", error);
+        throw error;
+    }
 }
 
 export async function getWithdrawalHistory(userId: string): Promise<WithdrawalRequest[]> {
-     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM withdrawal_requests WHERE userId = ? ORDER BY requestDate DESC', [userId]);
-     return rows.map(row => ({
-         ...row,
-         amount: Number(row.amount),
-         bankDetails: JSON.parse(row.bankDetails || '{}'),
-         requestDate: new Date(row.requestDate).toISOString(),
-         processedDate: row.processedDate ? new Date(row.processedDate).toISOString() : null,
-     })) as WithdrawalRequest[];
+    try {
+         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM withdrawal_requests WHERE userId = ? ORDER BY requestDate DESC', [userId]);
+         return rows.map(row => ({
+             ...row,
+             amount: Number(row.amount),
+             bankDetails: JSON.parse(row.bankDetails || '{}'),
+             requestDate: new Date(row.requestDate).toISOString(),
+             processedDate: row.processedDate ? new Date(row.processedDate).toISOString() : null,
+         })) as WithdrawalRequest[];
+    } catch (error) {
+        console.error("Gagal mengambil riwayat penarikan:", error);
+        throw error;
+    }
 }
 
 export async function requestWithdrawal(bankDetails: WithdrawalRequest['bankDetails']): Promise<void> {
     const connection = await pool.getConnection();
-    await connection.beginTransaction();
-
     try {
+        await connection.beginTransaction();
+
         const user = await getAuthUser(connection);
         const [userRows] = await connection.query<RowDataPacket[]>('SELECT affiliateBalance FROM users WHERE id = ? FOR UPDATE', [user.id]);
         
@@ -112,45 +127,56 @@ export async function requestWithdrawal(bankDetails: WithdrawalRequest['bankDeta
 // --- Admin Actions ---
 
 export async function getAffiliateStats(): Promise<AffiliateStat[]> {
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT 
-            u.id as userId, 
-            u.name as userName, 
-            u.affiliateBalance as unpaidBalance, 
-            u.affiliatePaid as totalPaid,
-            (SELECT COUNT(*) FROM users ref WHERE ref.referredBy = u.referralCode) as referralCount
-        FROM users u
-        WHERE u.role IN ('pro', 'instructor')
-        ORDER BY unpaidBalance DESC
-    `);
-    return rows.map(row => ({
-        ...row,
-        unpaidBalance: Number(row.unpaidBalance),
-        totalPaid: Number(row.totalPaid),
-        referralCount: Number(row.referralCount),
-    })) as AffiliateStat[];
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                u.id as userId, 
+                u.name as userName, 
+                u.affiliateBalance as unpaidBalance, 
+                u.affiliatePaid as totalPaid,
+                (SELECT COUNT(*) FROM users ref WHERE ref.referredBy = u.referralCode) as referralCount
+            FROM users u
+            WHERE u.role IN ('pro', 'instructor')
+            ORDER BY unpaidBalance DESC
+        `);
+        return rows.map(row => ({
+            ...row,
+            unpaidBalance: Number(row.unpaidBalance),
+            totalPaid: Number(row.totalPaid),
+            referralCount: Number(row.referralCount),
+        })) as AffiliateStat[];
+    } catch (error) {
+        console.error("Gagal mengambil statistik afiliasi untuk admin:", error);
+        throw error;
+    }
 }
 
 export async function getWithdrawalRequests(): Promise<WithdrawalRequest[]> {
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT w.*, u.name as userName, u.avatarUrl as userAvatar
-        FROM withdrawal_requests w
-        JOIN users u ON w.userId = u.id
-        ORDER BY w.requestDate ASC
-    `);
-    return rows.map(row => ({
-        ...row,
-        amount: Number(row.amount),
-        bankDetails: JSON.parse(row.bankDetails || '{}'),
-        requestDate: new Date(row.requestDate).toISOString(),
-    })) as WithdrawalRequest[];
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT w.*, u.name as userName, u.avatarUrl as userAvatar
+            FROM withdrawal_requests w
+            JOIN users u ON w.userId = u.id
+            ORDER BY w.requestDate ASC
+        `);
+        return rows.map(row => ({
+            ...row,
+            amount: Number(row.amount),
+            bankDetails: JSON.parse(row.bankDetails || '{}'),
+            requestDate: new Date(row.requestDate).toISOString(),
+            processedDate: row.processedDate ? new Date(row.processedDate).toISOString() : null,
+        })) as WithdrawalRequest[];
+    } catch (error) {
+        console.error("Gagal mengambil permintaan penarikan:", error);
+        throw error;
+    }
 }
 
 export async function processWithdrawal(requestId: string, action: 'approve' | 'reject'): Promise<void> {
     const connection = await pool.getConnection();
-    await connection.beginTransaction();
-
     try {
+        await connection.beginTransaction();
+
         const actor = await getAuthUser(connection);
         if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat memproses penarikan.");
 

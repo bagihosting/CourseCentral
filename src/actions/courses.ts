@@ -33,14 +33,8 @@ export async function getAllCourses(): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM courses WHERE status = 'published' ORDER BY created_at DESC");
     return rows.map(mapRowToCourse);
-  } catch (error: any) {
-    if (error.code === 'ECONNREFUSED') {
-        const dbHost = process.env.DB_HOST || 'localhost';
-        const dbPort = process.env.DB_PORT || 3306;
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-    } else {
-        console.error("🔴 Gagal mengambil semua kursus:", error);
-    }
+  } catch (error) {
+    console.error("🔴 Peringatan di getAllCourses: Tidak dapat terhubung ke database. Mengembalikan array kosong.", error);
     return [];
   }
 }
@@ -50,15 +44,9 @@ export async function getAllCoursesForAdmin(): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
     return rows.map(mapRowToCourse);
-  } catch (error: any) {
-    if (error.code === 'ECONNREFUSED') {
-        const dbHost = process.env.DB_HOST || 'localhost';
-        const dbPort = process.env.DB_PORT || 3306;
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-    } else {
-        console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
-    }
-    return [];
+  } catch (error) {
+    console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
+    throw error;
   }
 }
 
@@ -67,15 +55,9 @@ export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? ORDER BY created_at DESC', [authorId]);
     return rows.map(mapRowToCourse);
-  } catch (error: any) {
-    if (error.code === 'ECONNREFUSED') {
-        const dbHost = process.env.DB_HOST || 'localhost';
-        const dbPort = process.env.DB_PORT || 3306;
-        console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-    } else {
-        console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
-    }
-     return [];
+  } catch (error) {
+    console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
+    throw error;
   }
 }
 
@@ -95,14 +77,8 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
             instructorName: row.instructorName
         })) as CourseForReview;
     } catch (error) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error("🔴 Gagal mengambil kursus untuk direview:", error);
-        }
-        return [];
+        console.error("🔴 Gagal mengambil kursus untuk direview:", error);
+        throw error;
     }
 }
 
@@ -114,14 +90,8 @@ export async function getCourseById(id: string): Promise<Course | null> {
             return null;
         }
         return mapRowToCourse(rows[0]);
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error(`🔴 Gagal mengambil kursus dengan ID ${id}:`, error);
-        }
+    } catch (error) {
+        console.error(`🔴 Peringatan di getCourseById: Tidak dapat terhubung ke database untuk ID ${id}. Mengembalikan null.`, error);
         return null;
     }
 }

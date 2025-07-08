@@ -60,14 +60,8 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
         // If not found, insert default and return it
         await pool.query('INSERT INTO settings (`key`, `value`) VALUES (?, ?)', [key, JSON.stringify(defaultValue)]);
         return defaultValue;
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}':`, error);
-        }
+    } catch (error) {
+        console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}':`, error);
         return defaultValue;
     }
 }
@@ -115,15 +109,9 @@ export async function getPaymentSettings(): Promise<PaymentAccount[]> {
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payment_accounts ORDER BY bankName ASC');
         return rows as PaymentAccount[];
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error("🔴 Gagal mengambil akun pembayaran:", error);
-        }
-        return [];
+    } catch (error) {
+        console.error("🔴 Gagal mengambil akun pembayaran:", error);
+        throw error;
     }
 }
 
@@ -148,15 +136,9 @@ export async function getConfirmationContacts(): Promise<ConfirmationContact[]> 
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM confirmation_contacts ORDER BY name ASC');
         return rows as ConfirmationContact[];
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error("🔴 Gagal mengambil kontak konfirmasi:", error);
-        }
-        return [];
+    } catch (error) {
+        console.error("🔴 Gagal mengambil kontak konfirmasi:", error);
+        throw error;
     }
 }
 
@@ -186,14 +168,8 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
             ORDER BY t.createdAt DESC
         `);
         return rows as Testimonial[];
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error("🔴 Gagal mengambil semua testimoni:", error);
-        }
+    } catch (error) {
+        console.error("🔴 Peringatan di getAllTestimonials: Tidak dapat terhubung ke database. Mengembalikan array kosong.", error);
         return [];
     }
 }
@@ -203,15 +179,9 @@ export async function getTestimonialByUserId(userId: string): Promise<Testimonia
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials WHERE userId = ?', [userId]);
         if (rows.length === 0) return null;
         return rows[0] as Testimonial;
-    } catch (error: any) {
-        if (error.code === 'ECONNREFUSED') {
-            const dbHost = process.env.DB_HOST || 'localhost';
-            const dbPort = process.env.DB_PORT || 3306;
-            console.error(`🔴 Kesalahan Koneksi Database: Tidak dapat terhubung ke ${dbHost}:${dbPort}. Pastikan server database Anda berjalan dan file .env.local sudah benar.`);
-        } else {
-            console.error(`🔴 Gagal mengambil testimoni untuk pengguna ${userId}:`, error);
-        }
-        return null;
+    } catch (error) {
+        console.error(`🔴 Gagal mengambil testimoni untuk pengguna ${userId}:`, error);
+        throw error;
     }
 }
 
