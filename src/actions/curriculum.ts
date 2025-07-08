@@ -8,8 +8,6 @@ import { pool } from '@/lib/db';
 import type { RowDataPacket } from 'mysql2';
 import { getAuthUser } from './utils';
 
-const INSTRUCTOR_COMMISSION_RATE = 1000;
-const INSTRUCTOR_COMMISSION_MILESTONE = 10;
 const INSTRUCTOR_DAILY_LESSON_LIMIT = 10;
 
 export async function addModule(courseId: string): Promise<void> {
@@ -111,27 +109,12 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
                 "UPDATE users SET lessons_created_today = IF(DATE(last_lesson_created_at) = CURDATE(), lessons_created_today + 1, 1), last_lesson_created_at = NOW() WHERE id = ?",
                 [author.id]
             );
-
-            const [updatedUserRows] = await connection.query<RowDataPacket[]>('SELECT lessons_created_today FROM users WHERE id = ?', [author.id]);
-            const updatedLessonsToday = updatedUserRows[0].lessons_created_today;
-            
-            if (updatedLessonsToday > 0 && updatedLessonsToday % INSTRUCTOR_COMMISSION_MILESTONE === 0) {
-                 const commissionId = `comm_${Date.now()}`;
-                await connection.query(
-                    'INSERT INTO commissions (id, userId, amount, type) VALUES (?, ?, ?, "instructor_milestone")',
-                    [commissionId, author.id, INSTRUCTOR_COMMISSION_RATE]
-                );
-                await connection.query(
-                    'UPDATE users SET affiliateBalance = affiliateBalance + ? WHERE id = ?',
-                    [INSTRUCTOR_COMMISSION_RATE, author.id]
-                );
-            }
         }
 
         await connection.commit();
     } catch (error) {
         await connection.rollback();
-        console.error("Failed to add lesson with commission logic:", error);
+        console.error("Failed to add lesson:", error);
         throw error;
     } finally {
         connection.release();
