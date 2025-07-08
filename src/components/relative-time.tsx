@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,21 +22,28 @@ export function RelativeTime({ date, fallback = '...' }: RelativeTimeProps) {
   if (!date) {
     return <span>{fallback}</span>;
   }
+  
+  // More robust date validation
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    // If date is invalid, return fallback
+    return <span>{fallback}</span>;
+  }
 
   // To prevent hydration errors, we ensure that the initial render on the client
   // is exactly the same as the server-rendered output. We only render the
   // dynamic relative time after the component has safely mounted on the client.
   if (!isClient) {
-    // Render nothing or a placeholder on the server and initial client render
-    // This guarantees no mismatch.
-    return <span title={new Date(date).toISOString()}>{fallback}</span>;
+    // Render the fallback on the server and initial client render
+    // This guarantees no mismatch. The full date is available in the title attribute.
+    return <span title={dateObj.toISOString()}>{fallback}</span>;
   }
 
   // After mounting on the client, we can safely render the dynamic relative time.
   try {
     return (
-      <span title={new Date(date).toLocaleString('id-ID')}>
-        {formatDistanceToNow(new Date(date), { addSuffix: true, locale: id })}
+      <span title={dateObj.toLocaleString('id-ID')}>
+        {formatDistanceToNow(dateObj, { addSuffix: true, locale: id })}
       </span>
     );
   } catch (e) {

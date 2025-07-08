@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,11 +8,10 @@ import { getCertificateRequests } from '@/actions/requests';
 import type { PopulatedCertificateRequest } from '@/actions/requests';
 import type { Course, Lesson } from '@/types';
 import { CheckCircle, Package, FileText, Award, User } from 'lucide-react';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AiCertificateGenerator } from '@/components/ai-certificate-generator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RelativeTime } from '@/components/relative-time';
 
 type CompletionInfo = PopulatedCertificateRequest & {
     downloadableText: string;
@@ -119,7 +117,9 @@ export default function DownloadManagementPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{item.courseTitle}</TableCell>
-                                        <TableCell>{item.approvedAt ? format(new Date(item.approvedAt), 'dd MMM yyyy', { locale: id }) : '-'}</TableCell>
+                                        <TableCell>
+                                            <RelativeTime date={item.approvedAt} fallback="-" />
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 {item.downloadableText.includes('PDF') && <FileText className="h-4 w-4" />}
