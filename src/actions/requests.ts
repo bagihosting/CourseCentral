@@ -5,8 +5,7 @@ import { pool } from '@/lib/db';
 import type { UpgradeRequest, CertificateRequest, CustomAppRequest } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getAuthUser } from './utils';
-
-const INSTRUCTOR_SECOND_LEVEL_COMMISSION_RATE = 0.05;
+import { awardReferralCommission } from './affiliate';
 
 // --- Upgrade Requests ---
 export type PopulatedUpgradeRequest = UpgradeRequest & {
@@ -71,6 +70,15 @@ export async function approveUpgrade(requestId: string): Promise<void> {
         await connection.query('UPDATE users SET role = "pro" WHERE id = ?', [request.userId]);
         
         await connection.query('UPDATE upgrade_requests SET status = "approved" WHERE id = ?', [requestId]);
+        
+        // Award commission if referred
+        if (user.referredBy) {
+            const [referrerRows] = await connection.query<RowDataPacket[]>('SELECT id FROM users WHERE referralCode = ?', [user.referredBy]);
+            if (referrerRows.length > 0) {
+                const referrerId = referrerRows[0].id;
+                await awardReferralCommission(request.userId, referrerId, connection);
+            }
+        }
 
         await connection.commit();
     } catch (error) {

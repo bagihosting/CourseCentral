@@ -116,6 +116,11 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
             const updatedLessonsToday = updatedUserRows[0].lessons_created_today;
             
             if (updatedLessonsToday > 0 && updatedLessonsToday % INSTRUCTOR_COMMISSION_MILESTONE === 0) {
+                 const commissionId = `comm_${Date.now()}`;
+                await connection.query(
+                    'INSERT INTO commissions (id, userId, amount, type) VALUES (?, ?, ?, "instructor_milestone")',
+                    [commissionId, author.id, INSTRUCTOR_COMMISSION_RATE]
+                );
                 await connection.query(
                     'UPDATE users SET affiliateBalance = affiliateBalance + ? WHERE id = ?',
                     [INSTRUCTOR_COMMISSION_RATE, author.id]

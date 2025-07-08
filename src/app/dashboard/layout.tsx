@@ -53,6 +53,8 @@ const adminNavItems = [
   { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
   { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
   { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
+  { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
+  { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Permintaan Penarikan' },
   { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
   { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
   { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
@@ -68,6 +70,7 @@ const instructorNavItems = [
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
   { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
@@ -81,6 +84,7 @@ const proNavItems = [
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
   { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
 

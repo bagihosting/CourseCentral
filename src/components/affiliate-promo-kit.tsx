@@ -12,14 +12,14 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const SocialIcon = ({ type, text, url }: { type: 'facebook' | 'twitter' | 'whatsapp' | 'telegram', text: string, url: string }) => {
     const encodedUrl = encodeURIComponent(url);
-    const encodedText = encodeURIComponent(text);
+    const encodedText = encodeURIComponent(`${text} ${url}`);
     let shareUrl = '';
     const svgProps = { width: 20, height: 20, className: "text-white" };
 
     let icon;
     switch(type) {
         case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodeURIComponent(text)}`;
             icon = <svg {...svgProps} viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>;
             break;
         case 'twitter':
@@ -31,7 +31,7 @@ const SocialIcon = ({ type, text, url }: { type: 'facebook' | 'twitter' | 'whats
             icon = <svg {...svgProps} viewBox="0 0 24 24" fill="currentColor"><path d="M16.75 13.96c.25.13.43.2.5.28.07.08.1.18.1.28.02.1-.04.28-.08.38-.04.1-.1.18-.22.28-.12.1-.28.16-.48.16s-.4-.05-.53-.08c-.13-.03-.28-.07-.45-.13-.17-.06-.35-.13-.56-.23-.2-.1-.4-.2-.6-.35-.2-.13-.4-.28-.58-.45-.18-.17-.35-.35-.5-.55s-.27-.4-.38-.6c-.1-.2-.18-.4-.22-.6s-.06-.4-.04-.58c.02-.18.06-.35.13-.5.07-.15.15-.28.28-.4.12-.1.25-.18.4-.22.13-.04.25-.06.35-.06s.2.03.28.06c.07.03.13.07.18.13.05.06.1.13.13.2.03.07.05.13.05.2v.06c-.02.08-.04.15-.08.2s-.08.1-.14.13c-.06.03-.1.05-.14.05s-.1-.02-.15-.04c-.05-.02-.1-.05-.14-.08-.04-.03-.1-.07-.13-.1-.04-.03-.08-.07-.13-.1-.04-.03-.08-.07-.13-.1s-.1-.08-.14-.13c-.04-.05-.08-.1-.1-.15s-.04-.1-.04-.15v-.1c0-.07.03-.13.08-.18.05-.05.13-.08.2-.08.07-.02.16-.02.25 0 .1.01.18.04.25.08.07.04.13.1.18.17.05.07.1.15.13.25.03.1.05.2.05.3v.05c-.02.1-.05.2-.1.28-.05.08-.1.15-.18.2s-.17.1-.25.13c-.08.03-.17.05-.25.05s-.17-.02-.25-.04c-.08-.02-.15-.05-.2-.08-.05-.03-.1-.07-.13-.1s-.05-.07-.06-.1c-.02-.03-.02-.06-.02-.1v-.14c0-.05.02-.1.05-.13.03-.03.07-.05.1-.06.03-.02.07-.03.1-.03s.07.01.1.02c.03.01.07.02.1.04.03.02.07.04.1.06.03.02.07.05.1.08.03.03.06.06.1.1.03.03.06.07.1.1s.06.07.1.1c.02.03.05.06.08.1.03.03.05.06.08.1.03.03.05.06.08.1.03.02.05.05.08.08s.05.06.08.1c.02.04.05.08.08.13.03.05.05.1.08.15.03.05.05.1.08.18.02.07.04.15.05.23.01.08.02.17.02.25v.25c-.02.17-.07.32-.15.45s-.18.25-.3.35c-.12.1-.25.18-.4.25-.15.07-.3.1-.45.13z M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"></path></svg>;
             break;
         case 'telegram':
-            shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+            shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(text)}`;
             icon = <svg {...svgProps} viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM9.5 2C4.26 2 0 5.45 0 9.87c0 2.45.98 4.7 2.6 6.44L1 22.7l4.3-1.07c1.6.64 3.3.97 5.2.97 5.24 0 9.5-3.45 9.5-7.87S14.74 2 9.5 2 9.5 2z"></path></svg>;
             break;
     }
@@ -79,7 +79,7 @@ export function AffiliatePromoKit({ referralLink }: { referralLink: string }) {
   };
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(`${text} ${referralLink}`).then(() => {
       toast({ title: 'Tersalin!', description: 'Teks promosi telah disalin.' });
     });
   };

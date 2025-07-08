@@ -17,13 +17,16 @@ export type User = {
   instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
   lessonsCreatedToday: number;
   lastLessonCreatedAt: string | null;
+  affiliateBalance: number;
+  affiliatePaid: number;
   customDomain: string | null;
 };
 
 // For registering a new user, password is required
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
 // For updating, all fields are optional
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid' | 'customDomain'>>;
+
 
 export type Course = {
   id: string;
@@ -101,6 +104,41 @@ export type InstructorBranding = {
   brandLogoUrl: string | null;
   brandPrimaryColor: string | null;
 };
+
+export type Commission = {
+    id: string;
+    userId: string;
+    amount: number;
+    type: 'referral' | 'instructor_milestone';
+    sourceUserId: string | null;
+    sourceUserName?: string;
+    createdAt: string;
+};
+
+export type WithdrawalRequest = {
+    id: string;
+    userId: string;
+    userName?: string;
+    userAvatar?: string;
+    amount: number;
+    status: 'pending' | 'approved' | 'rejected';
+    bankDetails: {
+        bankName: string;
+        accountNumber: string;
+        accountHolder: string;
+    };
+    requestDate: string;
+    processedDate: string | null;
+};
+
+export type AffiliateStat = {
+    userId: string;
+    userName: string;
+    referralCount: number;
+    unpaidBalance: number;
+    totalPaid: number;
+}
+
 
 export type PaymentAccount = {
   id: string;

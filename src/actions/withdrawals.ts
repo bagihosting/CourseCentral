@@ -1,1 +1,3 @@
-// This file is deprecated. The affiliate and withdrawal features have been removed.
+
+// This file is deprecated. All affiliate logic has been centralized in /src/actions/affiliate.ts.
+// This file is intentionally left empty.
