@@ -14,8 +14,6 @@ export type User = {
   loginCount: number;
   referralCode: string;
   referredBy?: string | null;
-  affiliateBalance: number;
-  affiliatePaid: number;
   instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
   lessonsCreatedToday: number;
   lastLessonCreatedAt: string | null;
@@ -23,9 +21,9 @@ export type User = {
 };
 
 // For registering a new user, password is required
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
 // For updating, all fields are optional
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'affiliateBalance' | 'affiliatePaid' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'customDomain'>>;
 
 export type Course = {
   id: string;
@@ -198,17 +196,4 @@ export type CustomAppRequest = {
   };
   adminNotes?: string;
   resultLink?: string;
-};
-
-export type WithdrawalRequest = {
-    id: string;
-    userId: string;
-    amount: number;
-    bankName: string;
-    accountHolder: string;
-    accountNumber: string;
-    status: 'pending' | 'approved' | 'rejected';
-    requestDate: string;
-    processedAt?: string;
-    adminNotes?: string;
 };

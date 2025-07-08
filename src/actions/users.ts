@@ -28,8 +28,6 @@ export async function getAllUsers(): Promise<User[]> {
         ...row,
         createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
         lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
-        affiliateBalance: Number(row.affiliateBalance),
-        affiliatePaid: Number(row.affiliatePaid),
         loginCount: Number(row.loginCount),
         lessonsCreatedToday: Number(row.lessons_created_today),
         lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,

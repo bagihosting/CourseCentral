@@ -22,8 +22,6 @@ export async function getUserById(id: string): Promise<User | undefined> {
       // Konversi tipe data jika perlu (misalnya, dari TinyInt ke boolean)
       return {
         ...user,
-        affiliateBalance: Number(user.affiliateBalance),
-        affiliatePaid: Number(user.affiliatePaid),
         loginCount: Number(user.loginCount),
         customDomain: user.customDomain
       };
@@ -86,8 +84,6 @@ export async function validateUser(username: string, password: string): Promise<
                 lastLoginAt: new Date().toISOString(),
                 loginCount: newLoginCount,
                 status: 'active',
-                affiliateBalance: Number(user.affiliateBalance),
-                affiliatePaid: Number(user.affiliatePaid),
                 customDomain: user.customDomain,
             };
         }

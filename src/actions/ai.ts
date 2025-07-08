@@ -24,8 +24,6 @@ import { generateHeroImage as generateHeroImageFlow, type GenerateHeroImageInput
 import { suggestMakalahTitles as suggestMakalahTitlesFlow, type SuggestMakalahTitlesInput, type SuggestMakalahTitlesOutput } from '@/ai/flows/suggest-makalah-titles';
 import { generateMakalah as generateMakalahFlow, type GenerateMakalahInput, type GenerateMakalahOutput } from '@/ai/flows/generate-makalah';
 import { editMakalah as editMakalahFlow, type EditMakalahInput, type EditMakalahOutput } from '@/ai/flows/edit-makalah';
-import { generatePromoThumbnail as generatePromoThumbnailFlow, type GeneratePromoThumbnailOutput } from '@/ai/flows/generate-promo-thumbnail';
-import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
 import { generateAppTopology as generateAppTopologyFlow, type GenerateAppTopologyInput, type GenerateAppTopologyOutput } from '@/ai/flows/generate-app-topology';
 import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput, type GenerateGenkitAppOutput } from '@/ai/flows/generate-genkit-app';
 import { suggestModuleTitle as suggestModuleTitleFlow, type SuggestModuleTitleInput, type SuggestModuleTitleOutput } from '@/ai/flows/suggest-module-title';
@@ -394,31 +392,6 @@ export async function editMakalahAction(
   } catch (error) {
     console.error('Error editing paper:', error);
     return { error: 'Gagal mengedit makalah.' };
-  }
-}
-
-export async function generatePromoThumbnailAction(): Promise<GeneratePromoThumbnailOutput | { error: string }> {
-  try {
-    const result = await generatePromoThumbnailFlow();
-    return { imageUrl: result.imageUrl };
-  } catch (error) {
-    console.error('Error generating promo thumbnail:', error);
-    return { error: 'Gagal membuat thumbnail promosi. Silakan coba lagi.' };
-  }
-}
-
-export async function generateAffiliatePromoAction(
-  input: GenerateAffiliatePromoInput
-): Promise<GenerateAffiliatePromoOutput | { error: string }> {
-  if (!input.referralLink) {
-    return { error: 'Link referral tidak boleh kosong.' };
-  }
-  try {
-    const result = await generateAffiliatePromoFlow(input);
-    return result;
-  } catch (error) {
-    console.error('Error generating affiliate promo text:', error);
-    return { error: 'Gagal membuat teks promosi afiliasi.' };
   }
 }
 
