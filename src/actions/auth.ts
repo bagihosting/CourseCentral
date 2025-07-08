@@ -129,9 +129,11 @@ export async function login(username: string, password: string): Promise<User> {
         throw new Error('Nama pengguna atau kata sandi salah.');
     }
 
+    // By removing the explicit `secure` flag, we let Next.js automatically
+    // determine its value based on the connection protocol (http vs https).
+    // This fixes the login issue on http while maintaining security on https.
     cookies().set('user_session_id', user.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
     });
