@@ -26,8 +26,8 @@ export async function getAllUsers(): Promise<User[]> {
     `);
     return rows.map(row => ({
         ...row,
-        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '',
-        lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : '',
+        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+        lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
         affiliateBalance: Number(row.affiliateBalance),
         affiliatePaid: Number(row.affiliatePaid),
         loginCount: Number(row.loginCount),

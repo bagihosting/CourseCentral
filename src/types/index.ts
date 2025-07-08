@@ -8,8 +8,8 @@ export type User = {
   role: 'admin' | 'member' | 'pro' | 'instructor';
   avatarUrl: string;
   whatsapp?: string;
-  createdAt: string;
-  lastLoginAt: string;
+  createdAt: string | null;
+  lastLoginAt: string | null;
   status: 'active' | 'inactive';
   loginCount: number;
   referralCode: string;

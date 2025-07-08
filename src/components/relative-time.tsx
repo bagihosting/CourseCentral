@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -17,44 +18,58 @@ interface RelativeTimeProps {
  * then switching to the dynamic time on the client after hydration.
  */
 export function RelativeTime({ date, fallback = '...' }: RelativeTimeProps) {
-  const [isClient, setIsClient] = useState(false);
+  // `formattedDate` starts as null and is only set on the client after mounting.
+  // This ensures the server-rendered output and the initial client render are identical.
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    // This effect runs only on the client, after the component has mounted.
-    setIsClient(true);
-  }, []);
+    // This effect runs only on the client side, after the component has mounted.
+    if (!date) {
+      setFormattedDate(fallback);
+      return;
+    }
+    try {
+      const dateObj = new Date(date);
+      // Validate the date object
+      if (isNaN(dateObj.getTime())) {
+        console.warn(`Invalid date provided to RelativeTime component: ${date}`);
+        setFormattedDate(fallback);
+        return;
+      }
+      
+      // Calculate the relative time string and update the state.
+      const relative = formatDistanceToNow(dateObj, { addSuffix: true, locale: id });
+      setFormattedDate(relative);
+    } catch (error) {
+      console.error("Error formatting date in RelativeTime component:", error);
+      setFormattedDate(fallback);
+    }
+  }, [date, fallback]);
 
-  // On the server or during the initial client render, `isClient` is false.
-  // We render a simple, static fallback to ensure server and client HTML match.
-  if (!isClient) {
+  // Use `useMemo` to calculate the full date tooltip. This is safe because it runs
+  // after the initial render and uses the stable `date` prop.
+  const fullDateTitle = useMemo(() => {
+    if (!date) return "Tanggal tidak tersedia";
+    try {
+      const dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) return `Tanggal tidak valid: ${date}`;
+      return format(dateObj, "d MMMM yyyy, HH:mm", { locale: id });
+    } catch {
+      return "Error memformat tanggal";
+    }
+  }, [date]);
+
+  // On the server, and on the very first client render, `formattedDate` is `null`.
+  // We render the fallback text directly, ensuring no mismatch.
+  if (formattedDate === null) {
     return <span title="Memuat waktu...">{fallback}</span>;
   }
-
-  // From this point on, the code only runs on the client side.
-  if (!date) {
-    return <span title="Tanggal tidak tersedia">{fallback}</span>;
-  }
-
-  try {
-    const dateObj = new Date(date);
-    // Validate the date object
-    if (isNaN(dateObj.getTime())) {
-      console.warn(`Invalid date provided to RelativeTime component: ${date}`);
-      return <span title={`Tanggal tidak valid: ${date}`}>{fallback}</span>;
-    }
-    
-    // Format the date into a relative string (e.g., "5 menit yang lalu")
-    const formattedRelativeDate = formatDistanceToNow(dateObj, { addSuffix: true, locale: id });
-    // Format the date into a full string for the tooltip (e.g., "25 Agustus 2024 10:30")
-    const formattedFullDate = format(dateObj, "d MMMM yyyy, HH:mm", { locale: id });
-
-    return (
-      <span title={formattedFullDate}>
-        {formattedRelativeDate}
-      </span>
-    );
-  } catch (error) {
-    console.error("Error formatting date in RelativeTime component:", error);
-    return <span title={`Error memformat tanggal: ${date}`}>{fallback}</span>;
-  }
+  
+  // After hydration and the `useEffect` runs, the state is updated,
+  // and the component re-renders with the calculated relative time.
+  return (
+    <span title={fullDateTitle}>
+      {formattedDate}
+    </span>
+  );
 }
