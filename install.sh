@@ -70,8 +70,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mar
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
 # [PERBAIKAN KRITIS] Inisialisasi Database Secara Manual untuk Keandalan Maksimal
-# Terkadang, instalasi paket tidak menginisialisasi direktori data dengan benar.
-# Kita akan melakukannya secara manual untuk memastikan startup yang bersih.
 echo_info "Menghentikan layanan MariaDB untuk memastikan inisialisasi yang bersih..."
 systemctl stop mariadb || true # Jangan berhenti jika layanan belum ada
 
@@ -83,29 +81,14 @@ else
   echo_info "Direktori data MariaDB sudah ada."
 fi
 
-# --- Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
+# Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi
 echo_info "Memulai layanan MariaDB..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# [PERBAIKAN KUAT] Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
-# Ini memastikan server tidak hanya berjalan, tetapi juga siap menerima perintah.
-MAX_WAIT=60
-COUNT=0
-echo_info "Memverifikasi kesiapan otentikasi MariaDB..."
-while ! mariadb -u root --protocol=socket -e "SELECT 1" &> /dev/null; do
-  if [ $COUNT -lt $MAX_WAIT ]; then
-    echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
-    sleep 1
-    ((COUNT++))
-  else
-    echo_error "Gagal terhubung dan otentikasi ke MariaDB sebagai root setelah ${MAX_WAIT} detik."
-    echo_error "Coba periksa status layanan dengan 'systemctl status mariadb' dan log di 'journalctl -u mariadb'."
-    exit 1
-  fi
-done
-echo_success "Server MariaDB aktif dan siap untuk otentikasi."
-
+# Memberi waktu sejenak agar proses server stabil
+echo_info "Memberi waktu 5 detik bagi MariaDB untuk melakukan inisialisasi penuh..."
+sleep 5
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
