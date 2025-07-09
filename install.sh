@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #
 # =================================================================
@@ -62,7 +61,31 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
+# --- 3. [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
+echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
+systemctl start mariadb
+systemctl enable mariadb
+
+# Loop cerdas untuk menunggu MariaDB siap menerima koneksi, bukan hanya memeriksa file socket.
+# Ini mencegah error 'Connection refused (111)'.
+MAX_WAIT=30
+COUNT=0
+echo_info "Menunggu MariaDB siap..."
+while ! mariadb-admin ping --protocol=socket &>/dev/null; do
+  if [ $COUNT -lt $MAX_WAIT ]; then
+    echo "Menunggu koneksi MariaDB... (${COUNT}s)"
+    sleep 1
+    ((COUNT++))
+  else
+    echo_error "Gagal terhubung ke MariaDB: Server tidak merespon setelah ${MAX_WAIT} detik."
+    echo_error "Coba periksa status layanan dengan 'systemctl status mariadb' dan log di 'journalctl -u mariadb'."
+    exit 1
+  fi
+done
+echo_success "Server MariaDB aktif dan siap menerima koneksi."
+
+
+# --- 4. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
@@ -72,7 +95,6 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-# Menambahkan --protocol=socket untuk memastikan koneksi tidak melalui TCP/IP yang mungkin memerlukan kata sandi.
 mariadb --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
@@ -98,7 +120,7 @@ EOSQL
 
 echo_success "Database dan pengguna berhasil dikonfigurasi."
 
-# --- 4. Impor Skema Database ---
+# --- 5. Impor Skema Database ---
 echo_info "Mengimpor tabel dan data awal dari file 'schema.sql' secara otomatis..."
 # Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
 # Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
@@ -106,7 +128,7 @@ mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal (termasuk admin default) berhasil diimpor."
 
 
-# --- 5. Pasang Node.js & PM2 ---
+# --- 6. Pasang Node.js & PM2 ---
 echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
@@ -126,7 +148,7 @@ else
     echo_info "PM2 sudah terpasang."
 fi
 
-# --- 6. Bangun Aplikasi ---
+# --- 7. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
 chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
@@ -137,7 +159,7 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
-# --- 7. Siapkan Variabel Lingkungan (.env.local) ---
+# --- 8. Siapkan Variabel Lingkungan (.env.local) ---
 echo_info "Membuat file .env.local..."
 ENV_FILE="$PROJECT_DIR/.env.local"
 
@@ -171,7 +193,7 @@ echo_warn "                                                                     
 echo_warn "======================================================================="
 
 
-# --- 8. Mulai Aplikasi dengan PM2 ---
+# --- 9. Mulai Aplikasi dengan PM2 ---
 # Hentikan proses apa pun yang mungkin berjalan di port aplikasi
 echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
 fuser -k $APP_PORT/tcp || true
@@ -186,7 +208,7 @@ sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- sta
 echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
-# --- 9. Konfigurasi Nginx ---
+# --- 10. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -259,7 +281,7 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-# --- 10. Konfigurasi Firewall (UFW) ---
+# --- 11. Konfigurasi Firewall (UFW) ---
 echo_info "Mengkonfigurasi firewall dengan UFW..."
 # Aturan keamanan dasar: tolak semua koneksi masuk secara default, izinkan semua keluar.
 ufw default deny incoming
@@ -269,7 +291,7 @@ ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 11. Pengerasan Keamanan dengan Fail2Ban ---
+# --- 12. Pengerasan Keamanan dengan Fail2Ban ---
 echo_info "Menginstal dan mengkonfigurasi Fail2Ban untuk proteksi otomatis terhadap serangan..."
 apt-get install -y fail2ban
 
@@ -317,7 +339,7 @@ echo_info "Memulai ulang Fail2Ban untuk menerapkan aturan baru..."
 systemctl restart fail2ban
 systemctl enable fail2ban
 
-# --- 12. Setup Backup Database Otomatis ---
+# --- 13. Setup Backup Database Otomatis ---
 echo_info "Mengkonfigurasi backup database otomatis..."
 # Membuat direktori backup yang aman (tidak dapat diakses web)
 mkdir -p /var/backups/mariadb
@@ -376,18 +398,19 @@ chmod 0644 /etc/cron.d/coursecentral_backup
 systemctl restart cron
 echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
 
-# --- 13. Atur PM2 untuk memulai saat boot ---
+# --- 14. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
-# Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
-# Kita menangkap outputnya dan menjalankannya.
-# 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
-STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
+# 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root untuk mengkonfigurasi systemd.
+# Kita menangkap outputnya dan menjalankannya. 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
+STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | grep 'sudo' || true)
 if [ -n "$STARTUP_COMMAND" ]; then
-    echo "Menjalankan perintah startup PM2: $STARTUP_COMMAND"
+    echo "Menjalankan perintah startup PM2 yang dihasilkan: $STARTUP_COMMAND"
     eval "$STARTUP_COMMAND"
 fi
+# Simpan daftar proses saat ini (yang dijalankan oleh $RUN_USER) agar dapat dihidupkan kembali saat boot.
 sudo -u "$RUN_USER" pm2 save
 echo_success "PM2 startup berhasil dikonfigurasi."
+
 
 echo ""
 echo_success "================= PROSES SELESAI ================="
@@ -419,3 +442,5 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
+
+    
