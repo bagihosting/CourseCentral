@@ -5,6 +5,7 @@ Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda
 - **Metode 1** adalah cara deployment langsung di server VPS menggunakan Nginx dan PM2, diotomatisasi dengan skrip.
 - **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
 - **Metode Keamanan (Sangat Direkomendasikan)** menjelaskan cara menggunakan Cloudflare untuk proteksi DDoS, anti-scraping, dan menyembunyikan IP asli server Anda.
+- **Backup & Restore Database (Penting)** menjelaskan fitur backup otomatis dan cara melakukan restore.
 
 ---
 
@@ -103,6 +104,8 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     - Menjalankan aplikasi Anda dengan PM2.
     - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan **phpMyAdmin**.
     - **Secara otomatis mendeteksi dan mengkonfigurasi semua domain kustom** yang telah diatur oleh para pengajar di database.
+    - **Menginstal dan mengkonfigurasi Fail2Ban** untuk keamanan server dari serangan brute-force.
+    - **Mengatur backup database otomatis** yang berjalan setiap hari.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 
@@ -210,6 +213,11 @@ Setelah nameserver Anda aktif, kembali ke dasbor Cloudflare Anda.
     -   **Name**: `www`
     -   **Target**: `@` atau `domainanda.com`
     -   **Proxy status**: Pastikan ikon awan berwarna **oranye** (Proxied).
+4.  (Penting) Jika Anda menggunakan **Domain Kustom** untuk instruktur, Anda harus membuat `CNAME record` untuk setiap domain tersebut di Cloudflare, mengarahkannya ke domain utama Anda.
+    -   **Type**: `CNAME`
+    -   **Name**: `kursus.domaininstruktur.com`
+    -   **Target**: `domainutamaanda.com`
+    -   **Proxy status**: **Oranye** (Proxied).
 
 ### Langkah 3: Konfigurasi Keamanan di Cloudflare
 
@@ -222,3 +230,33 @@ Setelah nameserver Anda aktif, kembali ke dasbor Cloudflare Anda.
 ### Selesai!
 
 Sekarang, semua lalu lintas ke domain Anda akan melewati Cloudflare terlebih dahulu. Server Anda terlindungi dari DDoS, bot jahat, dan IP aslinya tersembunyi.
+
+---
+
+## Backup & Restore Database (Penting)
+
+Jika Anda menggunakan **Metode 1 (Auto-Installer)**, sistem backup database otomatis telah disiapkan untuk Anda.
+
+### Fitur Backup Otomatis
+- **Jadwal**: Backup dilakukan secara otomatis setiap hari pada pukul 02:30 pagi.
+- **Lokasi**: File backup (dalam format `.sql.gz`) disimpan di direktori aman `/var/backups/mariadb/`. Direktori ini tidak dapat diakses dari web.
+- **Retensi**: Sistem akan secara otomatis menghapus backup yang lebih tua dari 7 hari untuk menghemat ruang disk.
+
+### Cara Melakukan Restore Manual
+Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file backup, ikuti langkah-langkah berikut di server Anda:
+
+1.  **Temukan File Backup**: Buka direktori backup dan temukan file yang ingin Anda pulihkan.
+    ```bash
+    ls -l /var/backups/mariadb/
+    ```
+2.  **Dapatkan Kredensial Database**: Anda memerlukan username dan password database. Anda bisa menemukannya di dalam file `.env.local` di direktori proyek Anda.
+    ```bash
+    # Masuk ke direktori proyek Anda
+    # cd /path/to/your/project
+    cat .env.local
+    ```
+3.  **Jalankan Perintah Restore**: Gunakan perintah di bawah ini. Ganti `nama_file_backup.sql.gz` dengan nama file yang benar. Anda akan diminta untuk memasukkan password database yang Anda temukan di langkah sebelumnya.
+    ```bash
+    gunzip < /var/backups/mariadb/nama_file_backup.sql.gz | mysql -u coursecentral_user -p coursecentral_db
+    ```
+    **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.

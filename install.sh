@@ -2,7 +2,7 @@
 #
 # =================================================================
 # Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 20.04, 22.04 & 24.04
-# Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
+# Termasuk: Nginx, MariaDB, Node.js, PM2, phpMyAdmin, Fail2Ban, dan Backup Otomatis.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
 
@@ -280,7 +280,114 @@ ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 11. Atur PM2 untuk memulai saat boot ---
+# --- 11. Pengerasan Keamanan dengan Fail2Ban ---
+echo_info "Menginstal dan mengkonfigurasi Fail2Ban untuk proteksi otomatis terhadap serangan..."
+apt-get install -y fail2ban
+
+# Membuat file konfigurasi lokal untuk menimpa default
+FAIL2BAN_JAIL_LOCAL_FILE="/etc/fail2ban/jail.local"
+echo_info "Membuat file konfigurasi kustom di $FAIL2BAN_JAIL_LOCAL_FILE..."
+cat > "$FAIL2BAN_JAIL_LOCAL_FILE" << EOF
+[DEFAULT]
+# Waktu dalam detik. 1h = 3600, 1d = 86400.
+# Kita akan memblokir penyerang secara permanen selama 1 hari.
+bantime = 1d
+# Jendela waktu untuk mendeteksi serangan (misal: 10 menit)
+findtime = 10m
+# Jumlah percobaan gagal sebelum IP diblokir
+maxretry = 5
+# Backend yang digunakan (auto biasanya sudah cukup)
+banaction = ufw
+
+[sshd]
+enabled = true
+
+# Jail untuk melindungi dari serangan HTTP umum
+[nginx-http-auth]
+enabled = true
+port = http,https
+
+# Jail untuk memblokir bot jahat dan pemindai kerentanan
+[nginx-botsearch]
+enabled = true
+port = http,https
+
+# Jail untuk mitigasi serangan DDoS sederhana
+[nginx-ddos]
+enabled = true
+port = http,https
+# Filter ini mencari koneksi yang sangat cepat dari satu IP
+# Atur maxretry lebih tinggi untuk menghindari pemblokiran pengguna normal
+# misal: 100 permintaan dalam 1 menit
+findtime = 1m
+maxretry = 100
+EOF
+
+echo_success "Konfigurasi Fail2Ban kustom telah dibuat."
+echo_info "Memulai ulang Fail2Ban untuk menerapkan aturan baru..."
+systemctl restart fail2ban
+systemctl enable fail2ban
+
+# --- 12. Setup Backup Database Otomatis ---
+echo_info "Mengkonfigurasi backup database otomatis..."
+# Membuat direktori backup yang aman (tidak dapat diakses web)
+mkdir -p /var/backups/mariadb
+
+# Membuat file kredensial yang aman untuk mysqldump
+echo_info "Membuat file kredensial .my.cnf yang aman..."
+cat > /root/.my.cnf << EOF
+[mysqldump]
+user=$DB_USER
+password=$DB_PASS
+host=127.0.0.1
+[mysql]
+user=$DB_USER
+password=$DB_PASS
+host=127.0.0.1
+EOF
+chmod 600 /root/.my.cnf
+echo_success "File .my.cnf berhasil dibuat dengan izin yang aman."
+
+# Membuat skrip backup
+echo_info "Membuat skrip backup..."
+BACKUP_SCRIPT_PATH="/usr/local/bin/backup_mariadb.sh"
+cat > "$BACKUP_SCRIPT_PATH" << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/mariadb"
+DB_NAME="coursecentral_db"
+TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/$DB_NAME-$TIMESTAMP.sql.gz"
+RETENTION_DAYS=7
+
+echo "Memulai backup untuk database '$DB_NAME'..."
+# Menggunakan file .my.cnf secara implisit karena berada di /root
+mysqldump "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+  echo "Backup berhasil disimpan ke: $BACKUP_FILE"
+else
+  echo "ERROR: Backup database gagal." >&2
+  exit 1
+fi
+
+echo "Membersihkan backup yang lebih tua dari $RETENTION_DAYS hari..."
+find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +$RETENTION_DAYS -exec rm -f {} \;
+echo "Pembersihan selesai."
+EOF
+chmod +x "$BACKUP_SCRIPT_PATH"
+echo_success "Skrip backup telah dibuat di $BACKUP_SCRIPT_PATH"
+
+# Membuat cron job
+echo_info "Menjadwalkan backup otomatis harian..."
+cat > /etc/cron.d/coursecentral_backup << EOF
+# Backup otomatis harian untuk database CourseCentral
+30 2 * * * root $BACKUP_SCRIPT_PATH >> /var/log/backup_mariadb.log 2>&1
+EOF
+chmod 0644 /etc/cron.d/coursecentral_backup
+systemctl restart cron
+echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
+
+# --- 13. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
 sudo -u $RUN_USER pm2 save
