@@ -103,14 +103,16 @@ export default function AdminCoursesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {courses.map((course) => (
-            <div key={course.id} className="relative group">
-              <div className="absolute top-2 left-2 z-10">
-                {getStatusBadge(course.status)}
-              </div>
-              <CourseCard course={course} />
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <AdminCourseActions courseId={course.id} onCourseDeleted={handleCourseDeleted} />
-              </div>
+             <div key={course.id} className="relative group">
+                <Link href={`/dashboard/courses/${course.id}/edit`}>
+                    <div className="absolute top-2 left-2 z-10">
+                        {getStatusBadge(course.status)}
+                    </div>
+                    <CourseCard course={course} />
+                </Link>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <AdminCourseActions courseId={course.id} onCourseDeleted={handleCourseDeleted} />
+                </div>
             </div>
           ))}
         </div>

@@ -61,7 +61,7 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
         await pool.query('INSERT INTO settings (`key`, `value`) VALUES (?, ?)', [key, JSON.stringify(defaultValue)]);
         return defaultValue;
     } catch (error) {
-        console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}':`, error);
+        console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}'. Mengembalikan nilai default.`, error);
         return defaultValue;
     }
 }
@@ -169,7 +169,7 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
         `);
         return rows as Testimonial[];
     } catch (error) {
-        console.error("🔴 Peringatan di getAllTestimonials: Tidak dapat terhubung ke database. Mengembalikan array kosong.", error);
+        console.error("🔴 Gagal mengambil semua testimoni. Mengembalikan array kosong.", error);
         return [];
     }
 }

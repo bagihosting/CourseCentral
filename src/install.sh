@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # =================================================================
-# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 22.04 & 24.04
+# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 20.04, 22.04 & 24.04
 # Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
@@ -102,11 +102,11 @@ EOSQL
 echo_success "Database dan pengguna berhasil dikonfigurasi."
 
 # --- 4. Impor Skema Database ---
-echo_info "Mengimpor skema database dari $PROJECT_DIR/schema.sql..."
+echo_info "Mengimpor tabel dan data awal dari file 'schema.sql' secara otomatis..."
 # Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
 # Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
 mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
-echo_success "Skema database berhasil diimpor."
+echo_success "Struktur database dan data awal (termasuk admin default) berhasil diimpor."
 
 
 # --- 5. Pasang Node.js & PM2 ---

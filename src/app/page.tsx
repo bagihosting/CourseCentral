@@ -64,7 +64,7 @@ export async function generateMetadata(): Promise<Metadata> {
       }
     };
   } catch (error) {
-    console.error("Failed to generate metadata:", error);
+    console.error("🔴 Gagal membuat metadata:", error);
     return {
       title: 'CourseCentral',
       description: 'Platform kursus online untuk masa depan Anda.',
