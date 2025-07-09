@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -236,3 +237,12 @@ export type CustomAppRequest = {
   adminNotes?: string;
   resultLink?: string;
 };
+
+export type ApiKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
+  createdBy: string;
+}

@@ -35,6 +35,7 @@ import {
   Palette,
   Banknote,
   BookOpen,
+  KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -55,6 +56,7 @@ const adminNavItems = [
   { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
   { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
   { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Permintaan Penarikan' },
+  { href: '/dashboard/admin/api-tokens', icon: KeyRound, label: 'API Token' },
   { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
   { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
   { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
