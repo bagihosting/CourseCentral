@@ -61,6 +61,14 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
+# --- [PERBAIKAN] Pastikan Layanan MariaDB Berjalan ---
+echo_info "Memastikan layanan MariaDB aktif dan berjalan..."
+systemctl enable mariadb
+systemctl start mariadb
+# Beri waktu beberapa detik agar server database siap sepenuhnya
+echo_info "Memberi waktu 3 detik agar MariaDB siap..."
+sleep 3
+
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
@@ -71,7 +79,6 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-# Menambahkan --protocol=socket untuk memastikan koneksi tidak melalui TCP/IP yang mungkin memerlukan kata sandi.
 mariadb --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
