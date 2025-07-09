@@ -187,6 +187,17 @@ echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
 # --- 9. Konfigurasi Nginx ---
+echo_info "Mengambil domain kustom dari database..."
+# -sN flag agar output bersih tanpa header atau border
+CUSTOM_DOMAINS=$(mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -sN -e "SELECT customDomain FROM instructor_branding WHERE customDomain IS NOT NULL AND customDomain != '';")
+DOMAIN_LIST_FOR_NGINX=$(echo $CUSTOM_DOMAINS | tr '\n' ' ')
+
+if [ -n "$DOMAIN_LIST_FOR_NGINX" ]; then
+    echo_success "Domain kustom ditemukan dan akan dikonfigurasi: $DOMAIN_LIST_FOR_NGINX"
+else
+    echo_info "Tidak ada domain kustom yang dikonfigurasi. Melanjutkan dengan konfigurasi standar."
+fi
+
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -208,7 +219,8 @@ server {
     # Ganti 'domainanda.com' dengan nama domain Anda yang sebenarnya
     # Anda bisa melakukannya setelah instalasi dan setelah mengarahkan domain Anda.
     # Untuk awal, '_' sudah cukup untuk menangkap permintaan via IP.
-    server_name _;
+    # Semua domain kustom dari database akan ditambahkan di sini secara otomatis.
+    server_name _ $DOMAIN_LIST_FOR_NGINX;
     
     root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
@@ -248,7 +260,7 @@ server {
     }
 }"
 echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin."
+echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin dan domain kustom."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
@@ -268,7 +280,55 @@ ufw allow 'Nginx Full'
 ufw allow 'OpenSSH'
 ufw --force enable
 
-# --- 11. Atur PM2 untuk memulai saat boot ---
+# --- 11. Pengerasan Keamanan dengan Fail2Ban ---
+echo_info "Menginstal dan mengkonfigurasi Fail2Ban untuk proteksi otomatis terhadap serangan..."
+apt-get install -y fail2ban
+
+# Membuat file konfigurasi lokal untuk menimpa default
+FAIL2BAN_JAIL_LOCAL_FILE="/etc/fail2ban/jail.local"
+echo_info "Membuat file konfigurasi kustom di $FAIL2BAN_JAIL_LOCAL_FILE..."
+cat > "$FAIL2BAN_JAIL_LOCAL_FILE" << EOF
+[DEFAULT]
+# Waktu dalam detik. 1h = 3600, 1d = 86400.
+# Kita akan memblokir penyerang secara permanen selama 1 hari.
+bantime = 1d
+# Jendela waktu untuk mendeteksi serangan (misal: 10 menit)
+findtime = 10m
+# Jumlah percobaan gagal sebelum IP diblokir
+maxretry = 5
+# Backend yang digunakan (auto biasanya sudah cukup)
+banaction = ufw
+
+[sshd]
+enabled = true
+
+# Jail untuk melindungi dari serangan HTTP umum
+[nginx-http-auth]
+enabled = true
+port = http,https
+
+# Jail untuk memblokir bot jahat dan pemindai kerentanan
+[nginx-botsearch]
+enabled = true
+port = http,https
+
+# Jail untuk mitigasi serangan DDoS sederhana
+[nginx-ddos]
+enabled = true
+port = http,https
+# Filter ini mencari koneksi yang sangat cepat dari satu IP
+# Atur maxretry lebih tinggi untuk menghindari pemblokiran pengguna normal
+# misal: 100 permintaan dalam 1 menit
+findtime = 1m
+maxretry = 100
+EOF
+
+echo_success "Konfigurasi Fail2Ban kustom telah dibuat."
+echo_info "Memulai ulang Fail2Ban untuk menerapkan aturan baru..."
+systemctl restart fail2ban
+systemctl enable fail2ban
+
+# --- 12. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
 sudo -u $RUN_USER pm2 save
