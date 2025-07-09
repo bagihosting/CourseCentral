@@ -21,7 +21,7 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
 1. Buka `phpMyAdmin` dari panel kontrol XAMPP/Laragon Anda.
 2. Buat database baru dengan nama `coursecentral_db`. Pastikan collation diatur ke `utf8mb4_unicode_ci`.
 3. Setelah database dibuat, klik tab "SQL" atau "Import".
-4. Buka file `schema.sql` dari folder proyek Anda, salin seluruh isinya, dan tempelkan ke dalam kotak teks SQL, lalu jalankan. Ini akan membuat semua tabel yang diperlukan beserta data admin default. **Username dan password default untuk admin adalah `admin` dan `password`.**
+4. Buka file `schema.sql` dari folder proyek Anda, salin seluruh isinya, dan tempelkan ke dalam kotak teks SQL, lalu jalankan. Ini akan membuat semua tabel yang diperlukan beserta **data admin default (username: `admin`, password: `password`)**.
 
 ### Langkah 2: Konfigurasi File Environment
 1. Di folder utama proyek, buat salinan dari file `.env.example` dan ganti namanya menjadi `.env.local`.
@@ -97,7 +97,7 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     Skrip akan meminta password sudo Anda, lalu akan berjalan secara otomatis. Skrip ini akan:
     - Menginstal semua dependensi (Nginx, MariaDB, Node.js, PM2, phpMyAdmin, dll.).
     - Membuat database dan pengguna baru dengan password acak yang aman.
-    - Mengimpor file `schema.sql` secara otomatis.
+    - **Mengimpor semua tabel dan data awal** (termasuk admin default) dari file `schema.sql` Anda.
     - Membangun aplikasi Next.js Anda.
     - Menghentikan proses lama yang mungkin berjalan di port 3000.
     - Menjalankan aplikasi Anda dengan PM2.
