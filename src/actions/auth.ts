@@ -47,31 +47,21 @@ export async function validateUser(username: string, password: string): Promise<
         }
 
         const user = rows[0] as User;
+        
+        // Ensure password exists and is a string before proceeding
         const storedPassword = user.password;
-
-        let passwordMatch = false;
-
-        // Cek apakah password yang tersimpan adalah hash bcrypt atau teks biasa.
-        if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
-            // Jika hash, bandingkan dengan bcrypt.
-            passwordMatch = await bcrypt.compare(password, storedPassword);
-        } else {
-            // Jika bukan, bandingkan sebagai teks biasa.
-            passwordMatch = (storedPassword === password);
+        if (!storedPassword || typeof storedPassword !== 'string') {
+            return null; // Password tidak ada atau format salah, login gagal
         }
+
+        // Production-ready: ALWAYS use bcrypt.compare
+        const passwordMatch = await bcrypt.compare(password, storedPassword);
 
         if (passwordMatch) {
             if (user.role !== 'admin' && user.status === 'inactive') {
                 throw new Error('ACCOUNT_INACTIVE');
             }
             
-            // Jika password cocok DAN masih dalam format teks biasa,
-            // hash sekarang dan perbarui di database untuk keamanan.
-            if (!storedPassword.startsWith('$2a$') && !storedPassword.startsWith('$2b$')) {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
-            }
-
             const newLoginCount = (Number(user.loginCount) || 0) + 1;
             await pool.query(
                 'UPDATE users SET lastLoginAt = NOW(), loginCount = ?, status = ? WHERE id = ?',
