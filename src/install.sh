@@ -56,17 +56,25 @@ fi
 # --- 2. Pembaruan Sistem dan Pemasangan Dependensi Awal ---
 echo_info "Memperbarui paket sistem dan memasang dependensi..."
 apt-get update
+
+# [PERBAIKAN] Menambahkan langkah untuk memperbaiki paket yang mungkin rusak sebelum instalasi utama
+echo_info "Memeriksa dan memperbaiki dependensi paket yang mungkin rusak..."
+apt-get --fix-broken install -y
+apt-get autoremove -y
+
+echo_info "Melanjutkan instalasi dependensi utama..."
 apt-get upgrade -y
 # Tambahkan DEBIAN_FRONTEND untuk mencegah prompt interaktif, meningkatkan keandalan.
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan Sebelum Konfigurasi ---
+# --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
 echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
 systemctl start mariadb
 systemctl enable mariadb
 
 # Loop cerdas untuk menunggu MariaDB siap menerima koneksi, bukan hanya memeriksa file socket.
+# Ini mencegah error 'Connection refused (111)'.
 MAX_WAIT=30
 COUNT=0
 echo_info "Menunggu MariaDB siap..."
