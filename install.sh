@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #
 # =================================================================
@@ -112,13 +111,13 @@ mariadb -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
   DROP DATABASE IF EXISTS test;
 
   -- Membuat database aplikasi jika belum ada.
-  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   
   -- Membuat pengguna aplikasi dengan kata sandi yang aman.
   CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
   
   -- Memberikan semua hak kepada pengguna aplikasi untuk database mereka.
-  GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+  GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '$DB_USER'@'localhost';
   
   -- Memuat ulang hak istimewa untuk menerapkan semua perubahan.
   FLUSH PRIVILEGES;
