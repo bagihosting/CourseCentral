@@ -89,7 +89,7 @@ systemctl enable mariadb
 echo_info "Memberi waktu 5 detik bagi MariaDB untuk melakukan inisialisasi penuh..."
 sleep 5
 
-# --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
+# --- 3. Setup Database MariaDB (Metode Anti-Gagal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
@@ -97,12 +97,14 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
-# Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-mariadb -u root --protocol=socket --batch <<-EOSQL
-  -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
-  ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
+# LANGKAH 1: Amankan root user dengan kata sandi baru.
+# Ini adalah metode non-interaktif yang paling andal.
+mariadb-admin -u root password "$DB_ROOT_PASS"
+echo_success "Kata sandi root MariaDB berhasil diamankan."
 
+# LANGKAH 2: Sekarang gunakan kata sandi root baru untuk membuat database dan pengguna aplikasi.
+# Metode ini jauh lebih andal karena otentikasi sekarang eksplisit.
+mariadb -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
   -- Menghapus pengguna anonim untuk keamanan.
   DROP USER IF EXISTS ''@'localhost';
 
@@ -110,7 +112,7 @@ mariadb -u root --protocol=socket --batch <<-EOSQL
   DROP DATABASE IF EXISTS test;
 
   -- Membuat database aplikasi jika belum ada.
-  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+  CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   
   -- Membuat pengguna aplikasi dengan kata sandi yang aman.
   CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
@@ -122,7 +124,8 @@ mariadb -u root --protocol=socket --batch <<-EOSQL
   FLUSH PRIVILEGES;
 EOSQL
 
-echo_success "Database dan pengguna berhasil dikonfigurasi."
+echo_success "Database dan pengguna aplikasi berhasil dibuat."
+
 
 # --- 4. Impor Skema Database ---
 echo_info "Mengimpor tabel dan data awal dari file 'schema.sql' secara otomatis..."
