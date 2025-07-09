@@ -71,7 +71,8 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-mariadb --no-defaults --protocol=socket --batch <<-EOSQL
+# Menambahkan --protocol=socket untuk memastikan koneksi tidak melalui TCP/IP yang mungkin memerlukan kata sandi.
+mariadb --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
