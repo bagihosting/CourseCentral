@@ -1,3 +1,4 @@
+
 #!/bin/bash
 #
 # =================================================================
@@ -204,7 +205,7 @@ echo_info "Menggunakan socket PHP-FPM di: $PHP_SOCKET_PATH"
 # Selalu timpa konfigurasi Nginx untuk memastikan yang terbaru
 # Konfigurasi ini termasuk block untuk phpMyAdmin
 # Dengan sistem multitenancy, kita hanya perlu wildcard `_` untuk menangkap semua domain.
-# Aplikasi Next.js akan menangani routing berdasarkan Host header.
+# Aplikasi Next.js (middleware) akan menangani routing berdasarkan Host header.
 NGINX_CONFIG="
 server {
     listen 80;

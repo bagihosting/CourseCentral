@@ -2,7 +2,7 @@
 'use server';
 
 import { pool } from '@/lib/db';
-import type { InstructorApplication, InstructorBranding } from '@/types';
+import type { InstructorApplication } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export async function applyForInstructor(userId: string): Promise<void> {
@@ -89,35 +89,5 @@ export async function rejectInstructorApplication(applicationId: string): Promis
         throw error;
     } finally {
         connection.release();
-    }
-}
-
-export async function getInstructorBranding(userId: string): Promise<InstructorBranding | null> {
-    try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM instructor_branding WHERE userId = ?', [userId]);
-        if (rows.length === 0) {
-            return null;
-        }
-        return rows[0] as InstructorBranding;
-    } catch (error) {
-        console.error("Gagal mengambil data branding:", error);
-        throw error;
-    }
-}
-
-export async function saveInstructorBranding(userId: string, data: Partial<Omit<InstructorBranding, 'userId'>>): Promise<void> {
-    const { customDomain, brandName, brandLogoUrl, brandPrimaryColor } = data;
-    
-    try {
-        // REPLACE INTO is a MySQL-specific command that simplifies the "upsert" logic.
-        // It will INSERT a new row if the primary key (userId) doesn't exist.
-        // If the primary key does exist, it will DELETE the old row and INSERT the new one.
-        await pool.query(
-            `REPLACE INTO instructor_branding (userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?)`,
-            [userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor]
-        );
-    } catch(error) {
-        console.error("Gagal menyimpan data branding:", error);
-        throw error;
     }
 }

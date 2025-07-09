@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { User } from '@/types';
@@ -31,12 +32,7 @@ export async function getAuthUser(connection?: PoolConnection): Promise<User> {
         throw new Error('Not Authenticated. Sesi tidak valid atau telah berakhir.');
     }
     
-    const [rows] = await db.query<RowDataPacket[]>(`
-        SELECT u.*, ib.customDomain 
-        FROM users u
-        LEFT JOIN instructor_branding ib ON u.id = ib.userId
-        WHERE u.id = ?
-    `, [userId]);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [userId]);
 
     if (rows.length === 0) {
         throw new Error('User not found.');
@@ -58,6 +54,5 @@ export async function getAuthUser(connection?: PoolConnection): Promise<User> {
         affiliateBalance: Number(user.affiliateBalance),
         affiliatePaid: Number(user.affiliatePaid),
         loginCount: Number(user.loginCount),
-        customDomain: user.customDomain
     };
 }

@@ -40,6 +40,7 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
    DB_USER="root"
    DB_PASSWORD=""
    DB_NAME="coursecentral_db"
+   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
    ```
    Jika password `root` MariaDB Anda berbeda, silakan sesuaikan `DB_PASSWORD`.
 
@@ -103,13 +104,12 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     - Menghentikan proses lama yang mungkin berjalan di port 3000.
     - Menjalankan aplikasi Anda dengan PM2.
     - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan **phpMyAdmin**.
-    - **Secara otomatis mendeteksi dan mengkonfigurasi semua domain kustom** yang telah diatur oleh para pengajar di database.
     - **Menginstal dan mengkonfigurasi Fail2Ban** untuk keamanan server dari serangan brute-force.
     - **Mengatur backup database otomatis** yang berjalan setiap hari.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 
-1.  **Isi API Key**: Skrip telah secara otomatis membuat dan mengisi file `.env.local` dengan semua kredensial database yang diperlukan. **Satu-satunya hal yang perlu Anda lakukan** adalah mengedit file ini dan memasukkan `GEMINI_API_KEY` Anda.
+1.  **Isi API Key**: Skrip telah secara otomatis membuat dan mengisi file `.env.local` dengan semua kredensial database yang diperlukan. **Satu-satunya hal yang perlu Anda lakukan** adalah mengedit file ini dan memasukkan `GEMINI_API_KEY` dan `NEXT_PUBLIC_BASE_URL` Anda.
     ```bash
     # Pastikan Anda masih berada di dalam folder proyek Anda
     nano .env.local
@@ -208,22 +208,18 @@ Setelah nameserver Anda aktif, kembali ke dasbor Cloudflare Anda.
     -   **Name**: `@` (ini mewakili domain utama Anda)
     -   **IPv4 address**: Masukkan **alamat IP server VPS Anda**.
     -   **Proxy status**: Pastikan ikon awan berwarna **oranye** (Proxied). Ini yang mengaktifkan semua fitur keamanan Cloudflare.
-3.  (Opsional) Jika Anda ingin subdomain `www` juga berfungsi, buat `CNAME record`:
-    -   **Type**: `CNAME`
-    -   **Name**: `www`
-    -   **Target**: `@` atau `domainanda.com`
-    -   **Proxy status**: Pastikan ikon awan berwarna **oranye** (Proxied).
-4.  (Penting) Jika Anda menggunakan **Domain Kustom** untuk instruktur, Anda harus membuat `CNAME record` untuk setiap domain tersebut di Cloudflare, mengarahkannya ke domain utama Anda.
-    -   **Type**: `CNAME`
-    -   **Name**: `kursus.domaininstruktur.com`
-    -   **Target**: `domainutamaanda.com`
+3.  (Penting) Untuk **Sistem SaaS Multi-Tenant**: Anda harus membuat `A record` **wildcard** untuk menangani semua subdomain secara otomatis.
+    -   **Type**: `A`
+    -   **Name**: `*` (tanda bintang)
+    -   **IPv4 address**: Masukkan **alamat IP server VPS Anda**.
     -   **Proxy status**: **Oranye** (Proxied).
+    - Ini akan menangani `subdomain1.domainanda.com`, `subdomain2.domainanda.com`, dan seterusnya.
 
 ### Langkah 3: Konfigurasi Keamanan di Cloudflare
 
 1.  Buka menu **SSL/TLS**. Di tab **Overview**, pastikan mode enkripsi Anda adalah **Full (Strict)**. Ini adalah yang paling aman.
 2.  Agar mode **Full (Strict)** berfungsi, Anda harus menginstal sertifikat SSL di server Anda.
-    -   **Jika menggunakan Metode 1 (Nginx)**: Jalankan `sudo certbot --nginx` di server Anda setelah mengarahkan domain.
+    -   **Jika menggunakan Metode 1 (Nginx)**: Jalankan `sudo certbot --nginx` di server Anda setelah mengarahkan domain. Certbot akan secara otomatis mendeteksi domain utama dan wildcard Anda untuk membuat sertifikat yang sesuai.
     -   **Jika menggunakan Metode 2 (Docker)**: Biasanya, Anda akan menempatkan Nginx atau reverse proxy lain (seperti Traefik) di depan Docker untuk menangani SSL. Konfigurasi Nginx dari **Metode 1** dapat diadaptasi untuk ini.
 3.  Buka menu **Security > Bots**. Aktifkan **Bot Fight Mode**. Ini akan secara otomatis memblokir banyak bot jahat.
 

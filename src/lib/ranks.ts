@@ -1,5 +1,6 @@
 
-import { Shield, Star, Award, Crown, BookUser } from 'lucide-react';
+
+import { Shield, Star, Award, Crown, BookUser, Store } from 'lucide-react';
 import type { ElementType } from 'react';
 
 export type Rank = {
@@ -8,9 +9,12 @@ export type Rank = {
   color: string;
 };
 
-export function getRank(completedCourses: number, role: 'admin' | 'member' | 'pro' | 'instructor'): Rank {
+export function getRank(completedCourses: number, role: 'admin' | 'member' | 'pro' | 'instructor' | 'reseller'): Rank {
   if (role === 'admin') {
     return { title: 'Admin', icon: Shield, color: 'text-primary' };
+  }
+  if (role === 'reseller') {
+    return { title: 'Reseller', icon: Store, color: 'text-teal-400' };
   }
   if (role === 'instructor') {
     return { title: 'Pengajar', icon: BookUser, color: 'text-sky-400' };

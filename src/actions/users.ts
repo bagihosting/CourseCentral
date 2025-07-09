@@ -20,11 +20,10 @@ export async function getAllUsers(): Promise<User[]> {
   const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>(`
-      SELECT u.*, ib.customDomain
-      FROM users u
-      LEFT JOIN instructor_branding ib ON u.id = ib.userId
-      WHERE u.tenant_id = ?
-      ORDER BY u.createdAt DESC
+      SELECT *
+      FROM users
+      WHERE tenant_id = ?
+      ORDER BY createdAt DESC
     `, [tenantId]);
     return rows.map(row => ({
         ...row,
@@ -35,7 +34,6 @@ export async function getAllUsers(): Promise<User[]> {
         loginCount: Number(row.loginCount),
         lessonsCreatedToday: Number(row.lessons_created_today),
         lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,
-        customDomain: row.customDomain
     })) as User[];
   } catch (error) {
     console.error("🔴 Gagal mengambil semua pengguna:", error);

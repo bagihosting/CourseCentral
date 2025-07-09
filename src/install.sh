@@ -1,8 +1,9 @@
+
 #!/bin/bash
 #
 # =================================================================
 # Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 20.04, 22.04 & 24.04
-# Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
+# Termasuk: Nginx, MariaDB, Node.js, PM2, phpMyAdmin, Fail2Ban, dan Backup Otomatis.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
 
@@ -152,6 +153,8 @@ DB_PORT="3306"
 DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
 DB_NAME="$DB_NAME"
+# Atur domain utama aplikasi Anda di sini setelah deployment
+NEXT_PUBLIC_BASE_URL="http://ALAMAT_IP_ATAU_DOMAIN_UTAMA_ANDA"
 EOF
 
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
@@ -167,6 +170,7 @@ echo_warn "  ╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═�
 echo_warn "                                                                       "
 echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini!  "
 echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
+echo_warn "  Juga, jangan lupa untuk mengatur NEXT_PUBLIC_BASE_URL Anda!         "
 echo_warn "                                                                       "
 echo_warn "======================================================================="
 
@@ -187,17 +191,6 @@ echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
 # --- 9. Konfigurasi Nginx ---
-echo_info "Mengambil domain kustom dari database..."
-# -sN flag agar output bersih tanpa header atau border
-CUSTOM_DOMAINS=$(mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -sN -e "SELECT customDomain FROM instructor_branding WHERE customDomain IS NOT NULL AND customDomain != '';")
-DOMAIN_LIST_FOR_NGINX=$(echo $CUSTOM_DOMAINS | tr '\n' ' ')
-
-if [ -n "$DOMAIN_LIST_FOR_NGINX" ]; then
-    echo_success "Domain kustom ditemukan dan akan dikonfigurasi: $DOMAIN_LIST_FOR_NGINX"
-else
-    echo_info "Tidak ada domain kustom yang dikonfigurasi. Melanjutkan dengan konfigurasi standar."
-fi
-
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -211,16 +204,16 @@ echo_info "Menggunakan socket PHP-FPM di: $PHP_SOCKET_PATH"
 
 # Selalu timpa konfigurasi Nginx untuk memastikan yang terbaru
 # Konfigurasi ini termasuk block untuk phpMyAdmin
+# Dengan sistem multitenancy, kita hanya perlu wildcard `_` untuk menangkap semua domain.
+# Aplikasi Next.js (middleware) akan menangani routing berdasarkan Host header.
 NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
 
-    # Ganti 'domainanda.com' dengan nama domain Anda yang sebenarnya
-    # Anda bisa melakukannya setelah instalasi dan setelah mengarahkan domain Anda.
-    # Untuk awal, '_' sudah cukup untuk menangkap permintaan via IP.
-    # Semua domain kustom dari database akan ditambahkan di sini secara otomatis.
-    server_name _ $DOMAIN_LIST_FOR_NGINX;
+    # Tangkap semua domain/subdomain yang diarahkan ke IP ini.
+    # Logika routing ditangani oleh aplikasi Next.js (middleware).
+    server_name _;
     
     root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
@@ -260,7 +253,7 @@ server {
     }
 }"
 echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin dan domain kustom."
+echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan multitenancy."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
@@ -328,7 +321,66 @@ echo_info "Memulai ulang Fail2Ban untuk menerapkan aturan baru..."
 systemctl restart fail2ban
 systemctl enable fail2ban
 
-# --- 12. Atur PM2 untuk memulai saat boot ---
+# --- 12. Setup Backup Database Otomatis ---
+echo_info "Mengkonfigurasi backup database otomatis..."
+# Membuat direktori backup yang aman (tidak dapat diakses web)
+mkdir -p /var/backups/mariadb
+
+# Membuat file kredensial yang aman untuk mysqldump
+echo_info "Membuat file kredensial .my.cnf yang aman..."
+cat > /root/.my.cnf << EOF
+[mysqldump]
+user=$DB_USER
+password=$DB_PASS
+host=127.0.0.1
+[mysql]
+user=$DB_USER
+password=$DB_PASS
+host=127.0.0.1
+EOF
+chmod 600 /root/.my.cnf
+echo_success "File .my.cnf berhasil dibuat dengan izin yang aman."
+
+# Membuat skrip backup
+echo_info "Membuat skrip backup..."
+BACKUP_SCRIPT_PATH="/usr/local/bin/backup_mariadb.sh"
+cat > "$BACKUP_SCRIPT_PATH" << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/mariadb"
+DB_NAME="coursecentral_db"
+TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/$DB_NAME-$TIMESTAMP.sql.gz"
+RETENTION_DAYS=7
+
+echo "Memulai backup untuk database '$DB_NAME'..."
+# Menggunakan file .my.cnf secara implisit karena berada di /root
+mysqldump "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+  echo "Backup berhasil disimpan ke: $BACKUP_FILE"
+else
+  echo "ERROR: Backup database gagal." >&2
+  exit 1
+fi
+
+echo "Membersihkan backup yang lebih tua dari $RETENTION_DAYS hari..."
+find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +$RETENTION_DAYS -exec rm -f {} \;
+echo "Pembersihan selesai."
+EOF
+chmod +x "$BACKUP_SCRIPT_PATH"
+echo_success "Skrip backup telah dibuat di $BACKUP_SCRIPT_PATH"
+
+# Membuat cron job
+echo_info "Menjadwalkan backup otomatis harian..."
+cat > /etc/cron.d/coursecentral_backup << EOF
+# Backup otomatis harian untuk database CourseCentral
+30 2 * * * root $BACKUP_SCRIPT_PATH >> /var/log/backup_mariadb.log 2>&1
+EOF
+chmod 0644 /etc/cron.d/coursecentral_backup
+systemctl restart cron
+echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
+
+# --- 13. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
 sudo -u $RUN_USER pm2 save
@@ -350,8 +402,9 @@ echo "  - phpMyAdmin      : http://<ALAMAT_IP_SERVER_ANDA>/phpmyadmin"
 echo ""
 echo_info "LANGKAH SELANJUTNYA:"
 echo "  1. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
-echo "  2. Arahkan nama domain Anda ke alamat IP server ini."
-echo "  3. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
-echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
+echo "  2. Edit file .env.local untuk mengatur NEXT_PUBLIC_BASE_URL Anda dengan domain utama."
+echo "  3. Arahkan nama domain Anda (dan wildcard *.domainanda.com) ke alamat IP server ini."
+echo "  4. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
+echo "  5. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"

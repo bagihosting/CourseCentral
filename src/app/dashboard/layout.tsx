@@ -36,6 +36,8 @@ import {
   Banknote,
   BookOpen,
   KeyRound,
+  Store,
+  Building,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -47,10 +49,12 @@ import { ReferredByBadge } from '@/components/referred-by-badge';
 // Define navigation items as constants for clarity and reliability
 const adminNavItems = [
   { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
+  { href: '/dashboard/admin/tenants', icon: Building, label: 'Manajemen Tenant' },
   { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
   { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
   { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
   { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
+  { href: '/dashboard/admin/reseller-requests', icon: Store, label: 'Permintaan Reseller'},
   { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
   { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
   { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
@@ -63,6 +67,19 @@ const adminNavItems = [
   { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
 ];
 
+const resellerNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/reseller/tenant-management', icon: Building, label: 'Manajemen Tenant' },
+  { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
+  { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
+  { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
+  { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
+  { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
+  { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
+  { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
+];
+
 const instructorNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
   { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
@@ -73,7 +90,6 @@ const instructorNavItems = [
   { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
   { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
   { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
-  { href: '/dashboard/instructor/branding', icon: Palette, label: 'Pengaturan Merek' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
 
@@ -86,6 +102,7 @@ const proNavItems = [
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
   { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
+  { href: '/dashboard/reseller/apply', icon: Store, label: 'Jadi Reseller' },
   { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
@@ -138,6 +155,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     switch (user.role) {
       case 'admin':
         return adminNavItems;
+      case 'reseller':
+        return resellerNavItems;
       case 'instructor':
         return instructorNavItems;
       case 'pro':

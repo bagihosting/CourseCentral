@@ -12,19 +12,13 @@ import { getActiveTenantId } from './utils';
 
 export async function getUserById(id: string): Promise<User | undefined> {
   try {
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT u.*, ib.customDomain 
-        FROM users u
-        LEFT JOIN instructor_branding ib ON u.id = ib.userId
-        WHERE u.id = ?
-    `, [id]);
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [id]);
     if (rows.length > 0) {
       const user = rows[0] as User;
       // Konversi tipe data jika perlu (misalnya, dari TinyInt ke boolean)
       return {
         ...user,
         loginCount: Number(user.loginCount),
-        customDomain: user.customDomain
       };
     }
     return undefined;
@@ -37,12 +31,7 @@ export async function getUserById(id: string): Promise<User | undefined> {
 export async function validateUser(username: string, password: string): Promise<User | null> {
     const activeTenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT u.*, ib.customDomain
-            FROM users u
-            LEFT JOIN instructor_branding ib ON u.id = ib.userId
-            WHERE u.username = ?
-        `, [username]);
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);
 
         if (rows.length === 0) {
             return null; // Pengguna tidak ditemukan
@@ -79,7 +68,6 @@ export async function validateUser(username: string, password: string): Promise<
                 lastLoginAt: new Date().toISOString(),
                 loginCount: newLoginCount,
                 status: 'active',
-                customDomain: user.customDomain,
             };
         }
 

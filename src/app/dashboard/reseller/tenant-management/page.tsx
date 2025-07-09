@@ -10,18 +10,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getInstructorBranding, saveInstructorBranding } from '@/actions/instructor';
-import { Loader2, Save, Palette, AlertTriangle, Link as LinkIcon } from 'lucide-react';
-import type { InstructorBranding } from '@/types';
+import { getTenantForReseller, createOrUpdateTenantForReseller } from '@/actions/reseller';
+import { Loader2, Save, Building, AlertTriangle, Link as LinkIcon, CheckCircle } from 'lucide-react';
+import type { Tenant } from '@/types';
 import Image from 'next/image';
 
-export default function BrandingSettingsPage() {
+export default function TenantManagementPage() {
     const { user, loading: userLoading } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const [customDomain, setCustomDomain] = useState('');
+    const [tenant, setTenant] = useState<Tenant | null>(null);
+    const [subdomain, setSubdomain] = useState('');
     const [brandName, setBrandName] = useState('');
     const [brandLogoUrl, setBrandLogoUrl] = useState('');
     const [brandPrimaryColor, setBrandPrimaryColor] = useState('#6a2cf5'); // Default to platform primary
@@ -29,12 +30,13 @@ export default function BrandingSettingsPage() {
     useEffect(() => {
         async function fetchData() {
             if (user) {
-                const settings = await getInstructorBranding(user.id);
-                if (settings) {
-                    setCustomDomain(settings.customDomain || '');
-                    setBrandName(settings.brandName || '');
-                    setBrandLogoUrl(settings.brandLogoUrl || '');
-                    setBrandPrimaryColor(settings.brandPrimaryColor || '#6a2cf5');
+                const existingTenant = await getTenantForReseller(user.id);
+                if (existingTenant) {
+                    setTenant(existingTenant);
+                    setSubdomain(existingTenant.subdomain || '');
+                    setBrandName(existingTenant.brandName || '');
+                    setBrandLogoUrl(existingTenant.brandLogoUrl || '');
+                    setBrandPrimaryColor(existingTenant.brandPrimaryColor || '#6a2cf5');
                 }
             }
             setLoading(false);
@@ -44,18 +46,27 @@ export default function BrandingSettingsPage() {
         }
     }, [user, userLoading]);
 
+    const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        setSubdomain(value);
+    };
+
     const handleSave = async () => {
         if (!user) return;
+        if (!subdomain || !brandName) {
+            toast({ title: 'Gagal', description: 'Subdomain dan Nama Merek wajib diisi.', variant: 'destructive'});
+            return;
+        }
         setIsSaving(true);
         try {
-            const data: Partial<InstructorBranding> = {
-                customDomain: customDomain || null,
-                brandName: brandName || null,
-                brandLogoUrl: brandLogoUrl || null,
-                brandPrimaryColor: brandPrimaryColor || null,
-            };
-            await saveInstructorBranding(user.id, data);
-            toast({ title: 'Sukses', description: 'Pengaturan merek Anda telah disimpan.' });
+            await createOrUpdateTenantForReseller({
+                resellerId: user.id,
+                subdomain,
+                brandName,
+                brandLogoUrl: brandLogoUrl || undefined,
+                brandPrimaryColor: brandPrimaryColor || undefined
+            });
+            toast({ title: 'Sukses', description: 'Pengaturan tenant Anda telah disimpan.' });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
             toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
@@ -67,7 +78,15 @@ export default function BrandingSettingsPage() {
     const [mainPlatformDomain, setMainPlatformDomain] = useState('');
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            setMainPlatformDomain(window.location.hostname);
+            const hostname = window.location.hostname;
+            // Handle localhost and production domains
+            if (hostname === 'localhost') {
+                setMainPlatformDomain('localhost:3000');
+            } else {
+                // Extracts the main domain (e.g., 'example.com' from 'www.example.com')
+                const parts = hostname.split('.');
+                setMainPlatformDomain(parts.slice(-2).join('.'));
+            }
         }
     }, []);
 
@@ -76,12 +95,12 @@ export default function BrandingSettingsPage() {
         return <Skeleton className="w-full h-96" />;
     }
 
-    if (user?.role !== 'instructor' && user?.role !== 'admin') {
+    if (user?.role !== 'reseller') {
         return (
             <Card>
                 <CardHeader>
                     <CardTitle>Akses Ditolak</CardTitle>
-                    <CardDescription>Hanya Pengajar yang dapat mengakses halaman ini.</CardDescription>
+                    <CardDescription>Hanya Reseller yang dapat mengakses halaman ini.</CardDescription>
                 </CardHeader>
             </Card>
         );
@@ -91,35 +110,48 @@ export default function BrandingSettingsPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Palette /> Pengaturan Merek (White-Label)</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Building /> Manajemen Tenant</CardTitle>
                     <CardDescription>
-                        Sesuaikan tampilan platform agar terlihat seperti milik Anda. Dengan domain kustom, link afiliasi Anda akan otomatis menggunakan domain tersebut.
+                        Atur identitas unik untuk platform kursus Anda. Setelah disimpan, situs Anda akan aktif di subdomain yang Anda pilih.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    {tenant && (
+                         <Alert variant="default" className="border-green-500/50 text-green-700 dark:text-green-400 [&>svg]:text-green-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <AlertTitle>Situs Anda Aktif!</AlertTitle>
+                            <AlertDescription>
+                                Anda dapat mengunjungi situs Anda di: 
+                                <a href={`http://${tenant.subdomain}.${mainPlatformDomain}`} target="_blank" rel="noopener noreferrer" className="font-bold underline ml-1">
+                                    {`http://${tenant.subdomain}.${mainPlatformDomain}`}
+                                </a>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Penting: Konfigurasi DNS</AlertTitle>
                         <AlertDescription>
-                            Agar Domain Kustom berfungsi, Anda **HARUS** membuat `CNAME record` di pengaturan DNS domain Anda untuk mengarahkan subdomain Anda ke domain platform ini: <strong className="font-mono">{mainPlatformDomain}</strong>.
+                            Agar subdomain Anda berfungsi, Anda **HARUS** membuat `CNAME record` di pengaturan DNS domain Anda untuk mengarahkan subdomain Anda ke domain platform ini: <strong className="font-mono">{mainPlatformDomain}</strong>.
                             <br />
-                            Contoh: `CNAME kursus.brandanda.com -> {mainPlatformDomain}`.
+                            Contoh: `CNAME {subdomain || 'subdomainanda'}.domainanda.com -> {mainPlatformDomain}`.
                             <br/>
                              Perubahan DNS mungkin memerlukan waktu hingga 24 jam untuk aktif.
                         </AlertDescription>
                     </Alert>
 
                     <div className="space-y-2">
-                        <Label htmlFor="customDomain">Domain Kustom (Opsional)</Label>
+                        <Label htmlFor="subdomain">Subdomain Pilihan Anda</Label>
                         <div className="flex items-center">
-                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-muted h-10"><LinkIcon className="h-4 w-4 text-muted-foreground"/></span>
                              <Input 
-                                id="customDomain" 
-                                value={customDomain} 
-                                onChange={(e) => setCustomDomain(e.target.value)} 
-                                placeholder="kursus.brandanda.com"
-                                className="rounded-l-none"
+                                id="subdomain" 
+                                value={subdomain} 
+                                onChange={handleSubdomainChange} 
+                                placeholder="akademikoding"
+                                className="rounded-r-none"
                             />
+                            <span className="inline-flex items-center px-3 text-sm text-muted-foreground rounded-r-md border border-l-0 bg-muted h-10">.{mainPlatformDomain}</span>
                         </div>
                     </div>
 
@@ -164,7 +196,7 @@ export default function BrandingSettingsPage() {
                 <CardFooter>
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Simpan Pengaturan
+                        {tenant ? 'Simpan Perubahan' : 'Buat Tenant Saya'}
                     </Button>
                 </CardFooter>
             </Card>

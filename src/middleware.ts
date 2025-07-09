@@ -1,6 +1,4 @@
 
-'use server';
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySubdomain } from '@/actions/tenants';
 

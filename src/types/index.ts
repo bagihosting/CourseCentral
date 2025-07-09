@@ -1,22 +1,22 @@
 
-
 export type Tenant = {
   id: string;
   name: string;
   subdomain: string;
   ownerId: string;
   createdAt: string;
-  brandLogoUrl?: string | null;
-  brandPrimaryColor?: string | null;
+  brandName: string | null;
+  brandLogoUrl: string | null;
+  brandPrimaryColor: string | null;
 };
 
 export type User = {
   id: string;
-  tenant_id: string; // Ditambahkan
+  tenant_id: string; 
   name: string;
   username: string;
   password?: string; // Should be optional on client, required on server
-  role: 'admin' | 'member' | 'pro' | 'instructor';
+  role: 'admin' | 'member' | 'pro' | 'instructor' | 'reseller';
   avatarUrl: string;
   whatsapp?: string;
   createdAt: string | null;
@@ -26,22 +26,22 @@ export type User = {
   referralCode: string;
   referredBy?: string | null;
   instructorStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  resellerStatus: 'none' | 'pending' | 'approved' | 'rejected';
   lessonsCreatedToday: number;
   lastLessonCreatedAt: string | null;
   affiliateBalance: number;
   affiliatePaid: number;
-  customDomain: string | null;
 };
 
 // For registering a new user, password is required
-export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid' | 'customDomain' > & { password: string, referredBy?: string, avatarUrl?: string };
+export type RegisterUserInput = Omit<User, 'id' | 'role' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'instructorStatus' | 'resellerStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid' > & { password: string, referredBy?: string, avatarUrl?: string };
 // For updating, all fields are optional
-export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'instructorStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid' | 'customDomain'>>;
+export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt' | 'lastLoginAt' | 'status' | 'loginCount' | 'referralCode' | 'referredBy' | 'instructorStatus' | 'resellerStatus' | 'lessonsCreatedToday' | 'lastLessonCreatedAt' | 'affiliateBalance' | 'affiliatePaid'>>;
 
 
 export type Course = {
   id: string;
-  tenant_id: string; // Ditambahkan
+  tenant_id: string;
   title: string;
   description: string;
   instructor: string;
@@ -109,13 +109,14 @@ export type InstructorApplication = {
   userAvatar: string;
 }
 
-export type InstructorBranding = {
+export type ResellerApplication = {
+  id: string;
   userId: string;
-  customDomain: string | null;
-  brandName: string | null;
-  brandLogoUrl: string | null;
-  brandPrimaryColor: string | null;
-};
+  requestDate: string;
+  status: 'pending' | 'approved' | 'rejected';
+  userName: string;
+  userAvatar: string;
+}
 
 export type Commission = {
     id: string;
@@ -178,7 +179,7 @@ export type Testimonial = {
   userId: string;
   userName: string;
   userAvatar: string;
-  userRole: 'member' | 'pro' | 'instructor';
+  userRole: 'member' | 'pro' | 'instructor' | 'reseller';
   quote: string;
   rating: number; // 1 to 5
   createdAt: string;
