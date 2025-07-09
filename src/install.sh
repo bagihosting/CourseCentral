@@ -65,30 +65,28 @@ apt-get autoremove -y
 
 echo_info "Melanjutkan instalasi dependensi utama..."
 apt-get upgrade -y
-# Tambahkan DEBIAN_FRONTEND untuk mencegah prompt interaktif, meningkatkan keandalan.
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server mariadb-client psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# [PERBAIKAN KRITIS] Inisialisasi direktori data MariaDB secara manual.
-# Ini memperbaiki masalah di beberapa sistem Ubuntu di mana instalasi tidak secara otomatis menjalankan langkah ini.
-echo_info "Menginisialisasi direktori data MariaDB..."
+# [PERBAIKAN KRITIS] Inisialisasi Database yang Kuat
+# Langkah 1: Hentikan layanan MariaDB jika kebetulan sudah berjalan setelah instalasi.
+echo_info "Memastikan MariaDB dihentikan sebelum inisialisasi..."
+systemctl stop mariadb || true
+
+# Langkah 2: Jalankan skrip inisialisasi database secara eksplisit.
+# Ini membuat direktori data dan tabel sistem awal. Ini adalah langkah paling penting.
+echo_info "Menginisialisasi direktori data MariaDB secara paksa..."
 mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
 
-
-# --- [PERBAIKAN KUAT] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
-echo_info "Memastikan layanan MariaDB aktif..."
+# Langkah 3: Mulai layanan MariaDB secara normal SEKARANG setelah inisialisasi.
+echo_info "Memulai layanan MariaDB..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# Memberi jeda 5 detik agar layanan MariaDB memiliki cukup waktu untuk inisialisasi internal sepenuhnya.
-echo_info "Memberi waktu 5 detik bagi MariaDB untuk melakukan inisialisasi penuh..."
-sleep 5
-
-# Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
-# Ini memastikan server tidak hanya berjalan, tetapi juga siap menerima perintah.
-MAX_WAIT=30
+# Langkah 4: Loop tunggu yang andal. Memberi waktu bagi server untuk siap menerima otentikasi.
+MAX_WAIT=60
 COUNT=0
-echo_info "Memverifikasi kesiapan otentikasi MariaDB..."
+echo_info "Menunggu MariaDB siap untuk otentikasi..."
 while ! mariadb -u root --protocol=socket -e "SELECT 1" &> /dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
     echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
@@ -470,4 +468,3 @@ echo ""
 echo_success "Deployment selesai!"
 
 
-    
