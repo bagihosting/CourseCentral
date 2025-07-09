@@ -31,9 +31,17 @@ export async function createApiKey(name: string): Promise<{ apiKey: string }> {
         throw new Error("Hanya admin yang dapat membuat API key.");
     }
 
+    // --- SECURITY MODEL: KEY CREATION ---
+    // 1. Generate a cryptographically secure random string for the key.
     const keyId = `ak_${Date.now()}`;
     const plainTextKey = `${API_KEY_PREFIX}${crypto.randomBytes(KEY_LENGTH_BYTES).toString('hex')}`;
+    
+    // 2. Hash the key using bcrypt. We NEVER store the plain text key.
+    //    bcrypt is the industry standard for password/key hashing because it's slow and includes a salt.
     const hashedKey = await bcrypt.hash(plainTextKey, 10);
+    
+    // 3. Store a short, non-sensitive prefix of the key for quick lookups.
+    //    This avoids having to scan the entire table for a matching key.
     const prefix = plainTextKey.substring(0, API_KEY_PREFIX.length + 4);
 
     await pool.query(
@@ -41,6 +49,7 @@ export async function createApiKey(name: string): Promise<{ apiKey: string }> {
         [keyId, name, hashedKey, prefix, actor.id]
     );
 
+    // 4. Return the plain text key to the admin ONCE. It will not be shown again.
     return { apiKey: plainTextKey };
 }
 
@@ -88,15 +97,20 @@ export async function revokeApiKey(keyId: string): Promise<void> {
 
 
 /**
- * Validates a given API key.
- * @param key The plain-text API key from the request.
+ * Validates a given API key. This is the core of the API security model.
+ * @param key The plain-text API key from the request header.
  * @returns `true` if the key is valid, `false` otherwise.
  */
 export async function validateApiKey(key: string): Promise<boolean> {
+    // --- SECURITY MODEL: KEY VALIDATION ---
+
+    // 1. Basic format check. If it doesn't start with our prefix, it's invalid.
     if (!key || !key.startsWith(API_KEY_PREFIX)) {
         return false;
     }
 
+    // 2. Extract the prefix from the provided key. This allows us to quickly find
+    //    potential candidates in the database without scanning the whole table.
     const prefix = key.substring(0, API_KEY_PREFIX.length + 4);
 
     try {
@@ -105,11 +119,18 @@ export async function validateApiKey(key: string): Promise<boolean> {
             [prefix]
         );
 
+        // 3. If no key in the database has this prefix, it's invalid.
         if (rows.length === 0) {
             return false;
         }
 
+        // 4. Iterate through the candidates (usually just one) and compare the
+        //    full, plain-text key with the stored hash.
         for (const row of rows) {
+            // 5. CRITICAL: Use `bcrypt.compare`. This is essential. A simple `hash(key) === stored_hash`
+            //    is vulnerable to timing attacks. `bcrypt.compare` is designed to take a constant
+            //    amount of time, regardless of whether the comparison succeeds or fails early,
+            //    preventing attackers from guessing the hash character by character.
             const isMatch = await bcrypt.compare(key, row.hashed_key);
             if (isMatch) {
                 // Key is valid. Update last_used_at in the background (fire-and-forget).
@@ -118,9 +139,10 @@ export async function validateApiKey(key: string): Promise<boolean> {
             }
         }
 
+        // 6. If no match was found after checking all candidates, the key is invalid.
         return false;
     } catch (error) {
         console.error("Error validating API key:", error);
-        return false;
+        return false; // Fail safely in case of a database error.
     }
 }
