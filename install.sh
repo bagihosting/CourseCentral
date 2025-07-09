@@ -77,7 +77,8 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-mariadb --batch <<-EOSQL
+# Menambahkan --protocol=socket untuk memastikan koneksi tidak melalui TCP/IP yang mungkin memerlukan kata sandi.
+mariadb --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
@@ -106,7 +107,7 @@ echo_success "Database dan pengguna berhasil dikonfigurasi."
 echo_info "Mengimpor tabel dan data awal dari file 'schema.sql' secara otomatis..."
 # Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
 # Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
-mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
+mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal (termasuk admin default) berhasil diimpor."
 
 
@@ -283,7 +284,7 @@ echo_info "Membuat file konfigurasi kustom di $FAIL2BAN_JAIL_LOCAL_FILE..."
 cat > "$FAIL2BAN_JAIL_LOCAL_FILE" << EOF
 [DEFAULT]
 # Waktu dalam detik. 1h = 3600, 1d = 86400.
-# Kita akan memblokir penyerang secara permanen selama 1 hari.
+# Kita akan memblokir penyerang selama 1 hari.
 bantime = 1d
 # Jendela waktu untuk mendeteksi serangan (misal: 10 menit)
 findtime = 10m
@@ -382,29 +383,46 @@ echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
 
 # --- 13. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
-sudo -u $RUN_USER pm2 save
+# Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
+# Kita menangkap outputnya dan menjalankannya.
+# 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
+STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
+if [ -n "$STARTUP_COMMAND" ]; then
+    echo "Menjalankan perintah startup PM2: $STARTUP_COMMAND"
+    eval "$STARTUP_COMMAND"
+fi
+sudo -u "$RUN_USER" pm2 save
+echo_success "PM2 startup berhasil dikonfigurasi."
 
 echo ""
 echo_success "================= PROSES SELESAI ================="
 echo "Aplikasi Anda sekarang berjalan dan dikelola oleh PM2."
+echo_info "PM2 telah dikonfigurasi untuk memulai aplikasi secara otomatis saat server reboot."
 echo ""
-echo_warn "================ CREDENTIALS DATABASE (HARAP SIMPAN!) ================"
-echo "Kredensial ini juga telah disimpan di $ENV_FILE"
-echo "  - Username Database: $DB_USER"
-echo "  - Password Database: $DB_PASS"
-echo "  - Root Password DB : $DB_ROOT_PASS (Untuk akses phpMyAdmin)"
-echo "=========================================================================="
+echo_warn "=============== INFORMASI PENTING (HARAP SIMPAN!) ==============="
+echo "Kredensial Login Aplikasi (Default):"
+echo "  - Username        : admin"
+echo "  - Password        : password"
+echo ""
+echo "Kredensial Database (Disimpan di $ENV_FILE):"
+echo "  - Username DB     : $DB_USER"
+echo "  - Password DB     : $DB_PASS"
+echo "  - Root Password DB: $DB_ROOT_PASS (Untuk akses phpMyAdmin)"
+echo "===================================================================="
 echo ""
 echo_info "AKSES APLIKASI:"
 echo "  - Aplikasi Next.js: http://<ALAMAT_IP_SERVER_ANDA>"
+echo "  - Login Aplikasi  : Gunakan username 'admin' dan password 'password'."
 echo "  - phpMyAdmin      : http://<ALAMAT_IP_SERVER_ANDA>/phpmyadmin"
 echo ""
 echo_info "LANGKAH SELANJUTNYA:"
-echo "  1. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
-echo "  2. Edit file .env.local untuk mengatur NEXT_PUBLIC_BASE_URL Anda dengan domain utama."
-echo "  3. Arahkan nama domain Anda (dan wildcard *.domainanda.com) ke alamat IP server ini."
-echo "  4. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
-echo "  5. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
+echo "  1. SEGERA UBAH PASSWORD ADMIN DEFAULT setelah login pertama kali."
+echo "  2. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
+echo "  3. Edit file .env.local untuk mengatur NEXT_PUBLIC_BASE_URL Anda dengan domain utama."
+echo "  4. Arahkan nama domain Anda (dan wildcard *.domainanda.com) ke alamat IP server ini."
+echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
+echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
+
+    
