@@ -38,13 +38,13 @@ const generatePromoThumbnailFlow = ai.defineFlow(
 
       1.  **Central Character**: Feature a 3D animated character with distinct Indonesian features, expressing joy and success (e.g., smiling, holding a graduation cap or a certificate). The character should be dressed in modern, smart-casual attire.
       
-      2.  **Dynamic Text**: Integrate bold, dynamic, 3D-style text directly into the image. The text should be a powerful call-to-action in Bahasa Indonesia, such as "Upgrade Skill Kamu!", "Mulai Karir Impianmu!", or "Daftar & Raih Sukses!". The text must be a core part of the composition, not just an overlay.
+      2.  **Theme & Concept**: The image should visually represent concepts like "Upgrading Skills," "Achieving a Dream Career," or "Success Through Learning." The character should be the main focus.
       
       3.  **Background & Elements**:
           - The background should be abstract and professional, with a modern color palette (e.g., gradients of blue, purple, and orange).
           - Include floating abstract shapes and icons related to learning and technology, such as graduation caps, code brackets (<>), or lightbulbs, to create a sense of dynamism.
 
-      4.  **Overall Style**: The final image must be a high-quality, polished 3D render, suitable for a leading online brand. It should look trustworthy and aspirational.
+      4.  **CRITICAL RULE**: The image MUST NOT contain any text, words, or letters. The style must be a high-quality, polished 3D render, suitable for a leading online brand. It should look trustworthy and aspirational.
     `;
 
     const { media } = await ai.generate({

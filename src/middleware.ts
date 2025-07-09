@@ -1,7 +1,7 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySubdomain } from '@/lib/tenants';
 
-// Force the middleware to run on the Node.js runtime for database access.
 export const runtime = 'nodejs';
 
 export async function middleware(request: NextRequest) {
@@ -24,33 +24,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers } });
   }
 
-  // Logic to determine if the host is a subdomain.
-  // This is more robust than using new URL() which can fail.
-  // Assumes production domain has at least 2 parts (e.g., example.com)
-  // and development is on localhost.
-  const hostParts = host.split('.');
-  const isLocalhost = host.includes('localhost');
+  // Handle IP addresses and localhost explicitly for robustness
   const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host);
+  const isLocalhost = host.includes('localhost');
 
-  let subdomain: string | null = null;
-  if (!isLocalhost && !isIpAddress && hostParts.length > 2) {
-      // It's likely a subdomain like `tenant.example.com`
-      subdomain = hostParts[0];
+  if (isIpAddress || isLocalhost) {
+    headers.set('x-tenant-id', 'platform_main');
+    return NextResponse.next({ request: { headers } });
   }
   
-  if (subdomain) {
-    // If it's a subdomain, try to find the tenant.
+  // Handle subdomains for production domains (e.g., app.example.com)
+  const hostParts = host.split('.');
+  if (hostParts.length > 2) {
+    const subdomain = hostParts[0];
     const tenant = await getTenantBySubdomain(subdomain);
     if (tenant) {
-      // Tenant found, set the header and continue.
       headers.set('x-tenant-id', tenant.id);
       return NextResponse.next({ request: { headers } });
     }
-    // If tenant not found, fall through to main platform logic.
   }
   
-  // Default case: It's the main domain, localhost, an IP, or an unknown subdomain.
-  // Serve the main platform content.
+  // Default case: It's the main domain or an unknown subdomain.
   headers.set('x-tenant-id', 'platform_main');
   return NextResponse.next({ request: { headers } });
 }

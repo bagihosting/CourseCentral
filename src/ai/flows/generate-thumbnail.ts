@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating course thumbnails using AI.
@@ -42,22 +43,20 @@ const generateThumbnailFlow = ai.defineFlow(
   async (input) => {
     const prompt = `
       Generate a high-impact thumbnail image for an online course titled "${input.title}".
+      The image should be a visual representation of the course's topic, featuring a central character.
 
-      The image must integrate two key elements seamlessly: a 3D character and compelling marketing text.
+      **CRITICAL INSTRUCTIONS:**
 
-      1.  **The Character**:
+      1.  **Character**:
           *   **Style**: Must be a friendly, engaging 3D animated character.
           *   **Identity**: The character must have distinct Indonesian features (e.g., Southeast Asian skin tone, facial structure).
-          *   **Attire**: The character should wear a modern, stylish batik shirt or dress with vibrant, intricate patterns, and one subtle traditional Indonesian accessory (e.g., a blangkon, an udeng, or a Dayak ornament).
+          *   **Attire**: The character should wear modern, stylish attire relevant to the course topic (e.g., a modern batik shirt for a business course, a casual hoodie for a coding course).
       
-      2.  **The Text**:
-          *   **Content**: Based on the course title, create a short, catchy, clickbait-style headline. For example, if the title is "Belajar Animasi 3D", the headline could be "Master 3D dalam 30 Hari!" or "Animasi Profesional Terungkap!". The text must be in Bahasa Indonesia.
-          *   **Style**: The text must be rendered directly into the image using a bold, dynamic, and high-contrast font. The typography should be professional, eye-catching, and follow modern digital marketing design principles. It must be easily readable.
+      2.  **Concept & Background**:
+          *   The character should be interacting with an object or concept related to the course title. For example, for "Belajar Animasi 3D", the character could be looking at a glowing 3D model. For "Manajemen Keuangan", they could be interacting with a floating chart.
+          *   The background must be simple, clean, and professional, using soft, complementary colors that make the character and concept pop.
       
-      3.  **Composition**:
-          *   The character and the text should be the main focus. The text should be integrated cleverly with the character, perhaps overlapping slightly or positioned to draw the eye.
-          *   The background must be simple, clean, and professional, using soft, complementary colors that make the character and text pop.
-          *   The overall style must be high-quality, polished, and suitable for a leading course platform like Udemy.
+      3.  **ABSOLUTE RULE**: The image MUST NOT contain any text, words, or letters. The focus should be entirely on the visual storytelling. The final output must be a high-quality, polished 3D render suitable for a professional course platform.
     `;
 
     const { media } = await ai.generate({

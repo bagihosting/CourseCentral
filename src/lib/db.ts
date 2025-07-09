@@ -1,3 +1,4 @@
+
 import mysql from 'mysql2/promise';
 
 // Konfigurasi ini akan membaca variabel lingkungan yang disediakan oleh Docker
@@ -53,9 +54,4 @@ async function testConnection() {
         // Jangan throw error di sini agar aplikasi tidak crash saat startup,
         // ini memungkinkan debugging yang lebih mudah.
     }
-}
-
-// Jalankan tes koneksi hanya di lingkungan non-produksi untuk debugging.
-if (process.env.NODE_ENV !== 'production') {
-    testConnection();
 }
