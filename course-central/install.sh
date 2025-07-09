@@ -155,7 +155,7 @@ DB_NAME="$DB_NAME"
 EOF
 
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local telah dibuat dengan kredensial database."
+echo_success "File .env.local berhasil dibuat dan diisi otomatis dengan kredensial database."
 echo_warn "======================================================================="
 echo_warn "                                                                       "
 echo_warn "  ██████╗  █████╗ ███╗   ███╗████████╗██╗███╗   ██╗ ██╗  ██╗             "
@@ -281,7 +281,7 @@ echo_warn "================ CREDENTIALS DATABASE (HARAP SIMPAN!) ===============
 echo "Kredensial ini juga telah disimpan di $ENV_FILE"
 echo "  - Username Database: $DB_USER"
 echo "  - Password Database: $DB_PASS"
-echo "  - Root Password DB : $DB_ROOT_PASS"
+echo "  - Root Password DB : $DB_ROOT_PASS (Untuk akses phpMyAdmin)"
 echo "=========================================================================="
 echo ""
 echo_info "AKSES APLIKASI:"

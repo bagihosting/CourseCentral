@@ -57,15 +57,14 @@ fi
 echo_info "Memperbarui paket sistem dan memasang dependensi..."
 apt-get update
 apt-get upgrade -y
-# Tambahkan psmisc (untuk fuser), phpmyadmin dan dependensi php-nya
-apt-get install -y nginx curl build-essential mariadb-server psmisc \
+# Tambahkan DEBIAN_FRONTEND untuk mencegah prompt interaktif, meningkatkan keandalan.
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
 # --- [LANGKAH BARU] Perbaikan Tabel Sistem Database ---
 echo_info "Memeriksa dan memperbaiki tabel sistem MariaDB..."
 # Perintah ini sangat penting setelah upgrade dan dapat memperbaiki error 'invalid view'.
-# Jalankan dengan sudo untuk memastikan memiliki hak akses yang benar.
-sudo mariadb-upgrade
+mariadb-upgrade
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
@@ -77,7 +76,7 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-sudo mariadb --batch <<-EOSQL
+mariadb --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
@@ -115,7 +114,8 @@ echo_info "Memeriksa instalasi Node.js dan PM2..."
 # Menggunakan repositori NodeSource untuk Node.js 20.x (LTS)
 if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
     echo_info "Memasang Node.js v20 LTS..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    # Menjalankan sebagai root, jadi sudo tidak diperlukan di sini
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
 else
     echo_info "Node.js v20 sudah terpasang."
@@ -155,11 +155,21 @@ DB_NAME="$DB_NAME"
 EOF
 
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local telah dibuat dengan kredensial database."
+echo_success "File .env.local berhasil dibuat dan diisi otomatis dengan kredensial database."
 echo_warn "======================================================================="
+echo_warn "                                                                       "
+echo_warn "  ██████╗  █████╗ ███╗   ███╗████████╗██╗███╗   ██╗ ██╗  ██╗             "
+echo_warn "  ██╔══██╗██╔══██╗████╗ ████║╚══██╔══╝██║████╗  ██║ ██║  ██║             "
+echo_warn "  ██████╔╝███████║██╔████╔██║   ██║   ██║██╔██╗ ██║ ███████║             "
+echo_warn "  ██╔═══╝ ██╔══██║██║╚██╔╝██║   ██║   ██║██║╚██╗██║ ██╔══██║             "
+echo_warn "  ██║     ██║  ██║██║ ╚═╝ ██║   ██║   ██║██║ ╚████║ ██║  ██║             "
+echo_warn "  ╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═╝  ╚═╝             "
+echo_warn "                                                                       "
 echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini!  "
 echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
+echo_warn "                                                                       "
 echo_warn "======================================================================="
+
 
 # --- 8. Mulai Aplikasi dengan PM2 ---
 # Hentikan proses apa pun yang mungkin berjalan di port aplikasi
@@ -271,7 +281,7 @@ echo_warn "================ CREDENTIALS DATABASE (HARAP SIMPAN!) ===============
 echo "Kredensial ini juga telah disimpan di $ENV_FILE"
 echo "  - Username Database: $DB_USER"
 echo "  - Password Database: $DB_PASS"
-echo "  - Root Password DB : $DB_ROOT_PASS"
+echo "  - Root Password DB : $DB_ROOT_PASS (Untuk akses phpMyAdmin)"
 echo "=========================================================================="
 echo ""
 echo_info "AKSES APLIKASI:"

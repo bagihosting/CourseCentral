@@ -105,12 +105,12 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 
-1.  **Isi API Key**: Skrip akan membuat file `.env.local` di dalam folder proyek. Anda **HARUS** mengedit file ini dan memasukkan `GEMINI_API_KEY` Anda.
+1.  **Isi API Key**: Skrip telah secara otomatis membuat dan mengisi file `.env.local` dengan semua kredensial database yang diperlukan. **Satu-satunya hal yang perlu Anda lakukan** adalah mengedit file ini dan memasukkan `GEMINI_API_KEY` Anda.
     ```bash
     # Pastikan Anda masih berada di dalam folder proyek Anda
     nano .env.local
     ```
-2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`.
+2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`. Kredensial login untuk phpMyAdmin (`root` dan password-nya) akan ditampilkan di akhir proses instalasi.
 3.  **Arahkan Domain & Aktifkan Keamanan**: Lanjutkan ke **Metode Keamanan Server** di bawah untuk mengarahkan domain Anda melalui Cloudflare dan mengaktifkan proteksi DDoS.
 
 ---

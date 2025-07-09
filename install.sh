@@ -155,7 +155,7 @@ DB_NAME="$DB_NAME"
 EOF
 
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local telah dibuat dengan kredensial database."
+echo_success "File .env.local berhasil dibuat dan diisi otomatis dengan kredensial database."
 echo_warn "======================================================================="
 echo_warn "                                                                       "
 echo_warn "  ██████╗  █████╗ ███╗   ███╗████████╗██╗███╗   ██╗ ██╗  ██╗             "
