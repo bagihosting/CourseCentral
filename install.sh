@@ -86,20 +86,8 @@ echo_info "Memulai layanan MariaDB..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# --- LOOP TUNGGU PALING ANDAL ---
-echo_info "Memverifikasi kesiapan otentikasi MariaDB (maks. 60 detik)..."
-SECONDS=0
-while ! mariadb -u root --protocol=socket -e "SELECT 1;" &> /dev/null; do
-    sleep 1
-    echo -ne "Menunggu koneksi dan otentikasi MariaDB... (${SECONDS}s)\r"
-    if [ $SECONDS -gt 60 ]; then
-        echo_error "\nMariaDB tidak siap setelah 60 detik. Proses instalasi dibatalkan."
-        echo_error "Silakan periksa log MariaDB dengan 'journalctl -xeu mariadb.service' untuk detail."
-        exit 1
-    fi
-done
-echo_success "\nOtentikasi MariaDB siap setelah $SECONDS detik."
-
+echo_info "Memberi waktu 5 detik bagi MariaDB untuk melakukan inisialisasi penuh..."
+sleep 5
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
