@@ -15,6 +15,21 @@ import Link from 'next/link';
 export default function TenantsPage() {
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
+    const [mainPlatformDomain, setMainPlatformDomain] = useState('');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const hostname = window.location.hostname;
+            // Handle localhost with port for development
+            if (hostname === 'localhost') {
+                setMainPlatformDomain('localhost:3000');
+            } else {
+                // For production, get the main domain (e.g., example.com from sub.example.com)
+                const parts = hostname.split('.');
+                setMainPlatformDomain(parts.length > 2 ? parts.slice(1).join('.') : hostname);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         async function fetchData() {
@@ -84,7 +99,7 @@ export default function TenantsPage() {
                                 <TableRow key={tenant.id}>
                                     <TableCell className="font-medium">{tenant.name}</TableCell>
                                     <TableCell>
-                                        <a href={`http://${tenant.subdomain}.localhost:3000`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-mono">
+                                        <a href={`http://${tenant.subdomain}.${mainPlatformDomain}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-mono">
                                             {tenant.subdomain}
                                         </a>
                                     </TableCell>

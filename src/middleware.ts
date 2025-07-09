@@ -1,69 +1,62 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySubdomain } from '@/lib/tenants';
 
-// Force the middleware to run on the Node.js runtime.
-// This is necessary because it needs to access the database (a Node.js-specific API)
-// to look up tenant information, which is not available in the default Edge runtime.
+// Force the middleware to run on the Node.js runtime for database access.
 export const runtime = 'nodejs';
-
-const PUBLIC_FILE = /\.(.*)$/;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const headers = new Headers(request.headers);
 
-  // Lewati file statis, gambar, dan rute API internal Next.js
+  // Skip static files, images, and internal API routes
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/static') ||
-    PUBLIC_FILE.test(pathname)
+    /\.(.*)$/.test(pathname)
   ) {
     return NextResponse.next();
   }
 
   const host = request.headers.get('host');
   if (!host) {
-    // Jika tidak ada host, lanjutkan saja
-    return NextResponse.next();
+    headers.set('x-tenant-id', 'platform_main');
+    return NextResponse.next({ request: { headers } });
   }
 
-  // Tentukan domain utama dari variabel lingkungan
-  const mainDomain = process.env.NEXT_PUBLIC_BASE_URL 
-    ? new URL(process.env.NEXT_PUBLIC_BASE_URL).hostname 
-    : 'localhost';
+  // Logic to determine if the host is a subdomain.
+  // This is more robust than using new URL() which can fail.
+  // Assumes production domain has at least 2 parts (e.g., example.com)
+  // and development is on localhost.
+  const hostParts = host.split('.');
+  const isLocalhost = host.includes('localhost');
+  const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host);
 
-  // Ekstrak subdomain
-  const subdomain = host.replace(`.${mainDomain}`, '').replace(`:3000`, '');
+  let subdomain: string | null = null;
+  if (!isLocalhost && !isIpAddress && hostParts.length > 2) {
+      // It's likely a subdomain like `tenant.example.com`
+      subdomain = hostParts[0];
+  }
   
-  const headers = new Headers(request.headers);
-
-  if (subdomain !== host.replace(`:3000`, '')) {
-    // Ini adalah subdomain, coba cari tenant
+  if (subdomain) {
+    // If it's a subdomain, try to find the tenant.
     const tenant = await getTenantBySubdomain(subdomain);
     if (tenant) {
-      // Set header tenant-id untuk digunakan di seluruh aplikasi
+      // Tenant found, set the header and continue.
       headers.set('x-tenant-id', tenant.id);
       return NextResponse.next({ request: { headers } });
     }
-    // Jika subdomain tidak ditemukan, bisa diarahkan ke halaman utama atau halaman "tidak ditemukan"
-    // Untuk saat ini, kita biarkan saja, mungkin akan menampilkan halaman 404
+    // If tenant not found, fall through to main platform logic.
   }
   
-  // Jika ini adalah domain utama, set tenant ke 'platform_main'
+  // Default case: It's the main domain, localhost, an IP, or an unknown subdomain.
+  // Serve the main platform content.
   headers.set('x-tenant-id', 'platform_main');
   return NextResponse.next({ request: { headers } });
 }
 
 export const config = {
   matcher: [
-    /*
-     * Cocokkan semua path permintaan kecuali yang dimulai dengan:
-     * - api (rute API)
-     * - _next/static (file statis)
-     * - _next/image (optimisasi gambar)
-     * - favicon.ico (file favicon)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
