@@ -66,21 +66,22 @@ echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# Loop cerdas untuk menunggu socket database siap, mencegah error "Connection Refused".
+# Loop cerdas untuk menunggu MariaDB siap menerima koneksi, bukan hanya memeriksa file socket.
 MAX_WAIT=30
 COUNT=0
-while [ ! -S /run/mysqld/mysqld.sock ]; do
+echo_info "Menunggu MariaDB siap..."
+while ! mariadb-admin ping --protocol=socket &>/dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
-    echo "Menunggu socket MariaDB muncul... (${COUNT}s)"
+    echo "Menunggu koneksi MariaDB... (${COUNT}s)"
     sleep 1
     ((COUNT++))
   else
-    echo_error "Gagal terhubung ke MariaDB: Socket tidak ditemukan setelah ${MAX_WAIT} detik."
-    echo_error "Coba periksa status layanan dengan 'systemctl status mariadb'."
+    echo_error "Gagal terhubung ke MariaDB: Server tidak merespon setelah ${MAX_WAIT} detik."
+    echo_error "Coba periksa status layanan dengan 'systemctl status mariadb' dan log di 'journalctl -u mariadb'."
     exit 1
   fi
 done
-echo_success "Socket MariaDB aktif dan siap menerima koneksi."
+echo_success "Server MariaDB aktif dan siap menerima koneksi."
 
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
@@ -398,15 +399,22 @@ echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
 
 # --- 13. [PERBAIKAN] Atur PM2 untuk memulai saat boot dengan metode yang lebih andal ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
-# Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
+# 'pm2 startup' menghasilkan perintah yang perlu dijalankan sebagai root untuk mengkonfigurasi systemd.
 # Kita menangkap outputnya dan menjalankannya. Ini adalah metode paling andal.
 # 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node dan paket global lainnya.
-STARTUP_COMMAND=$(env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | tail -n 1)
-if [[ -n "$STARTUP_COMMAND" && "$STARTUP_COMMAND" != "[PM2] Nginx configuration file /etc/nginx/sites-enabled/pm2.conf overwritten." ]]; then
+# Tangkap hanya baris terakhir yang berisi perintah `sudo`.
+# Filter `grep` ditambahkan untuk memastikan kita hanya menangkap perintah yang benar.
+STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | grep 'sudo' || true)
+
+if [ -n "$STARTUP_COMMAND" ]; then
     echo "Menjalankan perintah startup PM2 yang dihasilkan: $STARTUP_COMMAND"
+    # Menjalankan perintah yang ditangkap. 'eval' digunakan untuk mengeksekusi string sebagai perintah.
     eval "$STARTUP_COMMAND"
+else
+    echo_warn "Tidak dapat menghasilkan perintah startup PM2. Mungkin sudah dikonfigurasi."
 fi
-# Simpan daftar proses saat ini (yang dijalankan oleh $RUN_USER) agar dapat dihidupkan kembali saat boot
+
+# Simpan daftar proses saat ini (yang dijalankan oleh $RUN_USER) agar dapat dihidupkan kembali saat boot.
 sudo -u "$RUN_USER" pm2 save
 echo_success "PM2 startup berhasil dikonfigurasi."
 
