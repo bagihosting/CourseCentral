@@ -382,8 +382,16 @@ echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
 
 # --- 13. Atur PM2 untuk memulai saat boot ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $RUN_USER --hp $RUN_HOME
-sudo -u $RUN_USER pm2 save
+# Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
+# Kita menangkap outputnya dan menjalankannya.
+# 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
+STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
+if [ -n "$STARTUP_COMMAND" ]; then
+    echo "Menjalankan perintah startup PM2: $STARTUP_COMMAND"
+    eval "$STARTUP_COMMAND"
+fi
+sudo -u "$RUN_USER" pm2 save
+echo_success "PM2 startup berhasil dikonfigurasi."
 
 echo ""
 echo_success "================= PROSES SELESAI ================="

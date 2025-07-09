@@ -107,8 +107,9 @@ function RegisterForm() {
   const [agreed, setAgreed] = useState(false);
 
   const validateWhatsapp = (number: string): boolean => {
-    if (!number) return true; 
-    const whatsappRegex = /^08[1-9][0-9]{7,10}$/;
+    if (!number) return true; // Optional field
+    // Allows for 08..., 628..., +628... and spaces/dashes
+    const whatsappRegex = /^(?:\+?62|0)8[1-9][0-9\s-]{6,12}$/;
     return whatsappRegex.test(number);
   }
 
@@ -134,7 +135,7 @@ function RegisterForm() {
     if (!validateWhatsapp(whatsapp)) {
         toast({ 
             title: 'Nomor WhatsApp Tidak Valid', 
-            description: 'Harap gunakan format nomor provider Indonesia yang benar (Contoh: 081234567890).', 
+            description: 'Format nomor WhatsApp Indonesia tidak benar. Contoh: 081234567890 atau +6281234567890.', 
             variant: 'destructive',
         });
         return;
@@ -171,7 +172,7 @@ function RegisterForm() {
         <Label htmlFor="register-whatsapp">Nomor WhatsApp (Opsional)</Label>
         <Input id="register-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Contoh: 081234567890" />
         <p className="text-xs text-muted-foreground">
-            Hanya nomor provider Indonesia yang diizinkan (diawali dengan 08).
+            Hanya nomor provider Indonesia yang diizinkan (diawali dengan 08 atau 628).
         </p>
       </div>
       <div className="space-y-2">

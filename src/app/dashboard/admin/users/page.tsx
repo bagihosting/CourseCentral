@@ -145,29 +145,27 @@ export default function AdminUsersPage() {
                                                 Aktifkan
                                             </Button>
                                         )}
-                                        {adminUser?.id !== user.id && (
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button size="sm" variant="destructive" disabled={!!processingId}>
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Hapus
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Hapus Pengguna: {user.name}?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Tindakan ini tidak dapat dibatalkan. Semua data terkait pengguna ini (pendaftaran, kemajuan, dll.) akan dihapus secara permanen.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
-                                                            {processingId === user.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Hapus'}
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        )}
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="sm" variant="destructive" disabled={!!processingId || adminUser?.id === user.id} title={adminUser?.id === user.id ? "Anda tidak dapat menghapus akun Anda sendiri" : ""}>
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Hapus Pengguna: {user.name}?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Tindakan ini tidak dapat dibatalkan. Semua data terkait pengguna ini (pendaftaran, kemajuan, dll.) akan dihapus secara permanen.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
+                                                        {processingId === user.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Hapus'}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </TableCell>
                                 </TableRow>
                             ))

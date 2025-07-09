@@ -112,7 +112,7 @@ export async function deleteUser(id: string): Promise<void> {
     const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa menghapus pengguna.");
-    if(actor.id === id) throw new Error("Anda tidak bisa menghapus akun Anda sendiri.");
+    if(actor.id === id) throw new Error("Aksi tidak diizinkan: Anda tidak dapat menghapus akun Anda sendiri.");
     
     // Admin tenant hanya bisa menghapus pengguna di dalam tenant mereka sendiri
     await pool.query('DELETE FROM users WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);
