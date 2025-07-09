@@ -1,3 +1,4 @@
+
 #!/bin/bash
 #
 # =================================================================
@@ -73,23 +74,24 @@ echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# Loop cerdas untuk menunggu MariaDB siap menerima koneksi, bukan hanya memeriksa file socket.
-# Ini mencegah error 'Connection refused (111)'.
+# [PERBAIKAN KUAT] Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
+# Alih-alih hanya memeriksa file socket, kita mencoba menjalankan query sederhana.
+# Ini memastikan server tidak hanya berjalan, tetapi juga siap menerima perintah.
 MAX_WAIT=30
 COUNT=0
-echo_info "Menunggu MariaDB siap..."
-while ! mariadb-admin ping --protocol=socket &>/dev/null; do
+echo_info "Menunggu MariaDB siap untuk otentikasi..."
+while ! mariadb --protocol=socket -e "SELECT 1" &> /dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
-    echo "Menunggu koneksi MariaDB... (${COUNT}s)"
+    echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
     sleep 1
     ((COUNT++))
   else
-    echo_error "Gagal terhubung ke MariaDB: Server tidak merespon setelah ${MAX_WAIT} detik."
+    echo_error "Gagal terhubung dan otentikasi ke MariaDB sebagai root setelah ${MAX_WAIT} detik."
     echo_error "Coba periksa status layanan dengan 'systemctl status mariadb' dan log di 'journalctl -u mariadb'."
     exit 1
   fi
 done
-echo_success "Server MariaDB aktif dan siap menerima koneksi."
+echo_success "Server MariaDB aktif dan siap untuk otentikasi."
 
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
@@ -457,3 +459,4 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
+
