@@ -108,6 +108,7 @@ export default function AdminCoursesPage() {
                     <div className="absolute top-2 left-2 z-10">
                         {getStatusBadge(course.status)}
                     </div>
+                    {/* The CourseCard itself is not a link, the parent is */}
                     <CourseCard course={course} />
                 </Link>
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">

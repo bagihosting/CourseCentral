@@ -2,7 +2,6 @@
 import type { Course } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Gem } from 'lucide-react';
 
@@ -12,15 +11,14 @@ interface CourseCardProps {
 
 export function CourseCard({ course }: CourseCardProps) {
   return (
-    <Link href={`/courses/${course.id}`}>
-      <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
+      <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300 overflow-hidden">
         <CardHeader className="p-0">
           <div className="aspect-video relative">
             <Image
               src={course.imageUrl}
               alt={course.title}
               fill
-              className="object-cover rounded-t-lg"
+              className="object-cover"
               data-ai-hint="course topic"
             />
             {course.accessLevel === 'pro' && (
@@ -42,6 +40,5 @@ export function CourseCard({ course }: CourseCardProps) {
             </Badge>
         </CardFooter>
       </Card>
-    </Link>
   );
 }

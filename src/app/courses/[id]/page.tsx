@@ -57,18 +57,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [course.imageUrl],
       type: 'article',
     },
-     other: {
-      'script[type="application/ld+json"]': JSON.stringify(courseSchema),
+    other: {
+        'script[type="application/ld+json"]': JSON.stringify(courseSchema),
     }
   };
 }
 
 // Generate static paths for all courses
 export async function generateStaticParams() {
-  const courses = await getAllCourses();
-  return courses.map((course) => ({
-    id: course.id,
-  }));
+    try {
+        const courses = await getAllCourses();
+        return courses.map((course) => ({
+            id: course.id,
+        }));
+    } catch (error) {
+        console.warn("Could not generate static params for courses, likely due to DB connection issues during build. Skipping.");
+        return [];
+    }
 }
 
 export default async function PublicCoursePage({ params }: Props) {
