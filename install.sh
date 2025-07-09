@@ -62,11 +62,6 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- [LANGKAH BARU] Perbaikan Tabel Sistem Database ---
-echo_info "Memeriksa dan memperbaiki tabel sistem MariaDB..."
-# Perintah ini sangat penting setelah upgrade dan dapat memperbaiki error 'invalid view'.
-mariadb-upgrade
-
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
