@@ -1,69 +1,54 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 
-export const runtime = 'nodejs';
-
+// This is the new, more robust middleware.
+// Its only job is to parse the subdomain and pass it in a header.
+// It avoids any complex logic or fetching, which is the root cause of the previous errors.
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const headers = new Headers(request.headers);
-  const host = request.headers.get('host');
 
-  // Skip all internal Next.js, API, and static file routes to avoid unnecessary processing
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/') || 
-    pathname.startsWith('/static') ||
-    /\.(.*)$/.test(pathname)
-  ) {
+  const bypassPaths = [
+    '/api/',
+    '/_next/static/',
+    '/_next/image/',
+    '/static/',
+    '/favicon.ico',
+    '/sw.js',
+    '/manifest.json'
+  ];
+
+  if (bypassPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  if (!host) {
-    headers.set('x-tenant-id', 'platform_main');
-    return NextResponse.next({ request: { headers } });
-  }
-
-  // Explicitly handle IP addresses and localhost to avoid subdomain logic
+  const headers = new Headers(request.headers);
+  const host = request.headers.get('host') ?? '';
+  
   const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host);
   const isLocalhost = host.startsWith('localhost');
-
-  if (isIpAddress || isLocalhost) {
-    headers.set('x-tenant-id', 'platform_main');
-    return NextResponse.next({ request: { headers } });
-  }
-  
-  // For production domains, attempt to resolve the subdomain
   const hostParts = host.split('.');
-  if (hostParts.length > 2) {
-    const subdomain = hostParts[0];
-    
-    // Fetch tenant ID from a lightweight internal API route.
-    // This decouples the middleware from direct database dependencies.
-    try {
-      const url = new URL(`/api/internal/get-tenant?subdomain=${subdomain}`, request.url);
-      const response = await fetch(url);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.tenantId) {
-          headers.set('x-tenant-id', data.tenantId);
-          return NextResponse.next({ request: { headers } });
-        }
-      }
-    } catch (error) {
-        console.error("Middleware fetch error:", error);
-        // Fall through to default if API fails, ensuring the site doesn't crash
-    }
+
+  let subdomain = '';
+  // Check for a valid subdomain structure (e.g., sub.domain.com)
+  if (!isIpAddress && !isLocalhost && hostParts.length > 2) {
+    subdomain = hostParts[0];
   }
   
-  // Default case: It's the main domain or a subdomain that was not found.
-  headers.set('x-tenant-id', 'platform_main');
-  return NextResponse.next({ request: { headers } });
+  // Pass the raw subdomain string to server components/actions via headers.
+  // The actual database lookup will happen there, inside a cached function.
+  headers.set('x-subdomain', subdomain);
+
+  return NextResponse.next({
+    request: {
+      headers: headers,
+    },
+  });
 }
 
 export const config = {
   matcher: [
-    // This matcher ensures the middleware runs on all paths except for the excluded ones.
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // This matcher is simplified to run on all paths except for the specific ones
+    // handled by the bypass logic at the start of the function.
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -5,15 +5,42 @@ import type { User } from '@/types';
 import type { RowDataPacket, PoolConnection } from 'mysql2/promise';
 import { getPool } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
+import { cache } from 'react';
+import { getTenantBySubdomain } from '@/lib/tenants';
 
 /**
- * Mengambil ID tenant aktif dari header permintaan.
- * Middleware bertanggung jawab untuk mengatur header ini berdasarkan subdomain.
- * @returns ID tenant aktif, atau 'platform_main' sebagai default.
+ * A cached function to resolve a subdomain to a tenant ID from the database.
+ * `React.cache` ensures this database query runs only once per request, even if `getActiveTenantId` is called multiple times.
+ */
+export const getTenantIdFromSubdomain = cache(async (subdomain: string): Promise<string | null> => {
+    if (!subdomain) {
+        return null;
+    }
+    const tenant = await getTenantBySubdomain(subdomain);
+    return tenant?.id || null;
+});
+
+
+/**
+ * Gets the active tenant ID for the current request.
+ * It reads the subdomain from the request headers (set by middleware),
+ * then uses a cached function to look up the tenant ID in the database.
+ * This moves the database logic out of the middleware and into the React render cycle, which is more robust.
+ * @returns The active tenant's ID, or 'platform_main' as a default.
  */
 export async function getActiveTenantId(): Promise<string> {
     const headersList = headers();
-    return headersList.get('x-tenant-id') || 'platform_main';
+    const subdomain = headersList.get('x-subdomain') || '';
+    
+    if (!subdomain) {
+        return 'platform_main';
+    }
+    
+    const tenantId = await getTenantIdFromSubdomain(subdomain);
+    
+    // If the subdomain is valid and resolves to a tenant, use that ID.
+    // Otherwise, fall back to the main platform. This handles cases where a user lands on a non-existent subdomain.
+    return tenantId || 'platform_main';
 }
 
 /**
