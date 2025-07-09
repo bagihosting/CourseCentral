@@ -61,13 +61,27 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- [PERBAIKAN] Pastikan Layanan MariaDB Berjalan ---
-echo_info "Memastikan layanan MariaDB aktif dan berjalan..."
-systemctl enable mariadb
+# --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan Sebelum Konfigurasi ---
+echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
 systemctl start mariadb
-# Beri waktu beberapa detik agar server database siap sepenuhnya
-echo_info "Memberi waktu 3 detik agar MariaDB siap..."
-sleep 3
+systemctl enable mariadb
+
+# Loop cerdas untuk menunggu socket database siap, mencegah error "Connection Refused".
+MAX_WAIT=30
+COUNT=0
+while [ ! -S /run/mysqld/mysqld.sock ]; do
+  if [ $COUNT -lt $MAX_WAIT ]; then
+    echo "Menunggu socket MariaDB muncul... (${COUNT}s)"
+    sleep 1
+    ((COUNT++))
+  else
+    echo_error "Gagal terhubung ke MariaDB: Socket tidak ditemukan setelah ${MAX_WAIT} detik."
+    echo_error "Coba periksa status layanan dengan 'systemctl status mariadb'."
+    exit 1
+  fi
+done
+echo_success "Socket MariaDB aktif dan siap menerima koneksi."
+
 
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
@@ -382,18 +396,20 @@ chmod 0644 /etc/cron.d/coursecentral_backup
 systemctl restart cron
 echo_success "Backup otomatis telah dijadwalkan setiap hari pukul 02:30."
 
-# --- 13. Atur PM2 untuk memulai saat boot ---
+# --- 13. [PERBAIKAN] Atur PM2 untuk memulai saat boot dengan metode yang lebih andal ---
 echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 # Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
-# Kita menangkap outputnya dan menjalankannya.
-# 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
-STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
-if [ -n "$STARTUP_COMMAND" ]; then
-    echo "Menjalankan perintah startup PM2: $STARTUP_COMMAND"
+# Kita menangkap outputnya dan menjalankannya. Ini adalah metode paling andal.
+# 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node dan paket global lainnya.
+STARTUP_COMMAND=$(env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | tail -n 1)
+if [[ -n "$STARTUP_COMMAND" && "$STARTUP_COMMAND" != "[PM2] Nginx configuration file /etc/nginx/sites-enabled/pm2.conf overwritten." ]]; then
+    echo "Menjalankan perintah startup PM2 yang dihasilkan: $STARTUP_COMMAND"
     eval "$STARTUP_COMMAND"
 fi
+# Simpan daftar proses saat ini (yang dijalankan oleh $RUN_USER) agar dapat dihidupkan kembali saat boot
 sudo -u "$RUN_USER" pm2 save
 echo_success "PM2 startup berhasil dikonfigurasi."
+
 
 echo ""
 echo_success "================= PROSES SELESAI ================="
