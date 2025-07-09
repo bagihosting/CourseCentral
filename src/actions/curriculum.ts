@@ -4,7 +4,7 @@
 import { getCourseById, updateCourse } from './courses';
 import type { Lesson, Module } from '@/types';
 import DOMPurify from 'isomorphic-dompurify';
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { RowDataPacket } from 'mysql2';
 import { getAuthUser } from './utils';
 
@@ -53,6 +53,7 @@ export async function deleteModule(courseId: string, moduleId: string): Promise<
 }
 
 export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id' | 'downloadable'>): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 

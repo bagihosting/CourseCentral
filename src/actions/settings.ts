@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { SeoSettings, LandingPageSettings, PaymentAccount, ConfirmationContact, Testimonial, User } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import DOMPurify from 'isomorphic-dompurify';
@@ -53,6 +53,7 @@ const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageSettings = {
 
 // --- Generic Settings Functions ---
 async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT value FROM settings WHERE `key` = ? AND tenant_id = ?', [key, tenantId]);
@@ -69,6 +70,7 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
 }
 
 async function updateSetting<T>(key: string, data: Partial<T>): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     // SECURITY: Sanitize user-provided HTML content before saving
     const sanitizedData = { ...data };
@@ -109,6 +111,7 @@ export async function updateLandingPageSettings(data: Partial<LandingPageSetting
 
 // --- Payment Accounts ---
 export async function getPaymentSettings(): Promise<PaymentAccount[]> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payment_accounts WHERE tenant_id = ? ORDER BY bankName ASC', [tenantId]);
@@ -120,12 +123,14 @@ export async function getPaymentSettings(): Promise<PaymentAccount[]> {
 }
 
 export async function addPaymentAccount(data: Omit<PaymentAccount, 'id' | 'tenant_id'>): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const id = `pa_${Date.now()}`;
     await pool.query('INSERT INTO payment_accounts (id, tenant_id, bankName, accountNumber, accountHolder) VALUES (?, ?, ?, ?, ?)', [id, tenantId, data.bankName, data.accountNumber, data.accountHolder]);
 }
 
 export async function updatePaymentAccount(id: string, data: Partial<Omit<PaymentAccount, 'id' | 'tenant_id'>>): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const fields = Object.keys(data).map(key => `\`${key}\` = ?`).join(', ');
     const values = Object.values(data);
@@ -134,12 +139,14 @@ export async function updatePaymentAccount(id: string, data: Partial<Omit<Paymen
 }
 
 export async function deletePaymentAccount(id: string): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     await pool.query('DELETE FROM payment_accounts WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }
 
 // --- Confirmation Contacts ---
 export async function getConfirmationContacts(): Promise<ConfirmationContact[]> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM confirmation_contacts WHERE tenant_id = ? ORDER BY name ASC', [tenantId]);
@@ -151,12 +158,14 @@ export async function getConfirmationContacts(): Promise<ConfirmationContact[]> 
 }
 
 export async function addConfirmationContact(data: Omit<ConfirmationContact, 'id' | 'tenant_id'>): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const id = `cc_${Date.now()}`;
     await pool.query('INSERT INTO confirmation_contacts (id, tenant_id, name, whatsapp) VALUES (?, ?, ?, ?)', [id, tenantId, data.name, data.whatsapp]);
 }
 
 export async function updateConfirmationContact(id: string, data: Partial<Omit<ConfirmationContact, 'id' | 'tenant_id'>>): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const fields = Object.keys(data).map(key => `\`${key}\` = ?`).join(', ');
     const values = Object.values(data);
@@ -165,12 +174,14 @@ export async function updateConfirmationContact(id: string, data: Partial<Omit<C
 }
 
 export async function deleteConfirmationContact(id: string): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     await pool.query('DELETE FROM confirmation_contacts WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }
 
 // --- Testimonials ---
 export async function getAllTestimonials(): Promise<Testimonial[]> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
@@ -188,6 +199,7 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
 }
 
 export async function getTestimonialByUserId(userId: string): Promise<Testimonial | null> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials WHERE userId = ? AND tenant_id = ?', [userId, tenantId]);
@@ -200,6 +212,7 @@ export async function getTestimonialByUserId(userId: string): Promise<Testimonia
 }
 
 export async function addOrUpdateTestimonial(data: { userId: string, quote: string, rating: number }): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const existing = await getTestimonialByUserId(data.userId);
     const sanitizedQuote = DOMPurify.sanitize(data.quote);
@@ -212,6 +225,7 @@ export async function addOrUpdateTestimonial(data: { userId: string, quote: stri
 }
 
 export async function deleteTestimonial(id: string): Promise<void> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     await pool.query('DELETE FROM testimonials WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }

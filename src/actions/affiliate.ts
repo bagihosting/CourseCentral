@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { User, Commission, WithdrawalRequest, AffiliateStat } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import type { PoolConnection } from 'mysql2/promise';
@@ -26,6 +26,7 @@ export async function getAffiliateStatsForUser(userId: string): Promise<{
     unpaidBalance: number;
     totalPaid: number;
 }> {
+    const pool = getPool();
     try {
         const [userRows] = await pool.query<RowDataPacket[]>('SELECT affiliateBalance, affiliatePaid FROM users WHERE id = ?', [userId]);
         const [referralRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE referredBy = (SELECT referralCode FROM users WHERE id = ?)', [userId]);
@@ -44,6 +45,7 @@ export async function getAffiliateStatsForUser(userId: string): Promise<{
 }
 
 export async function getCommissionHistory(userId: string): Promise<Commission[]> {
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT c.*, u.name AS sourceUserName 
@@ -64,6 +66,7 @@ export async function getCommissionHistory(userId: string): Promise<Commission[]
 }
 
 export async function getWithdrawalHistory(userId: string): Promise<WithdrawalRequest[]> {
+    const pool = getPool();
     try {
          const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM withdrawal_requests WHERE userId = ? ORDER BY requestDate DESC', [userId]);
          return rows.map(row => ({
@@ -80,6 +83,7 @@ export async function getWithdrawalHistory(userId: string): Promise<WithdrawalRe
 }
 
 export async function requestWithdrawal(bankDetails: WithdrawalRequest['bankDetails']): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -127,6 +131,7 @@ export async function requestWithdrawal(bankDetails: WithdrawalRequest['bankDeta
 // --- Admin Actions ---
 
 export async function getAffiliateStats(): Promise<AffiliateStat[]> {
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT 
@@ -152,6 +157,7 @@ export async function getAffiliateStats(): Promise<AffiliateStat[]> {
 }
 
 export async function getWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT w.*, u.name as userName, u.avatarUrl as userAvatar
@@ -173,6 +179,7 @@ export async function getWithdrawalRequests(): Promise<WithdrawalRequest[]> {
 }
 
 export async function processWithdrawal(requestId: string, action: 'approve' | 'reject'): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();

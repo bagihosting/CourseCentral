@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { Course } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
@@ -29,6 +29,7 @@ function mapRowToCourse(row: any): Course {
 
 export async function isUserEnrolled(userId: string, courseId: string): Promise<boolean> {
   if (!userId) return false;
+  const pool = getPool();
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
         'SELECT 1 FROM enrollments WHERE userId = ? AND courseId = ? LIMIT 1', 
@@ -43,7 +44,7 @@ export async function isUserEnrolled(userId: string, courseId: string): Promise<
 
 export async function enrollUserInCourse(userId: string, courseId: string): Promise<void> {
   if (!userId) throw new Error("User ID is required to enroll.");
-  
+  const pool = getPool();
   try {
     const enrolled = await isUserEnrolled(userId, courseId);
     if (enrolled) return;
@@ -56,6 +57,7 @@ export async function enrollUserInCourse(userId: string, courseId: string): Prom
 
 export async function getEnrolledCoursesForUser(userId: string): Promise<Course[]> {
   if (!userId) return [];
+  const pool = getPool();
   try {
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT c.* 
@@ -72,6 +74,7 @@ export async function getEnrolledCoursesForUser(userId: string): Promise<Course[
 
 export async function getCompletedCourseCount(userId: string): Promise<number> {
     if (!userId) return 0;
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(
             'SELECT COUNT(DISTINCT courseId) as count FROM certificate_requests WHERE userId = ? AND status = ?',
@@ -86,6 +89,7 @@ export async function getCompletedCourseCount(userId: string): Promise<number> {
 
 export async function trackLessonProgress(userId: string, lessonId: string): Promise<void> {
     if (!userId || !lessonId) return;
+    const pool = getPool();
     try {
         await pool.query(
             'INSERT INTO lesson_progress (userId, lessonId, completedAt) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE completedAt = NOW()',
@@ -98,6 +102,7 @@ export async function trackLessonProgress(userId: string, lessonId: string): Pro
 }
 
 export async function getCompletedLessonIds(userId: string, courseId: string): Promise<Set<string>> {
+    const pool = getPool();
     try {
         const [course] = await pool.query<RowDataPacket[]>('SELECT modules FROM courses WHERE id = ?', [courseId]);
         if (course.length === 0) return new Set();

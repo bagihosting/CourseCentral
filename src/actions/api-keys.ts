@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { getAuthUser } from './utils';
@@ -30,6 +30,7 @@ export async function createApiKey(name: string): Promise<{ apiKey: string }> {
     if (actor.role !== 'admin') {
         throw new Error("Hanya admin yang dapat membuat API key.");
     }
+    const pool = getPool();
 
     // --- SECURITY MODEL: KEY CREATION ---
     // 1. Generate a cryptographically secure random string for the key.
@@ -63,6 +64,7 @@ export async function getApiKeys(): Promise<ApiKeyInfo[]> {
     if (actor.role !== 'admin') {
         throw new Error("Hanya admin yang dapat melihat API key.");
     }
+    const pool = getPool();
 
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT ak.id, ak.name, ak.prefix, ak.created_at, ak.last_used_at, u.name as createdByName
@@ -91,7 +93,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
     if (actor.role !== 'admin') {
         throw new Error("Hanya admin yang dapat mencabut API key.");
     }
-
+    const pool = getPool();
     await pool.query('DELETE FROM api_keys WHERE id = ?', [keyId]);
 }
 
@@ -102,6 +104,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
  * @returns `true` if the key is valid, `false` otherwise.
  */
 export async function validateApiKey(key: string): Promise<boolean> {
+    const pool = getPool();
     // --- SECURITY MODEL: KEY VALIDATION ---
 
     // 1. Basic format check. If it doesn't start with our prefix, it's invalid.

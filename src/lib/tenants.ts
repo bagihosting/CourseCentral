@@ -1,4 +1,5 @@
-import { pool } from '@/lib/db';
+
+import { getPool } from '@/lib/db';
 import type { Tenant } from '@/types';
 import type { RowDataPacket } from 'mysql2';
 
@@ -8,6 +9,7 @@ import type { RowDataPacket } from 'mysql2';
  */
 export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | null> {
     if (!subdomain) return null;
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE subdomain = ?', [subdomain]);
         if (rows.length > 0) {
@@ -26,6 +28,7 @@ export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | 
  */
 export async function getTenantById(tenantId: string): Promise<Tenant | null> {
     if (!tenantId) return null;
+    const pool = getPool();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE id = ?', [tenantId]);
         if (rows.length > 0) {

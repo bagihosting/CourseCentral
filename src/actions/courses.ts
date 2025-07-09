@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { Course } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getAuthUser, getActiveTenantId } from './utils';
@@ -31,6 +31,7 @@ function mapRowToCourse(row: any): Course {
 
 // For public catalog, only show published courses for the active tenant
 export async function getAllCourses(): Promise<Course[]> {
+  const pool = getPool();
   const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM courses WHERE status = 'published' AND tenant_id = ? ORDER BY created_at DESC", [tenantId]);
@@ -43,6 +44,7 @@ export async function getAllCourses(): Promise<Course[]> {
 
 // For admin, show all courses for their tenant. Super admin sees all.
 export async function getAllCoursesForAdmin(): Promise<Course[]> {
+  const pool = getPool();
   const actor = await getAuthUser();
   const tenantId = actor.tenant_id === 'platform_main' ? await getActiveTenantId() : actor.tenant_id;
   try {
@@ -61,6 +63,7 @@ export async function getAllCoursesForAdmin(): Promise<Course[]> {
 
 // For instructors, get their own courses
 export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
+  const pool = getPool();
   const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? AND tenant_id = ? ORDER BY created_at DESC', [authorId, tenantId]);
@@ -74,6 +77,7 @@ export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
 // Get courses pending review for the current tenant admin
 export type CourseForReview = Course & { instructorName: string };
 export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
@@ -95,6 +99,7 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
 
 
 export async function getCourseById(id: string): Promise<Course | null> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? AND tenant_id = ?', [id, tenantId]);
@@ -112,6 +117,7 @@ export async function getCourseById(id: string): Promise<Course | null> {
 }
 
 export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'reviewNotes' | 'created_at' | 'updated_at' | 'authorId' | 'tenant_id'>): Promise<Course> {
+    const pool = getPool();
     const author = await getAuthUser();
     if (author.role !== 'admin' && author.role !== 'instructor') {
         throw new Error("Hanya admin atau pengajar yang dapat membuat kursus.");
@@ -150,6 +156,7 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
 }
 
 export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId' | 'tenant_id'>>): Promise<Course> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -211,6 +218,7 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
 }
 
 export async function deleteCourse(id: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -246,6 +254,7 @@ export async function deleteCourse(id: string): Promise<void> {
 // --- Course Status Management ---
 
 export async function submitCourseForReview(courseId: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND tenant_id = ? AND status IN ('draft', 'rejected')",
@@ -257,6 +266,7 @@ export async function submitCourseForReview(courseId: string): Promise<void> {
 }
 
 export async function publishCourse(courseId: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat mempublikasikan kursus.");
     const tenantId = await getActiveTenantId();
@@ -271,6 +281,7 @@ export async function publishCourse(courseId: string): Promise<void> {
 }
 
 export async function rejectCourse(courseId: string, reviewNotes: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat menolak kursus.");
     const tenantId = await getActiveTenantId();

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { UpgradeRequest, CertificateRequest, CustomAppRequest } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getAuthUser } from './utils';
@@ -15,6 +15,7 @@ export type PopulatedUpgradeRequest = UpgradeRequest & {
 };
 
 export async function createUpgradeRequest(userId: string, bankName: string, accountHolder: string): Promise<void> {
+    const pool = getPool();
     const existingRequest = await getUpgradeRequestByUserId(userId);
     if (existingRequest) {
         throw new Error('Anda sudah memiliki permintaan upgrade yang aktif.');
@@ -24,6 +25,7 @@ export async function createUpgradeRequest(userId: string, bankName: string, acc
 }
 
 export async function getUpgradeRequests(): Promise<PopulatedUpgradeRequest[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT ur.*, u.name as userName, u.avatarUrl as userAvatar, u.whatsapp as userWhatsapp
         FROM upgrade_requests ur
@@ -37,16 +39,19 @@ export async function getUpgradeRequests(): Promise<PopulatedUpgradeRequest[]> {
 }
 
 export async function getUpgradeRequestByUserId(userId: string): Promise<UpgradeRequest | null> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM upgrade_requests WHERE userId = ? AND status = "pending"', [userId]);
     if (rows.length === 0) return null;
     return { ...rows[0], requestDate: new Date(rows[0].requestDate).toISOString() } as UpgradeRequest;
 }
 
 export async function cancelUpgradeRequest(userId: string): Promise<void> {
+    const pool = getPool();
     await pool.query('DELETE FROM upgrade_requests WHERE userId = ? AND status = "pending"', [userId]);
 }
 
 export async function approveUpgrade(requestId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -99,6 +104,7 @@ export type PopulatedCertificateRequest = CertificateRequest & {
 };
 
 export async function createCertificateRequest(userId: string, courseId: string): Promise<void> {
+    const pool = getPool();
     const existing = await hasUserRequestedCertificate(userId, courseId);
     if(existing) throw new Error("Anda sudah pernah meminta sertifikat untuk kursus ini.");
 
@@ -107,11 +113,13 @@ export async function createCertificateRequest(userId: string, courseId: string)
 }
 
 export async function hasUserRequestedCertificate(userId: string, courseId: string): Promise<boolean> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>('SELECT 1 FROM certificate_requests WHERE userId = ? AND courseId = ? LIMIT 1', [userId, courseId]);
     return rows.length > 0;
 }
 
 export async function getCertificateRequests(): Promise<PopulatedCertificateRequest[]> {
+     const pool = getPool();
      const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT cr.*, u.name as userName, u.avatarUrl as userAvatar, c.title as courseTitle
         FROM certificate_requests cr
@@ -127,6 +135,7 @@ export async function getCertificateRequests(): Promise<PopulatedCertificateRequ
 }
 
 export async function getApprovedCertificatesForUser(userId: string): Promise<PopulatedCertificateRequest[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT cr.*, u.name as userName, u.avatarUrl as userAvatar, c.title as courseTitle
         FROM certificate_requests cr
@@ -143,6 +152,7 @@ export async function getApprovedCertificatesForUser(userId: string): Promise<Po
 }
 
 export async function approveCertificateRequest(requestId: string, certificateHtml: string): Promise<void> {
+    const pool = getPool();
     await pool.query(
         'UPDATE certificate_requests SET status = "approved", certificateHtml = ?, approvedAt = NOW() WHERE id = ? AND status = "pending"',
         [certificateHtml, requestId]
@@ -150,6 +160,7 @@ export async function approveCertificateRequest(requestId: string, certificateHt
 }
 
 export async function awardCertificateToUser(userId: string, courseId: string, certificateHtml: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
     try {
@@ -183,12 +194,14 @@ export type PopulatedCustomAppRequest = CustomAppRequest & {
 };
 
 export async function createCustomAppRequest(userId: string, appName: string, appKeywords: string, topology: any, paymentDetails: any): Promise<void> {
+    const pool = getPool();
     const id = `appreq_${Date.now()}`;
     await pool.query('INSERT INTO custom_app_requests (id, userId, appName, appKeywords, topology, paymentDetails, requestDate) VALUES (?, ?, ?, ?, ?, ?, NOW())',
      [id, userId, appName, appKeywords, JSON.stringify(topology), JSON.stringify(paymentDetails)]);
 }
 
 export async function getCustomAppRequests(): Promise<PopulatedCustomAppRequest[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT car.*, u.name as userName, u.avatarUrl as userAvatar
         FROM custom_app_requests car
@@ -204,6 +217,7 @@ export async function getCustomAppRequests(): Promise<PopulatedCustomAppRequest[
 }
 
 export async function getCustomAppRequestsForUser(userId: string): Promise<CustomAppRequest[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM custom_app_requests WHERE userId = ? ORDER BY requestDate DESC', [userId]);
     return rows.map(row => ({
         ...row,
@@ -214,13 +228,15 @@ export async function getCustomAppRequestsForUser(userId: string): Promise<Custo
 }
 
 export async function approveCustomAppRequest(requestId: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if (actor.role !== 'admin') throw new Error("Hanya admin yang dapat menyetujui permintaan.");
     await pool.query(`UPDATE custom_app_requests SET status = 'in_progress' WHERE id = ? AND status = 'pending_approval'`, [requestId]);
 }
 
 export async function completeCustomAppRequest(requestId: string, resultLink: string, adminNotes: string): Promise<void> {
-     const actor = await getAuthUser();
+    const pool = getPool();
+    const actor = await getAuthUser();
     if (actor.role !== 'admin') throw new Error("Hanya admin yang dapat menyelesaikan permintaan.");
     await pool.query(`UPDATE custom_app_requests SET status = 'completed', resultLink = ?, adminNotes = ? WHERE id = ? AND status = 'in_progress'`, [resultLink, adminNotes, requestId]);
 }

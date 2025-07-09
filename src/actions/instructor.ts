@@ -1,11 +1,12 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { InstructorApplication } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export async function applyForInstructor(userId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -30,6 +31,7 @@ export async function applyForInstructor(userId: string): Promise<void> {
 }
 
 export async function getInstructorApplications(): Promise<InstructorApplication[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT ia.id, ia.userId, ia.requestDate, ia.status, u.name as userName, u.avatarUrl as userAvatar
         FROM instructor_applications ia
@@ -45,6 +47,7 @@ export async function getInstructorApplications(): Promise<InstructorApplication
 
 
 export async function approveInstructorApplication(applicationId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -69,6 +72,7 @@ export async function approveInstructorApplication(applicationId: string): Promi
 }
 
 export async function rejectInstructorApplication(applicationId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 

@@ -1,6 +1,5 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getTenantBySubdomain } from '@/lib/tenants';
 
 export const runtime = 'nodejs';
 
@@ -37,7 +36,11 @@ export async function middleware(request: NextRequest) {
   const hostParts = host.split('.');
   if (hostParts.length > 2) {
     const subdomain = hostParts[0];
+    
+    // Dynamically import the function that uses the database
+    const { getTenantBySubdomain } = await import('@/lib/tenants');
     const tenant = await getTenantBySubdomain(subdomain);
+    
     if (tenant) {
       headers.set('x-tenant-id', tenant.id);
       return NextResponse.next({ request: { headers } });

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { User } from '@/types';
 import type { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcrypt';
@@ -11,6 +11,7 @@ import { getActiveTenantId } from './utils';
 // --- Core Functions (Used by Server Actions) ---
 
 export async function getUserById(id: string): Promise<User | undefined> {
+  const pool = getPool();
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [id]);
     if (rows.length > 0) {
@@ -29,6 +30,7 @@ export async function getUserById(id: string): Promise<User | undefined> {
 }
 
 export async function validateUser(username: string, password: string): Promise<User | null> {
+    const pool = getPool();
     const activeTenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);

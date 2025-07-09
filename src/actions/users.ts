@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { User, RegisterUserInput, UpdateUserInput } from '@/types';
 import { getUserById } from '@/actions/auth';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
@@ -17,6 +17,7 @@ function generateReferralCode(length = 8) {
 }
 
 export async function getAllUsers(): Promise<User[]> {
+  const pool = getPool();
   const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>(`
@@ -43,6 +44,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function getUserByReferralCode(referralCode: string): Promise<Pick<User, 'name'> | null> {
   if (!referralCode) return null;
+  const pool = getPool();
   const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT name FROM users WHERE referralCode = ? AND tenant_id = ?', [referralCode, tenantId]);
@@ -57,6 +59,7 @@ export async function getUserByReferralCode(referralCode: string): Promise<Pick<
 }
 
 export async function registerUser(data: RegisterUserInput): Promise<User> {
+    const pool = getPool();
     const tenantId = await getActiveTenantId();
     const [existing] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE username = ?', [data.username]);
     if (existing.length > 0) {
@@ -79,6 +82,7 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
 }
 
 export async function updateUser(id: string, data: UpdateUserInput): Promise<User> {
+    const pool = getPool();
     const fieldsToUpdate: { [key: string]: any } = { ...data };
     
     if (fieldsToUpdate.password) {
@@ -105,6 +109,7 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
 }
 
 export async function deleteUser(id: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa menghapus pengguna.");
     if(actor.id === id) throw new Error("Anda tidak bisa menghapus akun Anda sendiri.");
@@ -114,6 +119,7 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 export async function reactivateUser(id: string): Promise<void> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa mengaktifkan pengguna.");
     await pool.query('UPDATE users SET status = "active" WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);

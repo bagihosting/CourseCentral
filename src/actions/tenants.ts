@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { Tenant, User } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
@@ -21,6 +21,7 @@ function generateReferralCode(length = 8) {
  * Hanya bisa dipanggil oleh Super Admin.
  */
 export async function getAllTenants(): Promise<Tenant[]> {
+    const pool = getPool();
     const actor = await getAuthUser();
     if (actor.role !== 'admin' || actor.tenant_id !== 'platform_main') {
         throw new Error('Hanya Super Admin yang dapat melihat tenant.');
@@ -58,7 +59,7 @@ export async function createTenant(data: {
     if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(data.subdomain)) {
         throw new Error('Subdomain tidak valid. Hanya boleh berisi huruf kecil, angka, dan tanda hubung (-).');
     }
-
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import type { ResellerApplication, Tenant } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getAuthUser } from './utils';
@@ -9,6 +9,7 @@ import { getAuthUser } from './utils';
 // --- Reseller Applications ---
 
 export async function applyForReseller(userId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
     try {
@@ -32,6 +33,7 @@ export async function applyForReseller(userId: string): Promise<void> {
 }
 
 export async function getResellerApplications(): Promise<ResellerApplication[]> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>(`
         SELECT ra.id, ra.userId, ra.requestDate, ra.status, u.name as userName, u.avatarUrl as userAvatar
         FROM reseller_applications ra
@@ -46,6 +48,7 @@ export async function getResellerApplications(): Promise<ResellerApplication[]> 
 }
 
 export async function approveResellerApplication(applicationId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
     try {
@@ -66,6 +69,7 @@ export async function approveResellerApplication(applicationId: string): Promise
 }
 
 export async function rejectResellerApplication(applicationId: string): Promise<void> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
     try {
@@ -88,6 +92,7 @@ export async function rejectResellerApplication(applicationId: string): Promise<
 // --- Tenant Management for Resellers ---
 
 export async function getTenantForReseller(resellerId: string): Promise<Tenant | null> {
+    const pool = getPool();
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE ownerId = ?', [resellerId]);
     if(rows.length > 0) {
         return rows[0] as Tenant;
@@ -102,6 +107,7 @@ export async function createTenantForReseller(data: {
     brandLogoUrl?: string;
     brandPrimaryColor?: string;
 }): Promise<Tenant> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -146,6 +152,7 @@ export async function updateTenantBranding(data: {
     brandLogoUrl?: string;
     brandPrimaryColor?: string;
 }): Promise<Tenant> {
+    const pool = getPool();
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 

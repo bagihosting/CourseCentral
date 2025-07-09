@@ -3,7 +3,7 @@
 
 import type { User } from '@/types';
 import type { RowDataPacket, PoolConnection } from 'mysql2/promise';
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
 
 /**
@@ -24,7 +24,7 @@ export async function getActiveTenantId(): Promise<string> {
  * @throws Akan melempar Error jika pengguna tidak terotentikasi atau mencoba mengakses tenant yang salah.
  */
 export async function getAuthUser(connection?: PoolConnection): Promise<User> {
-    const db = connection || pool;
+    const db = connection || getPool();
     const activeTenantId = await getActiveTenantId();
     const userId = cookies().get('user_session_id')?.value;
 
