@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # =================================================================
-# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 22.04 & 24.04
+# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 20.04, 22.04 & 24.04
 # Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
@@ -281,7 +281,7 @@ echo_warn "================ CREDENTIALS DATABASE (HARAP SIMPAN!) ===============
 echo "Kredensial ini juga telah disimpan di $ENV_FILE"
 echo "  - Username Database: $DB_USER"
 echo "  - Password Database: $DB_PASS"
-echo "  - Root Password DB : $DB_ROOT_PASS"
+echo "  - Root Password DB : $DB_ROOT_PASS (Untuk akses phpMyAdmin)"
 echo "=========================================================================="
 echo ""
 echo_info "AKSES APLIKASI:"

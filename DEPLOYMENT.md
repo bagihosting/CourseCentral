@@ -61,7 +61,7 @@ Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses i
 
 ### Prasyarat
 
-- Sebuah server VPS baru yang menjalankan **Ubuntu 22.04** atau **24.04**.
+- Sebuah server VPS baru yang menjalankan **Ubuntu 20.04, 22.04, atau 24.04**.
 - Akses SSH ke server Anda dengan pengguna non-root yang memiliki hak `sudo`.
 
 ### Langkah 1: Unggah File ke Server
@@ -101,7 +101,7 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     - Membangun aplikasi Next.js Anda.
     - Menghentikan proses lama yang mungkin berjalan di port 3000.
     - Menjalankan aplikasi Anda dengan PM2.
-    - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan phpMyAdmin.
+    - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan **phpMyAdmin**.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 
