@@ -47,7 +47,7 @@ import { getSeoSettings } from '@/actions/settings';
 import { ReferredByBadge } from '@/components/referred-by-badge';
 
 // Define navigation items as constants for clarity and reliability
-const adminNavItems = [
+const superAdminNavItems = [
   { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
   { href: '/dashboard/admin/tenants', icon: Building, label: 'Manajemen Tenant' },
   { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
@@ -63,6 +63,24 @@ const adminNavItems = [
   { href: '/dashboard/admin/api-tokens', icon: KeyRound, label: 'API Token' },
   { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
   { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
+  { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
+  { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
+];
+
+const tenantAdminNavItems = [
+  { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dasbor Admin' },
+  { href: '/dashboard/admin/courses', icon: FolderKanban, label: 'Manajemen Kursus' },
+  { href: '/dashboard/admin/users', icon: Users, label: 'Manajemen Pengguna' },
+  { href: '/dashboard/admin/course-review', icon: BookOpen, label: 'Tinjauan Kursus'},
+  { href: '/dashboard/admin/instructor-requests', icon: BookUser, label: 'Permintaan Pengajar'},
+  { href: '/dashboard/admin/pro-requests', icon: Gem, label: 'Permintaan Pro' },
+  { href: '/dashboard/admin/certificate-requests', icon: FileClock, label: 'Permintaan Sertifikat' },
+  { href: '/dashboard/admin/custom-app-requests', icon: Rocket, label: 'Request Aplikasi' },
+  { href: '/dashboard/admin/affiliate-management', icon: DollarSign, label: 'Manajemen Afiliasi' },
+  { href: '/dashboard/admin/withdrawal-requests', icon: Banknote, label: 'Permintaan Penarikan' },
+  { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
+  { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
+  { href: '/dashboard/admin/tenant-settings', icon: Palette, label: 'Branding & Domain' },
   { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
   { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
 ];
@@ -100,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
   
-  const navItems = adminNavItems;
+  const navItems = user.tenant_id === 'platform_main' ? superAdminNavItems : tenantAdminNavItems;
 
   return (
     <SidebarProvider>

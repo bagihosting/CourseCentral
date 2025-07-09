@@ -95,7 +95,7 @@ export async function getTenantForReseller(resellerId: string): Promise<Tenant |
     return null;
 }
 
-export async function createOrUpdateTenantForReseller(data: {
+export async function createTenantForReseller(data: {
     resellerId: string;
     subdomain: string;
     brandName: string;
@@ -106,42 +106,81 @@ export async function createOrUpdateTenantForReseller(data: {
     await connection.beginTransaction();
 
     try {
-        const existingTenant = await getTenantForReseller(data.resellerId);
+        const existingTenantForUser = await getTenantForReseller(data.resellerId);
+        if (existingTenantForUser) {
+            throw new Error('Anda sudah memiliki tenant. Anda hanya dapat membuat satu tenant per akun reseller.');
+        }
 
-        // Check if subdomain is already taken by someone else
-        const [subdomainCheck] = await connection.query<RowDataPacket[]>('SELECT id, ownerId FROM tenants WHERE subdomain = ?', [data.subdomain]);
-        if (subdomainCheck.length > 0 && subdomainCheck[0].ownerId !== data.resellerId) {
+        const [subdomainCheck] = await connection.query<RowDataPacket[]>('SELECT id FROM tenants WHERE subdomain = ?', [data.subdomain]);
+        if (subdomainCheck.length > 0) {
             throw new Error('Subdomain ini sudah digunakan. Silakan pilih yang lain.');
         }
 
-        if(existingTenant) {
-            // Update
-            await connection.query(
-                `UPDATE tenants SET subdomain = ?, brandName = ?, brandLogoUrl = ?, brandPrimaryColor = ? WHERE id = ?`,
-                [data.subdomain, data.brandName, data.brandLogoUrl || null, data.brandPrimaryColor || null, existingTenant.id]
-            );
-            await connection.commit();
-            return { ...existingTenant, ...data };
-        } else {
-            // Create
-            const tenantId = `tnt_${Date.now()}`;
-            await connection.query(
-                `INSERT INTO tenants (id, name, ownerId, subdomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [tenantId, data.brandName, data.resellerId, data.subdomain, data.brandName, data.brandLogoUrl || null, data.brandPrimaryColor || null]
-            );
-            
-            // Link the reseller user to their new tenant
-            await connection.query('UPDATE users SET tenant_id = ? WHERE id = ?', [tenantId, data.resellerId]);
-            
-            await connection.commit();
-            
-            const [newTenantRows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE id = ?', [tenantId]);
-            return newTenantRows[0] as Tenant;
-        }
+        const tenantId = `tnt_${Date.now()}`;
+        await connection.query(
+            `INSERT INTO tenants (id, name, ownerId, subdomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [tenantId, data.brandName, data.resellerId, data.subdomain, data.brandName, data.brandLogoUrl || null, data.brandPrimaryColor || null]
+        );
+        
+        // Move the reseller to their new tenant and upgrade their role to admin
+        await connection.query('UPDATE users SET tenant_id = ?, role = "admin" WHERE id = ?', [tenantId, data.resellerId]);
+        
+        await connection.commit();
+        
+        const [newTenantRows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE id = ?', [tenantId]);
+        return newTenantRows[0] as Tenant;
 
     } catch(error) {
         await connection.rollback();
-        console.error("Gagal membuat/memperbarui tenant reseller:", error);
+        console.error("Gagal membuat tenant reseller:", error);
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+
+export async function updateTenantBranding(data: {
+    subdomain: string;
+    brandName: string;
+    brandLogoUrl?: string;
+    brandPrimaryColor?: string;
+}): Promise<Tenant> {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+        const actor = await getAuthUser(connection);
+        if (actor.role !== 'admin') {
+            throw new Error('Hanya admin tenant yang dapat mengubah pengaturan branding.');
+        }
+
+        const [existingTenant] = await connection.query<RowDataPacket[]>('SELECT * FROM tenants WHERE id = ?', [actor.tenant_id]);
+        if (existingTenant.length === 0) {
+            throw new Error('Tenant tidak ditemukan.');
+        }
+
+        // Check if subdomain is being changed and if the new one is available
+        if (data.subdomain !== existingTenant[0].subdomain) {
+            const [subdomainCheck] = await connection.query<RowDataPacket[]>('SELECT id FROM tenants WHERE subdomain = ? AND id != ?', [data.subdomain, actor.tenant_id]);
+            if (subdomainCheck.length > 0) {
+                throw new Error('Subdomain ini sudah digunakan. Silakan pilih yang lain.');
+            }
+        }
+        
+        await connection.query(
+            `UPDATE tenants SET subdomain = ?, brandName = ?, brandLogoUrl = ?, brandPrimaryColor = ? WHERE id = ?`,
+            [data.subdomain, data.brandName, data.brandLogoUrl || null, data.brandPrimaryColor || null, actor.tenant_id]
+        );
+        
+        await connection.commit();
+        
+        const [updatedTenantRows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE id = ?', [actor.tenant_id]);
+        return updatedTenantRows[0] as Tenant;
+
+    } catch(error) {
+        await connection.rollback();
+        console.error("Gagal memperbarui branding tenant:", error);
         throw error;
     } finally {
         connection.release();

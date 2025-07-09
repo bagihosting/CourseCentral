@@ -10,14 +10,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getTenantForReseller, createTenantForReseller } from '@/actions/reseller';
-import { Loader2, Save, Building, AlertTriangle, Link as LinkIcon, CheckCircle } from 'lucide-react';
+import { getTenantById } from '@/lib/tenants';
+import { updateTenantBranding } from '@/actions/reseller';
+import { Loader2, Save, Palette, AlertTriangle } from 'lucide-react';
 import type { Tenant } from '@/types';
 import Image from 'next/image';
-import Link from 'next/link';
 
-export default function TenantManagementPage() {
-    const { user, loading: userLoading, logout } = useAuth();
+export default function TenantBrandingPage() {
+    const { user, loading: userLoading } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -26,7 +26,7 @@ export default function TenantManagementPage() {
     const [subdomain, setSubdomain] = useState('');
     const [brandName, setBrandName] = useState('');
     const [brandLogoUrl, setBrandLogoUrl] = useState('');
-    const [brandPrimaryColor, setBrandPrimaryColor] = useState('#6a2cf5'); // Default to platform primary
+    const [brandPrimaryColor, setBrandPrimaryColor] = useState('#6a2cf5');
     
     const [mainPlatformDomain, setMainPlatformDomain] = useState('');
     
@@ -44,10 +44,14 @@ export default function TenantManagementPage() {
 
     useEffect(() => {
         async function fetchData() {
-            if (user && user.role === 'reseller') {
-                const existingTenant = await getTenantForReseller(user.id);
+            if (user && user.role === 'admin') {
+                const existingTenant = await getTenantById(user.tenant_id);
                 if (existingTenant) {
                     setTenant(existingTenant);
+                    setSubdomain(existingTenant.subdomain || '');
+                    setBrandName(existingTenant.brandName || existingTenant.name || '');
+                    setBrandLogoUrl(existingTenant.brandLogoUrl || '');
+                    setBrandPrimaryColor(existingTenant.brandPrimaryColor || '#6a2cf5');
                 }
             }
             setLoading(false);
@@ -56,7 +60,7 @@ export default function TenantManagementPage() {
             fetchData();
         }
     }, [user, userLoading]);
-
+    
     const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
         setSubdomain(value);
@@ -70,21 +74,13 @@ export default function TenantManagementPage() {
         }
         setIsSaving(true);
         try {
-            const newTenant = await createTenantForReseller({
-                resellerId: user.id,
+            await updateTenantBranding({
                 subdomain,
                 brandName,
                 brandLogoUrl: brandLogoUrl || undefined,
                 brandPrimaryColor: brandPrimaryColor || undefined
             });
-            setTenant(newTenant);
-            toast({ title: 'Sukses!', description: 'Tenant Anda telah dibuat. Anda akan dialihkan untuk login ke dasbor baru Anda.' });
-            
-            // Log out from main platform to force re-login to new tenant dashboard
-            setTimeout(() => {
-                logout();
-            }, 2000);
-
+            toast({ title: 'Sukses', description: 'Pengaturan branding Anda telah disimpan.' });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
             toast({ title: 'Gagal Menyimpan', description: errorMessage, variant: 'destructive' });
@@ -96,44 +92,25 @@ export default function TenantManagementPage() {
     if (loading || userLoading) {
         return <Skeleton className="w-full h-96" />;
     }
-
-    if (!user || user.role !== 'reseller') {
+    
+    if (user?.tenant_id === 'platform_main') {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Akses Ditolak</CardTitle>
-                    <CardDescription>Hanya Reseller yang dapat mengakses halaman ini.</CardDescription>
+                    <CardTitle>Fitur Khusus Admin Tenant</CardTitle>
+                    <CardDescription>Halaman ini hanya untuk admin tenant (Reseller) untuk mengatur branding situs mereka sendiri.</CardDescription>
                 </CardHeader>
             </Card>
-        );
+        )
     }
     
-    if (tenant) {
-        const tenantUrl = `http://${tenant.subdomain}.${mainPlatformDomain}`;
-        return (
+    if (!tenant) {
+         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Tenant Anda Siap!</CardTitle>
-                    <CardDescription>
-                        Selamat! Situs kursus Anda telah berhasil dibuat dan sekarang aktif.
-                    </CardDescription>
+                    <CardTitle>Data Tenant Tidak Ditemukan</CardTitle>
+                    <CardDescription>Tidak dapat memuat pengaturan untuk tenant Anda. Silakan hubungi dukungan teknis.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <p>Anda telah dipromosikan menjadi <strong>Admin</strong> untuk tenant Anda sendiri. Anda dapat mengelola pengguna, kursus, dan branding langsung dari dasbor baru Anda.</p>
-                    <Alert>
-                        <LinkIcon className="h-4 w-4" />
-                        <AlertTitle>Alamat Situs Anda</AlertTitle>
-                        <AlertDescription>
-                            <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-primary">
-                                {tenantUrl}
-                            </a>
-                        </AlertDescription>
-                    </Alert>
-                    <p>Silakan keluar dari sesi ini dan masuk kembali melalui domain baru Anda untuk mengakses dasbor admin Anda.</p>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={() => logout()}>Keluar Sekarang</Button>
-                </CardFooter>
             </Card>
         )
     }
@@ -142,17 +119,17 @@ export default function TenantManagementPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Building /> Buat Tenant Anda</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Palette /> Branding & Domain</CardTitle>
                     <CardDescription>
-                        Atur identitas unik untuk platform kursus Anda. Setelah disimpan, situs Anda akan aktif di subdomain yang Anda pilih.
+                        Atur identitas unik untuk platform kursus Anda.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Penting</AlertTitle>
+                        <AlertTitle>Perhatian: Perubahan DNS</AlertTitle>
                         <AlertDescription>
-                            Setelah membuat tenant, akun Anda akan diubah menjadi **Admin** untuk tenant baru tersebut, dan Anda akan **keluar** dari platform utama ini untuk masuk ke dasbor baru Anda.
+                            Jika Anda mengubah subdomain, pastikan Anda telah mengarahkan CNAME subdomain baru Anda ke domain platform utama: <strong className="font-mono">{mainPlatformDomain}</strong>. Perubahan DNS mungkin memerlukan waktu untuk aktif.
                         </AlertDescription>
                     </Alert>
 
@@ -211,7 +188,7 @@ export default function TenantManagementPage() {
                 <CardFooter>
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Buat Tenant Saya
+                        Simpan Perubahan
                     </Button>
                 </CardFooter>
             </Card>

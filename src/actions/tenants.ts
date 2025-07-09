@@ -31,25 +31,6 @@ export async function getAllTenants(): Promise<Tenant[]> {
 }
 
 /**
- * Mengambil satu tenant berdasarkan subdomainnya. Digunakan oleh middleware.
- * @param subdomain Subdomain yang akan dicari.
- */
-export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | null> {
-    if (!subdomain) return null;
-    try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE subdomain = ?', [subdomain]);
-        if (rows.length > 0) {
-            return rows[0] as Tenant;
-        }
-        return null;
-    } catch (error) {
-        console.error("Gagal mengambil tenant berdasarkan subdomain:", error);
-        return null; // Return null jika terjadi error agar aplikasi tidak crash
-    }
-}
-
-
-/**
  * Membuat tenant baru beserta admin pertama untuk tenant tersebut.
  * Hanya bisa dipanggil oleh Super Admin.
  * @param data Data untuk membuat tenant dan adminnya.
@@ -99,18 +80,18 @@ export async function createTenant(data: {
         const referralCode = generateReferralCode();
         const hashedPassword = await bcrypt.hash(data.ownerPassword, 10);
         
-        // 1. Masukkan data tenant terlebih dahulu
-        await connection.query(
-            `INSERT INTO tenants (id, name, subdomain, ownerId) VALUES (?, ?, ?, ?)`,
-            [tenantId, data.tenantName, data.subdomain, ownerId]
-        );
-
-        // 2. Masukkan data admin tenant, dengan tenant_id yang sudah valid
+        // 1. Buat pengguna admin untuk tenant baru terlebih dahulu
         await connection.query(
             `INSERT INTO users (id, tenant_id, name, username, password, role, referralCode) VALUES (?, ?, ?, ?, ?, 'admin', ?)`,
             [ownerId, tenantId, data.ownerName, data.ownerUsername, hashedPassword, referralCode]
         );
         
+        // 2. Masukkan data tenant, dengan ownerId yang sudah valid
+        await connection.query(
+            `INSERT INTO tenants (id, name, subdomain, ownerId) VALUES (?, ?, ?, ?)`,
+            [tenantId, data.tenantName, data.subdomain, ownerId]
+        );
+
         // Jika ada kesalahan, transaksi akan di-rollback secara otomatis.
         await connection.commit();
 

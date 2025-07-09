@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getTenantBySubdomain } from '@/actions/tenants';
+import { getTenantBySubdomain } from '@/lib/tenants';
 
 // Force the middleware to run on the Node.js runtime.
 // This is necessary because it needs to access the database (a Node.js-specific API)
