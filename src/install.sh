@@ -69,6 +69,12 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server mariadb-client psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
+# [PERBAIKAN KRITIS] Inisialisasi direktori data MariaDB secara manual.
+# Ini memperbaiki masalah di beberapa sistem Ubuntu di mana instalasi tidak secara otomatis menjalankan langkah ini.
+echo_info "Menginisialisasi direktori data MariaDB secara manual..."
+mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+
+
 # --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
 echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
 systemctl start mariadb
@@ -460,4 +466,3 @@ echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk k
 echo ""
 echo_success "Deployment selesai!"
 
-    
