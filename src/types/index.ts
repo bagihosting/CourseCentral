@@ -1,9 +1,18 @@
 
 
-
+export type Tenant = {
+  id: string;
+  name: string;
+  subdomain: string;
+  ownerId: string;
+  createdAt: string;
+  brandLogoUrl?: string | null;
+  brandPrimaryColor?: string | null;
+};
 
 export type User = {
   id: string;
+  tenant_id: string; // Ditambahkan
   name: string;
   username: string;
   password?: string; // Should be optional on client, required on server
@@ -32,6 +41,7 @@ export type UpdateUserInput = Partial<Omit<User, 'id' | 'username' | 'createdAt'
 
 export type Course = {
   id: string;
+  tenant_id: string; // Ditambahkan
   title: string;
   description: string;
   instructor: string;

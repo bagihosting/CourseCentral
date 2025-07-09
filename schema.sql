@@ -1,269 +1,297 @@
 
-CREATE DATABASE IF NOT EXISTS `coursecentral_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Versi Skema: 7
+-- Peningkatan: Fondasi Multi-Tenancy
 
-USE `coursecentral_db`;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
 --
--- Table structure for table `users`
+-- Tabel `tenants` (BARU)
+-- Menyimpan informasi untuk setiap entitas tenant/situs.
 --
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `role` enum('admin','member','pro','instructor') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'member',
-  `avatarUrl` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `whatsapp` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE `tenants` (
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `subdomain` varchar(255) NOT NULL,
+  `ownerId` varchar(255) NOT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `brandLogoUrl` varchar(255) DEFAULT NULL,
+  `brandPrimaryColor` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `tenants`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `subdomain` (`subdomain`),
+  ADD KEY `ownerId` (`ownerId`);
+
+--
+-- Tabel `users`
+-- Modifikasi: Ditambahkan kolom `tenant_id`.
+--
+CREATE TABLE `users` (
+  `id` varchar(255) NOT NULL,
+  `tenant_id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('admin','member','pro','instructor') NOT NULL,
+  `avatarUrl` varchar(255) NOT NULL DEFAULT 'https://placehold.co/256x256.png',
+  `whatsapp` varchar(20) DEFAULT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `lastLoginAt` timestamp NULL DEFAULT NULL,
-  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
   `loginCount` int(11) NOT NULL DEFAULT 0,
-  `referralCode` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `referredBy` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `instructorStatus` enum('none','pending','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'none',
+  `referralCode` varchar(20) NOT NULL,
+  `referredBy` varchar(20) DEFAULT NULL,
+  `instructorStatus` enum('none','pending','approved','rejected') NOT NULL DEFAULT 'none',
   `lessons_created_today` int(11) DEFAULT 0,
   `last_lesson_created_at` timestamp NULL DEFAULT NULL,
   `affiliateBalance` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `affiliatePaid` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `affiliatePaid` decimal(10,2) NOT NULL DEFAULT 0.00
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`tenant_id`, `username`),
+  ADD KEY `tenant_id` (`tenant_id`);
+
+--
+-- Tabel `courses`
+-- Modifikasi: Ditambahkan kolom `tenant_id`.
+--
+CREATE TABLE `courses` (
+  `id` varchar(255) NOT NULL,
+  `tenant_id` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `instructor` varchar(255) NOT NULL,
+  `price` int(11) NOT NULL DEFAULT 0,
+  `image_url` varchar(255) NOT NULL,
+  `modules` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]',
+  `access_level` enum('public','pro') NOT NULL DEFAULT 'public',
+  `seo_title` varchar(255) DEFAULT NULL,
+  `seo_description` varchar(255) DEFAULT NULL,
+  `seo_keywords` text DEFAULT NULL,
+  `status` enum('draft','pending_review','published','rejected') NOT NULL DEFAULT 'draft',
+  `authorId` varchar(255) NOT NULL,
+  `reviewNotes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `courses`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `authorId` (`authorId`),
+  ADD KEY `status` (`status`),
+  ADD KEY `tenant_id` (`tenant_id`);
+
+--
+-- Tabel `enrollments`
+-- Modifikasi: Ditambahkan kolom `tenant_id`.
+--
+CREATE TABLE `enrollments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tenant_id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `courseId` varchar(255) NOT NULL,
+  `enrolledAt` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username_UNIQUE` (`username`),
-  UNIQUE KEY `referralCode_UNIQUE` (`referralCode`),
-  KEY `idx_referredBy` (`referredBy`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `users`
---
-INSERT INTO `users` (`id`, `name`, `username`, `password`, `role`, `avatarUrl`, `whatsapp`, `createdAt`, `lastLoginAt`, `status`, `loginCount`, `referralCode`, `referredBy`, `instructorStatus`) VALUES
-('user_admin', 'Admin', 'admin', '$2b$10$E9pZ.OMpS7j8D5E5E9j3h.sL8t3pZ5f6bA7c8d9e0f1g2h3j4k5', 'admin', 'https://placehold.co/256x256.png', '081234567890', NOW(), NULL, 'active', 0, 'ADMINREF', NULL, 'approved');
-
---
--- Table structure for table `courses`
---
-CREATE TABLE IF NOT EXISTS `courses` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `instructor` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `image_url` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `modules` json DEFAULT NULL,
-  `access_level` enum('public','pro') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'public',
-  `seo_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `seo_description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `seo_keywords` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('draft','pending_review','published','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
-  `authorId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `reviewNotes` text COLLATE utf8mb4_unicode_ci,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_authorId` (`authorId`),
-  CONSTRAINT `fk_courses_author` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `enrollments`
---
-CREATE TABLE IF NOT EXISTS `enrollments` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL AUTO_INCREMENT,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `courseId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `enrolledAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_user_course` (`userId`,`courseId`),
-  KEY `idx_enrollment_userId` (`userId`),
-  KEY `idx_enrollment_courseId` (`courseId`),
-  CONSTRAINT `fk_enrollments_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_enrollments_course` FOREIGN KEY (`courseId`) REFERENCES `courses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `lesson_progress`
---
-CREATE TABLE IF NOT EXISTS `lesson_progress` (
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `lessonId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `completedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`userId`,`lessonId`),
-  KEY `idx_lesson_progress_userId` (`userId`),
-  CONSTRAINT `fk_lesson_progress_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `upgrade_requests`
---
-CREATE TABLE IF NOT EXISTS `upgrade_requests` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `bankName` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `accountHolder` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `requestDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('pending','approved') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  PRIMARY KEY (`id`),
-  KEY `idx_upgrade_requests_userId` (`userId`),
-  CONSTRAINT `fk_upgrade_requests_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `certificate_requests`
---
-CREATE TABLE IF NOT EXISTS `certificate_requests` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `courseId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `requestDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('pending','approved') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `certificateHtml` longtext COLLATE utf8mb4_unicode_ci,
-  `approvedAt` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_cert_user_course` (`userId`, `courseId`),
-  KEY `idx_certificate_requests_userId` (`userId`),
-  KEY `idx_certificate_requests_courseId` (`courseId`),
-  CONSTRAINT `fk_certificate_requests_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_certificate_requests_course` FOREIGN KEY (`courseId`) REFERENCES `courses` (`id`) ON DELETE CASCADE
+  UNIQUE KEY `user_course_enrollment` (`userId`,`courseId`),
+  KEY `userId` (`userId`),
+  KEY `courseId` (`courseId`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
---
--- Table structure for table `instructor_applications`
---
-CREATE TABLE IF NOT EXISTS `instructor_applications` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `requestDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  PRIMARY KEY (`id`),
-  KEY `idx_instructor_applications_userId` (`userId`),
-  CONSTRAINT `fk_instructor_applications_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Sisanya adalah tabel yang bersifat global (tidak spesifik tenant) atau sudah benar.
+-- Tabel yang tidak memerlukan `tenant_id`: api_keys, settings, payment_accounts, confirmation_contacts.
+-- Tabel `instructor_branding` secara implisit terikat ke tenant melalui `userId`.
 
---
--- Table structure for table `instructor_branding`
---
-CREATE TABLE `instructor_branding` (
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `customDomain` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `brandName` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `brandLogoUrl` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `brandPrimaryColor` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`userId`),
-  UNIQUE KEY `customDomain_UNIQUE` (`customDomain`),
-  CONSTRAINT `fk_instructor_branding_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `commissions`
---
-CREATE TABLE `commissions` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `type` enum('referral','instructor_milestone') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `sourceUserId` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_commissions_userId` (`userId`),
-  KEY `idx_commissions_sourceUserId` (`sourceUserId`),
-  CONSTRAINT `fk_commissions_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_commissions_sourceUser` FOREIGN KEY (`sourceUserId`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
---
--- Table structure for table `withdrawal_requests`
---
-CREATE TABLE `withdrawal_requests` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `bankDetails` json NOT NULL,
-  `requestDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `processedDate` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_withdrawal_requests_userId` (`userId`),
-  CONSTRAINT `fk_withdrawal_requests_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `settings`
---
-CREATE TABLE `settings` (
-  `key` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `value` json NOT NULL,
-  PRIMARY KEY (`key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `payment_accounts`
---
-CREATE TABLE `payment_accounts` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `bankName` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `accountNumber` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `accountHolder` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `confirmation_contacts`
---
-CREATE TABLE `confirmation_contacts` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `whatsapp` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `testimonials`
---
-CREATE TABLE `testimonials` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `quote` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `rating` tinyint(1) NOT NULL,
-  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `userId_UNIQUE` (`userId`),
-  CONSTRAINT `fk_testimonials_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
---
--- Table structure for table `custom_app_requests`
---
-CREATE TABLE `custom_app_requests` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `userId` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `appName` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `appKeywords` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `topology` json NOT NULL,
-  `requestDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('pending_approval','in_progress','completed','rejected') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending_approval',
-  `paymentDetails` json NOT NULL,
-  `adminNotes` text COLLATE utf8mb4_unicode_ci,
-  `resultLink` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `fk_custom_app_requests_user_idx` (`userId`),
-  CONSTRAINT `fk_custom_app_requests_user` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Table structure for table `api_keys`
---
 CREATE TABLE `api_keys` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `hashed_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `prefix` varchar(12) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `created_by` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_used_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `prefix_UNIQUE` (`prefix`),
-  UNIQUE KEY `name_UNIQUE` (`name`),
-  KEY `fk_api_keys_user_idx` (`created_by`),
-  CONSTRAINT `fk_api_keys_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `hashed_key` varchar(255) NOT NULL,
+  `prefix` varchar(10) NOT NULL,
+  `created_by` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `last_used_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `api_keys`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `prefix` (`prefix`),
+  ADD UNIQUE KEY `name` (`name`),
+  ADD KEY `created_by` (`created_by`);
+
+CREATE TABLE `certificate_requests` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `courseId` varchar(255) NOT NULL,
+  `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','approved') NOT NULL DEFAULT 'pending',
+  `certificateHtml` text DEFAULT NULL,
+  `approvedAt` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `certificate_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_course_cert` (`userId`,`courseId`);
+
+CREATE TABLE `commissions` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `type` enum('referral','instructor_milestone') NOT NULL,
+  `sourceUserId` varchar(255) DEFAULT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `commissions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+CREATE TABLE `confirmation_contacts` (
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `whatsapp` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `confirmation_contacts`
+  ADD PRIMARY KEY (`id`);
+
+CREATE TABLE `custom_app_requests` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `appName` varchar(255) NOT NULL,
+  `appKeywords` text NOT NULL,
+  `topology` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending_approval','in_progress','completed','rejected') NOT NULL DEFAULT 'pending_approval',
+  `paymentDetails` text NOT NULL,
+  `adminNotes` text DEFAULT NULL,
+  `resultLink` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `custom_app_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+CREATE TABLE `instructor_applications` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `instructor_applications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+CREATE TABLE `instructor_branding` (
+  `userId` varchar(255) NOT NULL,
+  `customDomain` varchar(255) DEFAULT NULL,
+  `brandName` varchar(255) DEFAULT NULL,
+  `brandLogoUrl` varchar(255) DEFAULT NULL,
+  `brandPrimaryColor` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `instructor_branding`
+  ADD PRIMARY KEY (`userId`),
+  ADD UNIQUE KEY `customDomain` (`customDomain`);
+
+CREATE TABLE `lesson_progress` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `userId` varchar(255) NOT NULL,
+  `lessonId` varchar(255) NOT NULL,
+  `completedAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_lesson_progress` (`userId`,`lessonId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `payment_accounts` (
+  `id` varchar(255) NOT NULL,
+  `bankName` varchar(255) NOT NULL,
+  `accountNumber` varchar(255) NOT NULL,
+  `accountHolder` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `payment_accounts`
+  ADD PRIMARY KEY (`id`);
+
+CREATE TABLE `settings` (
+  `key` varchar(255) NOT NULL,
+  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `settings`
+  ADD PRIMARY KEY (`key`);
+
+CREATE TABLE `testimonials` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `quote` text NOT NULL,
+  `rating` int(11) NOT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `testimonials`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `userId` (`userId`);
+
+CREATE TABLE `upgrade_requests` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `bankName` varchar(255) NOT NULL,
+  `accountHolder` varchar(255) NOT NULL,
+  `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','approved') NOT NULL DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `upgrade_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+CREATE TABLE `withdrawal_requests` (
+  `id` varchar(255) NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL,
+  `bankDetails` text NOT NULL,
+  `requestDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `processedDate` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `withdrawal_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+--
+-- Menambahkan Foreign Keys
+--
+ALTER TABLE `tenants`
+  ADD CONSTRAINT `tenants_ibfk_1` FOREIGN KEY (`ownerId`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `courses`
+  ADD CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `courses_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `enrollments`
+  ADD CONSTRAINT `enrollments_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `enrollments_ibfk_2` FOREIGN KEY (`courseId`) REFERENCES `courses` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `enrollments_ibfk_3` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE;
+
+-- Data Awal: Platform Utama sebagai Tenant Pertama
+-- Tenant ini tidak bisa dihapus dan menjadi "Super Admin" tenant.
+INSERT INTO `tenants` (`id`, `name`, `subdomain`, `ownerId`) VALUES
+('platform_main', 'Platform Utama', 'www', 'user_admin');
+
+-- Pengguna Admin Default untuk Platform Utama
+INSERT INTO `users` (`id`, `tenant_id`, `name`, `username`, `password`, `role`, `referralCode`) VALUES
+('user_admin', 'platform_main', 'Super Admin', 'admin', '$2b$10$D9yL4c4n9g.V3k3Z0m2v5eG8g7H7Y9o/4N.O1J/j/E3x8Q6R0l4A.', 'admin', 'ADMINREF');
+
+
+COMMIT;
