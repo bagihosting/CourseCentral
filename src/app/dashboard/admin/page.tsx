@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllUsers } from '@/actions/users';
 import { getAllCoursesForAdmin } from '@/actions/courses';
-import { getAffiliateStats } from '@/actions/affiliate';
-import { getWithdrawalRequests } from '@/actions/withdrawals';
+import { getAffiliateStats, getWithdrawalRequests } from '@/actions/affiliate';
 import { getUpgradeRequests, getCertificateRequests } from '@/actions/requests';
 import { getCoursesForAdminReview } from '@/actions/courses';
 import { getInstructorApplications } from '@/actions/instructor';
