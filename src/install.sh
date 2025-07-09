@@ -62,11 +62,6 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- [LANGKAH BARU] Perbaikan Tabel Sistem Database ---
-echo_info "Memeriksa dan memperbaiki tabel sistem MariaDB..."
-# Perintah ini sangat penting setelah upgrade dan dapat memperbaiki error 'invalid view'.
-mariadb-upgrade
-
 # --- 3. Setup Database MariaDB (Metode yang Diperbarui dan Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 DB_NAME="coursecentral_db"
@@ -77,7 +72,7 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-mariadb --batch <<-EOSQL
+mariadb --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
@@ -106,7 +101,7 @@ echo_success "Database dan pengguna berhasil dikonfigurasi."
 echo_info "Mengimpor tabel dan data awal dari file 'schema.sql' secara otomatis..."
 # Sekarang kita dapat menggunakan pengguna baru yang kita buat untuk mengimpor skema.
 # Ini juga berfungsi sebagai tes bahwa pengguna dan kata sandi berfungsi.
-mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
+mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal (termasuk admin default) berhasil diimpor."
 
 
