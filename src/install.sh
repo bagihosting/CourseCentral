@@ -283,7 +283,7 @@ echo_info "Membuat file konfigurasi kustom di $FAIL2BAN_JAIL_LOCAL_FILE..."
 cat > "$FAIL2BAN_JAIL_LOCAL_FILE" << EOF
 [DEFAULT]
 # Waktu dalam detik. 1h = 3600, 1d = 86400.
-# Kita akan memblokir penyerang secara permanen selama 1 hari.
+# Kita akan memblokir penyerang selama 1 hari.
 bantime = 1d
 # Jendela waktu untuk mendeteksi serangan (misal: 10 menit)
 findtime = 10m
@@ -415,5 +415,3 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
-
-    

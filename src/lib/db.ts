@@ -55,3 +55,6 @@ async function testConnection() {
         // ini memungkinkan debugging yang lebih mudah.
     }
 }
+
+// Jalankan tes koneksi saat aplikasi dimulai untuk memberikan feedback cepat di konsol
+testConnection();
