@@ -71,21 +71,24 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mar
 
 # [PERBAIKAN KRITIS] Inisialisasi direktori data MariaDB secara manual.
 # Ini memperbaiki masalah di beberapa sistem Ubuntu di mana instalasi tidak secara otomatis menjalankan langkah ini.
-echo_info "Menginisialisasi direktori data MariaDB secara manual..."
+echo_info "Menginisialisasi direktori data MariaDB..."
 mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
 
 
-# --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
-echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
+# --- [PERBAIKAN KUAT] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
+echo_info "Memastikan layanan MariaDB aktif..."
 systemctl start mariadb
 systemctl enable mariadb
 
-# [PERBAIKAN KUAT] Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
-# Alih-alih hanya memeriksa file socket, kita mencoba menjalankan query sederhana.
+# Memberi jeda 5 detik agar layanan MariaDB memiliki cukup waktu untuk inisialisasi internal sepenuhnya.
+echo_info "Memberi waktu 5 detik bagi MariaDB untuk melakukan inisialisasi penuh..."
+sleep 5
+
+# Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
 # Ini memastikan server tidak hanya berjalan, tetapi juga siap menerima perintah.
 MAX_WAIT=30
 COUNT=0
-echo_info "Menunggu MariaDB siap untuk otentikasi..."
+echo_info "Memverifikasi kesiapan otentikasi MariaDB..."
 while ! mariadb -u root --protocol=socket -e "SELECT 1" &> /dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
     echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
@@ -466,3 +469,5 @@ echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk k
 echo ""
 echo_success "Deployment selesai!"
 
+
+    
