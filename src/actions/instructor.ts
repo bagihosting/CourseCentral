@@ -93,27 +93,31 @@ export async function rejectInstructorApplication(applicationId: string): Promis
 }
 
 export async function getInstructorBranding(userId: string): Promise<InstructorBranding | null> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM instructor_branding WHERE userId = ?', [userId]);
-    if (rows.length === 0) {
-        return null;
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM instructor_branding WHERE userId = ?', [userId]);
+        if (rows.length === 0) {
+            return null;
+        }
+        return rows[0] as InstructorBranding;
+    } catch (error) {
+        console.error("Gagal mengambil data branding:", error);
+        throw error;
     }
-    return rows[0] as InstructorBranding;
 }
 
 export async function saveInstructorBranding(userId: string, data: Partial<Omit<InstructorBranding, 'userId'>>): Promise<void> {
-    const existing = await getInstructorBranding(userId);
-
     const { customDomain, brandName, brandLogoUrl, brandPrimaryColor } = data;
-
-    if (existing) {
+    
+    try {
+        // REPLACE INTO is a MySQL-specific command that simplifies the "upsert" logic.
+        // It will INSERT a new row if the primary key (userId) doesn't exist.
+        // If the primary key does exist, it will DELETE the old row and INSERT the new one.
         await pool.query(
-            'UPDATE instructor_branding SET customDomain = ?, brandName = ?, brandLogoUrl = ?, brandPrimaryColor = ? WHERE userId = ?',
-            [customDomain, brandName, brandLogoUrl, brandPrimaryColor, userId]
-        );
-    } else {
-        await pool.query(
-            'INSERT INTO instructor_branding (userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?)',
+            `REPLACE INTO instructor_branding (userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor) VALUES (?, ?, ?, ?, ?)`,
             [userId, customDomain, brandName, brandLogoUrl, brandPrimaryColor]
         );
+    } catch(error) {
+        console.error("Gagal menyimpan data branding:", error);
+        throw error;
     }
 }
