@@ -1,5 +1,5 @@
 
-import { getPool } from '@/lib/db';
+import { getPool } from './db';
 import type { Tenant } from '@/types';
 import type { RowDataPacket } from 'mysql2';
 
