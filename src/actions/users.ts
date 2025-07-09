@@ -7,7 +7,7 @@ import { getUserById } from '@/actions/auth';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { getAuthUser } from './utils';
+import { getAuthUser, getActiveTenantId } from './utils';
 
 function generateReferralCode(length = 8) {
   return crypto.randomBytes(Math.ceil(length / 2))
@@ -17,13 +17,15 @@ function generateReferralCode(length = 8) {
 }
 
 export async function getAllUsers(): Promise<User[]> {
+  const tenantId = await getActiveTenantId();
   try {
     const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT u.*, ib.customDomain
       FROM users u
       LEFT JOIN instructor_branding ib ON u.id = ib.userId
+      WHERE u.tenant_id = ?
       ORDER BY u.createdAt DESC
-    `);
+    `, [tenantId]);
     return rows.map(row => ({
         ...row,
         affiliateBalance: Number(row.affiliateBalance),
@@ -43,8 +45,9 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function getUserByReferralCode(referralCode: string): Promise<Pick<User, 'name'> | null> {
   if (!referralCode) return null;
+  const tenantId = await getActiveTenantId();
   try {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT name FROM users WHERE referralCode = ?', [referralCode]);
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT name FROM users WHERE referralCode = ? AND tenant_id = ?', [referralCode, tenantId]);
     if (rows.length > 0) {
       return rows[0] as Pick<User, 'name'>;
     }
@@ -56,6 +59,7 @@ export async function getUserByReferralCode(referralCode: string): Promise<Pick<
 }
 
 export async function registerUser(data: RegisterUserInput): Promise<User> {
+    const tenantId = await getActiveTenantId();
     const [existing] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE username = ?', [data.username]);
     if (existing.length > 0) {
         throw new Error('Nama pengguna sudah digunakan.');
@@ -67,8 +71,8 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     await pool.query(
-        'INSERT INTO users (id, name, username, password, whatsapp, role, avatarUrl, referralCode, referredBy) VALUES (?, ?, ?, ?, ?, "member", ?, ?, ?)',
-        [newId, data.name, data.username, hashedPassword, data.whatsapp, data.avatarUrl || 'https://placehold.co/256x256.png', referralCode, data.referredBy]
+        'INSERT INTO users (id, tenant_id, name, username, password, whatsapp, role, avatarUrl, referralCode, referredBy) VALUES (?, ?, ?, ?, ?, ?, "member", ?, ?, ?)',
+        [newId, tenantId, data.name, data.username, hashedPassword, data.whatsapp, data.avatarUrl || 'https://placehold.co/256x256.png', referralCode, data.referredBy]
     );
 
     const newUser = await getUserById(newId);
@@ -92,7 +96,7 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
       return user;
     }
 
-    const querySet = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
+    const querySet = fieldEntries.map(([key]) => `\`${key}\` = ?`).join(', ');
     const queryValues = fieldEntries.map(([, value]) => value);
 
     await pool.query(`UPDATE users SET ${querySet} WHERE id = ?`, [...queryValues, id]);
@@ -107,11 +111,12 @@ export async function deleteUser(id: string): Promise<void> {
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa menghapus pengguna.");
     if(actor.id === id) throw new Error("Anda tidak bisa menghapus akun Anda sendiri.");
     
-    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    // Admin tenant hanya bisa menghapus pengguna di dalam tenant mereka sendiri
+    await pool.query('DELETE FROM users WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);
 }
 
 export async function reactivateUser(id: string): Promise<void> {
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa mengaktifkan pengguna.");
-    await pool.query('UPDATE users SET status = "active" WHERE id = ?', [id]);
+    await pool.query('UPDATE users SET status = "active" WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);
 }

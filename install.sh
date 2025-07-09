@@ -152,6 +152,8 @@ DB_PORT="3306"
 DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
 DB_NAME="$DB_NAME"
+# Atur domain utama aplikasi Anda di sini setelah deployment
+NEXT_PUBLIC_BASE_URL="http://ALAMAT_IP_ATAU_DOMAIN_UTAMA_ANDA"
 EOF
 
 chown $RUN_USER:$RUN_USER "$ENV_FILE"
@@ -167,6 +169,7 @@ echo_warn "  ╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═�
 echo_warn "                                                                       "
 echo_warn "  PENTING: Aplikasi Anda tidak akan berjalan tanpa Kunci API Gemini!  "
 echo_warn "  Harap edit file '$ENV_FILE' dan tambahkan GEMINI_API_KEY Anda.    "
+echo_warn "  Juga, jangan lupa untuk mengatur NEXT_PUBLIC_BASE_URL Anda!         "
 echo_warn "                                                                       "
 echo_warn "======================================================================="
 
@@ -187,17 +190,6 @@ echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
 # --- 9. Konfigurasi Nginx ---
-echo_info "Mengambil domain kustom dari database..."
-# -sN flag agar output bersih tanpa header atau border
-CUSTOM_DOMAINS=$(mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -sN -e "SELECT customDomain FROM instructor_branding WHERE customDomain IS NOT NULL AND customDomain != '';")
-DOMAIN_LIST_FOR_NGINX=$(echo $CUSTOM_DOMAINS | tr '\n' ' ')
-
-if [ -n "$DOMAIN_LIST_FOR_NGINX" ]; then
-    echo_success "Domain kustom ditemukan dan akan dikonfigurasi: $DOMAIN_LIST_FOR_NGINX"
-else
-    echo_info "Tidak ada domain kustom yang dikonfigurasi. Melanjutkan dengan konfigurasi standar."
-fi
-
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -211,16 +203,16 @@ echo_info "Menggunakan socket PHP-FPM di: $PHP_SOCKET_PATH"
 
 # Selalu timpa konfigurasi Nginx untuk memastikan yang terbaru
 # Konfigurasi ini termasuk block untuk phpMyAdmin
+# Dengan sistem multitenancy, kita hanya perlu wildcard `_` untuk menangkap semua domain.
+# Aplikasi Next.js akan menangani routing berdasarkan Host header.
 NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
 
-    # Ganti 'domainanda.com' dengan nama domain Anda yang sebenarnya
-    # Anda bisa melakukannya setelah instalasi dan setelah mengarahkan domain Anda.
-    # Untuk awal, '_' sudah cukup untuk menangkap permintaan via IP.
-    # Semua domain kustom dari database akan ditambahkan di sini secara otomatis.
-    server_name _ $DOMAIN_LIST_FOR_NGINX;
+    # Tangkap semua domain/subdomain yang diarahkan ke IP ini.
+    # Logika routing ditangani oleh aplikasi Next.js (middleware).
+    server_name _;
     
     root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
@@ -260,7 +252,7 @@ server {
     }
 }"
 echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin dan domain kustom."
+echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan multitenancy."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
@@ -409,8 +401,9 @@ echo "  - phpMyAdmin      : http://<ALAMAT_IP_SERVER_ANDA>/phpmyadmin"
 echo ""
 echo_info "LANGKAH SELANJUTNYA:"
 echo "  1. Edit file .env.local untuk menambahkan GEMINI_API_KEY Anda."
-echo "  2. Arahkan nama domain Anda ke alamat IP server ini."
-echo "  3. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
-echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
+echo "  2. Edit file .env.local untuk mengatur NEXT_PUBLIC_BASE_URL Anda dengan domain utama."
+echo "  3. Arahkan nama domain Anda (dan wildcard *.domainanda.com) ke alamat IP server ini."
+echo "  4. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk mengaktifkan HTTPS."
+echo "  5. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"

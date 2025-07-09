@@ -4,12 +4,13 @@
 import { pool } from '@/lib/db';
 import type { Course } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { getAuthUser } from './utils';
+import { getAuthUser, getActiveTenantId } from './utils';
 
 function mapRowToCourse(row: any): Course {
     if (!row) return row;
     return {
         id: row.id,
+        tenant_id: row.tenant_id,
         title: row.title,
         description: row.description,
         instructor: row.instructor,
@@ -28,10 +29,11 @@ function mapRowToCourse(row: any): Course {
     };
 }
 
-// For public catalog, only show published courses
+// For public catalog, only show published courses for the active tenant
 export async function getAllCourses(): Promise<Course[]> {
+  const tenantId = await getActiveTenantId();
   try {
-    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM courses WHERE status = 'published' ORDER BY created_at DESC");
+    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM courses WHERE status = 'published' AND tenant_id = ? ORDER BY created_at DESC", [tenantId]);
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error("🔴 Peringatan di getAllCourses: Tidak dapat terhubung ke database. Mengembalikan array kosong.", error);
@@ -39,10 +41,17 @@ export async function getAllCourses(): Promise<Course[]> {
   }
 }
 
-// For admin, show all courses with any status
+// For admin, show all courses for their tenant. Super admin sees all.
 export async function getAllCoursesForAdmin(): Promise<Course[]> {
+  const actor = await getAuthUser();
+  const tenantId = actor.tenant_id === 'platform_main' ? await getActiveTenantId() : actor.tenant_id;
   try {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
+    const query = actor.tenant_id === 'platform_main' 
+      ? 'SELECT * FROM courses ORDER BY created_at DESC'
+      : 'SELECT * FROM courses WHERE tenant_id = ? ORDER BY created_at DESC';
+    const params = actor.tenant_id === 'platform_main' ? [] : [tenantId];
+    
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
@@ -52,8 +61,9 @@ export async function getAllCoursesForAdmin(): Promise<Course[]> {
 
 // For instructors, get their own courses
 export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
+  const tenantId = await getActiveTenantId();
   try {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? ORDER BY created_at DESC', [authorId]);
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE authorId = ? AND tenant_id = ? ORDER BY created_at DESC', [authorId, tenantId]);
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error(`🔴 Gagal mengambil kursus untuk author ${authorId}:`, error);
@@ -61,17 +71,18 @@ export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
   }
 }
 
-// Get courses pending review for admin dashboard
+// Get courses pending review for the current tenant admin
 export type CourseForReview = Course & { instructorName: string };
 export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
+    const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT c.*, u.name as instructorName 
             FROM courses c 
             JOIN users u ON c.authorId = u.id 
-            WHERE c.status = 'pending_review' 
+            WHERE c.status = 'pending_review' AND c.tenant_id = ?
             ORDER BY c.updated_at ASC
-        `);
+        `, [tenantId]);
         return rows.map(row => ({
             ...mapRowToCourse(row),
             instructorName: row.instructorName
@@ -84,9 +95,13 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
 
 
 export async function getCourseById(id: string): Promise<Course | null> {
+    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? AND tenant_id = ?', [id, tenantId]);
         if (rows.length === 0) {
+            // A super-admin might be trying to access a course from another tenant's subdomain.
+            // Allow this, but it's a rare case. The primary check is on tenantId.
+            // For simplicity, we'll keep the tenant check strict here.
             return null;
         }
         return mapRowToCourse(rows[0]);
@@ -96,18 +111,20 @@ export async function getCourseById(id: string): Promise<Course | null> {
     }
 }
 
-export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'reviewNotes' | 'created_at' | 'updated_at' | 'authorId'>): Promise<Course> {
+export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status' | 'reviewNotes' | 'created_at' | 'updated_at' | 'authorId' | 'tenant_id'>): Promise<Course> {
     const author = await getAuthUser();
     if (author.role !== 'admin' && author.role !== 'instructor') {
         throw new Error("Hanya admin atau pengajar yang dapat membuat kursus.");
     }
+    const tenantId = author.tenant_id;
     
     const newId = `course_${Date.now()}`;
-    const query = `INSERT INTO courses (id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
+    const query = `INSERT INTO courses (id, tenant_id, title, description, instructor, price, image_url, access_level, seo_title, seo_description, seo_keywords, modules, authorId, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`;
     
     try {
         await pool.query(query, [
             newId,
+            tenantId,
             data.title,
             data.description,
             data.instructor,
@@ -121,17 +138,18 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
             author.id
         ]);
         
-        const createdCourse = await getCourseById(newId);
-        if (!createdCourse) throw new Error('Gagal memverifikasi kursus yang baru dibuat.');
+        // Temporarily override tenant context to fetch the newly created course for verification
+        const [createdRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [newId]);
+        if (createdRows.length === 0) throw new Error('Gagal memverifikasi kursus yang baru dibuat.');
         
-        return createdCourse;
+        return mapRowToCourse(createdRows[0]);
     } catch (error) {
         console.error("🔴 Gagal membuat kursus baru:", error);
         throw error;
     }
 }
 
-export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId'>>): Promise<Course> {
+export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' | 'authorId' | 'tenant_id'>>): Promise<Course> {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -142,9 +160,13 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
         if (existingRows.length === 0) throw new Error("Kursus tidak ditemukan untuk diperbarui.");
 
         let courseToUpdate = mapRowToCourse(existingRows[0]);
-        
+
+        // Check ownership and tenancy
         if (actor.role !== 'admin' && courseToUpdate.authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk mengubah kursus ini.");
+        }
+        if (actor.tenant_id !== 'platform_main' && courseToUpdate.tenant_id !== actor.tenant_id) {
+            throw new Error("Akses ditolak. Kursus ini milik tenant lain.");
         }
         
         const updatedData = { ...courseToUpdate, ...data };
@@ -175,10 +197,10 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
         
         await connection.commit();
 
-        const updatedCourse = await getCourseById(id);
-        if (!updatedCourse) throw new Error('Gagal mengambil kursus setelah pembaruan.');
+        const [updatedRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
+        if (updatedRows.length === 0) throw new Error('Gagal mengambil kursus setelah pembaruan.');
 
-        return updatedCourse;
+        return mapRowToCourse(updatedRows[0]);
     } catch (error) {
         await connection.rollback();
         console.error(`🔴 Gagal memperbarui kursus dengan ID ${id}:`, error);
@@ -195,14 +217,18 @@ export async function deleteCourse(id: string): Promise<void> {
 
         const actor = await getAuthUser(connection);
 
-        const [courseRows] = await connection.query<RowDataPacket[]>('SELECT authorId FROM courses WHERE id = ? FOR UPDATE', [id]);
+        const [courseRows] = await connection.query<RowDataPacket[]>('SELECT authorId, tenant_id FROM courses WHERE id = ? FOR UPDATE', [id]);
         if (courseRows.length === 0) {
             await connection.commit();
             return;
         }
 
-        if(actor.role !== 'admin' && courseRows[0].authorId !== actor.id) {
+        const courseToDelete = courseRows[0];
+        if(actor.role !== 'admin' && courseToDelete.authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk menghapus kursus ini.");
+        }
+        if(actor.tenant_id !== 'platform_main' && courseToDelete.tenant_id !== actor.tenant_id) {
+             throw new Error("Akses ditolak. Kursus ini milik tenant lain.");
         }
 
         await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
@@ -222,8 +248,8 @@ export async function deleteCourse(id: string): Promise<void> {
 export async function submitCourseForReview(courseId: string): Promise<void> {
     const actor = await getAuthUser();
     const [result] = await pool.query<ResultSetHeader>(
-        "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND status IN ('draft', 'rejected')",
-        [courseId, actor.id]
+        "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND tenant_id = ? AND status IN ('draft', 'rejected')",
+        [courseId, actor.id, actor.tenant_id]
     );
     if (result.affectedRows === 0) {
         throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft atau ditolak.");
@@ -233,22 +259,24 @@ export async function submitCourseForReview(courseId: string): Promise<void> {
 export async function publishCourse(courseId: string): Promise<void> {
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat mempublikasikan kursus.");
+    const tenantId = await getActiveTenantId();
     
     const [result] = await pool.query<ResultSetHeader>(
-        "UPDATE courses SET status = 'published' WHERE id = ? AND status = 'pending_review'",
-        [courseId]
+        "UPDATE courses SET status = 'published' WHERE id = ? AND status = 'pending_review' AND tenant_id = ?",
+        [courseId, tenantId]
     );
     if (result.affectedRows === 0) {
-        throw new Error("Hanya kursus yang sedang direview yang dapat dipublikasikan.");
+        throw new Error("Hanya kursus yang sedang direview di tenant ini yang dapat dipublikasikan.");
     }
 }
 
 export async function rejectCourse(courseId: string, reviewNotes: string): Promise<void> {
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat menolak kursus.");
+    const tenantId = await getActiveTenantId();
 
     await pool.query(
-        "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review'",
-        [reviewNotes, courseId]
+        "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review' AND tenant_id = ?",
+        [reviewNotes, courseId, tenantId]
     );
 }

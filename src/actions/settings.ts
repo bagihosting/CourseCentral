@@ -5,6 +5,7 @@ import { pool } from '@/lib/db';
 import type { SeoSettings, LandingPageSettings, PaymentAccount, ConfirmationContact, Testimonial, User } from '@/types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import DOMPurify from 'isomorphic-dompurify';
+import { getActiveTenantId } from './utils';
 
 // --- Default Settings ---
 const DEFAULT_SEO_SETTINGS: SeoSettings = {
@@ -52,13 +53,14 @@ const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageSettings = {
 
 // --- Generic Settings Functions ---
 async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
+    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT value FROM settings WHERE `key` = ?', [key]);
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT value FROM settings WHERE `key` = ? AND tenant_id = ?', [key, tenantId]);
         if (rows.length > 0) {
             return { ...defaultValue, ...JSON.parse(rows[0].value) };
         }
         // If not found, insert default and return it
-        await pool.query('INSERT INTO settings (`key`, `value`) VALUES (?, ?)', [key, JSON.stringify(defaultValue)]);
+        await pool.query('INSERT INTO settings (`key`, `tenant_id`, `value`) VALUES (?, ?, ?)', [key, tenantId, JSON.stringify(defaultValue)]);
         return defaultValue;
     } catch (error) {
         console.error(`🔴 Gagal mengambil atau menyimpan pengaturan untuk kunci '${key}'. Mengembalikan nilai default.`, error);
@@ -67,6 +69,7 @@ async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
 }
 
 async function updateSetting<T>(key: string, data: Partial<T>): Promise<void> {
+    const tenantId = await getActiveTenantId();
     // SECURITY: Sanitize user-provided HTML content before saving
     const sanitizedData = { ...data };
     if ('heroHeadline' in sanitizedData && typeof sanitizedData.heroHeadline === 'string') {
@@ -84,7 +87,7 @@ async function updateSetting<T>(key: string, data: Partial<T>): Promise<void> {
 
     const currentSettings = await getSetting(key, {});
     const newSettings = { ...currentSettings, ...sanitizedData };
-    await pool.query('REPLACE INTO settings (`key`, `value`) VALUES (?, ?)', [key, JSON.stringify(newSettings)]);
+    await pool.query('REPLACE INTO settings (`key`, `tenant_id`, `value`) VALUES (?, ?, ?)', [key, tenantId, JSON.stringify(newSettings)]);
 }
 
 // --- Specific Settings Functions ---
@@ -106,8 +109,9 @@ export async function updateLandingPageSettings(data: Partial<LandingPageSetting
 
 // --- Payment Accounts ---
 export async function getPaymentSettings(): Promise<PaymentAccount[]> {
+    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payment_accounts ORDER BY bankName ASC');
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payment_accounts WHERE tenant_id = ? ORDER BY bankName ASC', [tenantId]);
         return rows as PaymentAccount[];
     } catch (error) {
         console.error("🔴 Gagal mengambil akun pembayaran:", error);
@@ -115,26 +119,30 @@ export async function getPaymentSettings(): Promise<PaymentAccount[]> {
     }
 }
 
-export async function addPaymentAccount(data: Omit<PaymentAccount, 'id'>): Promise<void> {
+export async function addPaymentAccount(data: Omit<PaymentAccount, 'id' | 'tenant_id'>): Promise<void> {
+    const tenantId = await getActiveTenantId();
     const id = `pa_${Date.now()}`;
-    await pool.query('INSERT INTO payment_accounts (id, bankName, accountNumber, accountHolder) VALUES (?, ?, ?, ?)', [id, data.bankName, data.accountNumber, data.accountHolder]);
+    await pool.query('INSERT INTO payment_accounts (id, tenant_id, bankName, accountNumber, accountHolder) VALUES (?, ?, ?, ?, ?)', [id, tenantId, data.bankName, data.accountNumber, data.accountHolder]);
 }
 
-export async function updatePaymentAccount(id: string, data: Partial<Omit<PaymentAccount, 'id'>>): Promise<void> {
-    const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+export async function updatePaymentAccount(id: string, data: Partial<Omit<PaymentAccount, 'id' | 'tenant_id'>>): Promise<void> {
+    const tenantId = await getActiveTenantId();
+    const fields = Object.keys(data).map(key => `\`${key}\` = ?`).join(', ');
     const values = Object.values(data);
     if (fields.length === 0) return;
-    await pool.query(`UPDATE payment_accounts SET ${fields} WHERE id = ?`, [...values, id]);
+    await pool.query(`UPDATE payment_accounts SET ${fields} WHERE id = ? AND tenant_id = ?`, [...values, id, tenantId]);
 }
 
 export async function deletePaymentAccount(id: string): Promise<void> {
-    await pool.query('DELETE FROM payment_accounts WHERE id = ?', [id]);
+    const tenantId = await getActiveTenantId();
+    await pool.query('DELETE FROM payment_accounts WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }
 
 // --- Confirmation Contacts ---
 export async function getConfirmationContacts(): Promise<ConfirmationContact[]> {
+    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM confirmation_contacts ORDER BY name ASC');
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM confirmation_contacts WHERE tenant_id = ? ORDER BY name ASC', [tenantId]);
         return rows as ConfirmationContact[];
     } catch (error) {
         console.error("🔴 Gagal mengambil kontak konfirmasi:", error);
@@ -142,31 +150,36 @@ export async function getConfirmationContacts(): Promise<ConfirmationContact[]> 
     }
 }
 
-export async function addConfirmationContact(data: Omit<ConfirmationContact, 'id'>): Promise<void> {
+export async function addConfirmationContact(data: Omit<ConfirmationContact, 'id' | 'tenant_id'>): Promise<void> {
+    const tenantId = await getActiveTenantId();
     const id = `cc_${Date.now()}`;
-    await pool.query('INSERT INTO confirmation_contacts (id, name, whatsapp) VALUES (?, ?, ?)', [id, data.name, data.whatsapp]);
+    await pool.query('INSERT INTO confirmation_contacts (id, tenant_id, name, whatsapp) VALUES (?, ?, ?, ?)', [id, tenantId, data.name, data.whatsapp]);
 }
 
-export async function updateConfirmationContact(id: string, data: Partial<Omit<ConfirmationContact, 'id'>>): Promise<void> {
-    const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+export async function updateConfirmationContact(id: string, data: Partial<Omit<ConfirmationContact, 'id' | 'tenant_id'>>): Promise<void> {
+    const tenantId = await getActiveTenantId();
+    const fields = Object.keys(data).map(key => `\`${key}\` = ?`).join(', ');
     const values = Object.values(data);
     if (fields.length === 0) return;
-    await pool.query(`UPDATE confirmation_contacts SET ${fields} WHERE id = ?`, [...values, id]);
+    await pool.query(`UPDATE confirmation_contacts SET ${fields} WHERE id = ? AND tenant_id = ?`, [...values, id, tenantId]);
 }
 
 export async function deleteConfirmationContact(id: string): Promise<void> {
-    await pool.query('DELETE FROM confirmation_contacts WHERE id = ?', [id]);
+    const tenantId = await getActiveTenantId();
+    await pool.query('DELETE FROM confirmation_contacts WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }
 
 // --- Testimonials ---
 export async function getAllTestimonials(): Promise<Testimonial[]> {
+    const tenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT t.id, t.userId, u.name as userName, u.avatarUrl as userAvatar, u.role as userRole, t.quote, t.rating, t.createdAt
             FROM testimonials t
             JOIN users u ON t.userId = u.id
+            WHERE t.tenant_id = ?
             ORDER BY t.createdAt DESC
-        `);
+        `, [tenantId]);
         return rows as Testimonial[];
     } catch (error) {
         console.error("🔴 Gagal mengambil semua testimoni. Mengembalikan array kosong.", error);
@@ -175,8 +188,9 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
 }
 
 export async function getTestimonialByUserId(userId: string): Promise<Testimonial | null> {
+    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials WHERE userId = ?', [userId]);
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials WHERE userId = ? AND tenant_id = ?', [userId, tenantId]);
         if (rows.length === 0) return null;
         return rows[0] as Testimonial;
     } catch (error) {
@@ -186,16 +200,18 @@ export async function getTestimonialByUserId(userId: string): Promise<Testimonia
 }
 
 export async function addOrUpdateTestimonial(data: { userId: string, quote: string, rating: number }): Promise<void> {
+    const tenantId = await getActiveTenantId();
     const existing = await getTestimonialByUserId(data.userId);
     const sanitizedQuote = DOMPurify.sanitize(data.quote);
     if (existing) {
-        await pool.query('UPDATE testimonials SET quote = ?, rating = ?, createdAt = NOW() WHERE id = ?', [sanitizedQuote, data.rating, existing.id]);
+        await pool.query('UPDATE testimonials SET quote = ?, rating = ?, createdAt = NOW() WHERE id = ? AND tenant_id = ?', [sanitizedQuote, data.rating, existing.id, tenantId]);
     } else {
         const id = `test_${Date.now()}`;
-        await pool.query('INSERT INTO testimonials (id, userId, quote, rating) VALUES (?, ?, ?, ?)', [id, data.userId, sanitizedQuote, data.rating]);
+        await pool.query('INSERT INTO testimonials (id, tenant_id, userId, quote, rating) VALUES (?, ?, ?, ?, ?)', [id, tenantId, data.userId, sanitizedQuote, data.rating]);
     }
 }
 
 export async function deleteTestimonial(id: string): Promise<void> {
-    await pool.query('DELETE FROM testimonials WHERE id = ?', [id]);
+    const tenantId = await getActiveTenantId();
+    await pool.query('DELETE FROM testimonials WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 }

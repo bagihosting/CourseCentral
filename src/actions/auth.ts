@@ -6,6 +6,7 @@ import type { User } from '@/types';
 import type { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcrypt';
 import { cookies } from 'next/headers';
+import { getActiveTenantId } from './utils';
 
 // --- Core Functions (Used by Server Actions) ---
 
@@ -34,6 +35,7 @@ export async function getUserById(id: string): Promise<User | undefined> {
 }
 
 export async function validateUser(username: string, password: string): Promise<User | null> {
+    const activeTenantId = await getActiveTenantId();
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT u.*, ib.customDomain
@@ -54,10 +56,14 @@ export async function validateUser(username: string, password: string): Promise<
             return null; // Password tidak ada atau format salah, login gagal
         }
 
-        // Production-ready: ALWAYS use bcrypt.compare
         const passwordMatch = await bcrypt.compare(password, storedPassword);
 
         if (passwordMatch) {
+            // Cek kecocokan tenant. Pengguna hanya bisa login via subdomain tenant mereka atau domain utama.
+            if (user.tenant_id !== 'platform_main' && user.tenant_id !== activeTenantId) {
+                return null; // Pengguna mencoba login di tenant yang salah.
+            }
+            
             if (user.role !== 'admin' && user.status === 'inactive') {
                 throw new Error('ACCOUNT_INACTIVE');
             }
@@ -110,12 +116,9 @@ export async function login(username: string, password: string): Promise<User> {
     const user = await validateUser(username, password);
 
     if (!user) {
-        throw new Error('Nama pengguna atau kata sandi salah.');
+        throw new Error('Nama pengguna atau kata sandi salah, atau Anda mencoba masuk di domain yang salah.');
     }
 
-    // By removing the explicit `secure` flag, we let Next.js automatically
-    // determine its value based on the connection protocol (http vs https).
-    // This fixes the login issue on http while maintaining security on https.
     cookies().set('user_session_id', user.id, {
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 7, // 1 week
