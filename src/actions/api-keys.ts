@@ -1,3 +1,4 @@
+
 'use server';
 
 import { pool } from '@/lib/db';
@@ -83,4 +84,43 @@ export async function revokeApiKey(keyId: string): Promise<void> {
     }
 
     await pool.query('DELETE FROM api_keys WHERE id = ?', [keyId]);
+}
+
+
+/**
+ * Validates a given API key.
+ * @param key The plain-text API key from the request.
+ * @returns `true` if the key is valid, `false` otherwise.
+ */
+export async function validateApiKey(key: string): Promise<boolean> {
+    if (!key || !key.startsWith(API_KEY_PREFIX)) {
+        return false;
+    }
+
+    const prefix = key.substring(0, API_KEY_PREFIX.length + 4);
+
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            'SELECT id, hashed_key FROM api_keys WHERE prefix = ?',
+            [prefix]
+        );
+
+        if (rows.length === 0) {
+            return false;
+        }
+
+        for (const row of rows) {
+            const isMatch = await bcrypt.compare(key, row.hashed_key);
+            if (isMatch) {
+                // Key is valid. Update last_used_at in the background (fire-and-forget).
+                pool.query('UPDATE api_keys SET last_used_at = NOW() WHERE id = ?', [row.id]).catch(console.error);
+                return true;
+            }
+        }
+
+        return false;
+    } catch (error) {
+        console.error("Error validating API key:", error);
+        return false;
+    }
 }
