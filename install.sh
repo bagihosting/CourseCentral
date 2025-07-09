@@ -381,7 +381,7 @@ echo_info "Mengkonfigurasi PM2 untuk memulai saat sistem reboot..."
 # Perintah 'pm2 startup' akan menghasilkan perintah yang perlu dijalankan sebagai root.
 # Kita menangkap outputnya dan menjalankannya.
 # 'env PATH=$PATH...' diperlukan agar pm2 dapat menemukan node.
-STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
+STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/lib/node_modules/pm2/bin/pm2 startup | tail -n 1)
 if [ -n "$STARTUP_COMMAND" ]; then
     echo "Menjalankan perintah startup PM2: $STARTUP_COMMAND"
     eval "$STARTUP_COMMAND"
@@ -419,5 +419,3 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
-
-    
