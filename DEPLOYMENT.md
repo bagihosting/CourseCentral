@@ -102,6 +102,7 @@ Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
     - Menghentikan proses lama yang mungkin berjalan di port 3000.
     - Menjalankan aplikasi Anda dengan PM2.
     - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan **phpMyAdmin**.
+    - **Secara otomatis mendeteksi dan mengkonfigurasi semua domain kustom** yang telah diatur oleh para pengajar di database.
 
 ### Langkah 3: Langkah Final Setelah Skrip Selesai
 

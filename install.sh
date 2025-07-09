@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # =================================================================
-# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 22.04 & 24.04
+# Pemasang & Pembaru Otomatis untuk Aplikasi Next.js di Ubuntu 20.04, 22.04 & 24.04
 # Termasuk: Nginx, MariaDB, Node.js, PM2, dan phpMyAdmin.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
@@ -187,6 +187,17 @@ echo_info "Memberi waktu 2 detik bagi aplikasi untuk memulai..."
 sleep 2
 
 # --- 9. Konfigurasi Nginx ---
+echo_info "Mengambil domain kustom dari database..."
+# -sN flag agar output bersih tanpa header atau border
+CUSTOM_DOMAINS=$(mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -sN -e "SELECT customDomain FROM instructor_branding WHERE customDomain IS NOT NULL AND customDomain != '';")
+DOMAIN_LIST_FOR_NGINX=$(echo $CUSTOM_DOMAINS | tr '\n' ' ')
+
+if [ -n "$DOMAIN_LIST_FOR_NGINX" ]; then
+    echo_success "Domain kustom ditemukan dan akan dikonfigurasi: $DOMAIN_LIST_FOR_NGINX"
+else
+    echo_info "Tidak ada domain kustom yang dikonfigurasi. Melanjutkan dengan konfigurasi standar."
+fi
+
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 NGINX_CONFIG_FILE="/etc/nginx/sites-available/$APP_NAME"
 # Dapatkan versi PHP yang terinstal untuk path socket FPM
@@ -208,7 +219,8 @@ server {
     # Ganti 'domainanda.com' dengan nama domain Anda yang sebenarnya
     # Anda bisa melakukannya setelah instalasi dan setelah mengarahkan domain Anda.
     # Untuk awal, '_' sudah cukup untuk menangkap permintaan via IP.
-    server_name _;
+    # Semua domain kustom dari database akan ditambahkan di sini secara otomatis.
+    server_name _ $DOMAIN_LIST_FOR_NGINX;
     
     root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
@@ -248,7 +260,7 @@ server {
     }
 }"
 echo "$NGINX_CONFIG" > "$NGINX_CONFIG_FILE"
-echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin."
+echo_success "File konfigurasi Nginx dibuat/diperbarui dengan dukungan phpMyAdmin dan domain kustom."
 
 # Aktifkan site dan hapus default
 rm -f /etc/nginx/sites-enabled/default
