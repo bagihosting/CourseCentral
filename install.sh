@@ -69,17 +69,30 @@ apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server mariadb-client psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
-# --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
-echo_info "Memastikan layanan MariaDB aktif dan menunggu koneksi..."
+# [PERBAIKAN KRITIS] Inisialisasi Database Secara Manual untuk Keandalan Maksimal
+# Terkadang, instalasi paket tidak menginisialisasi direktori data dengan benar.
+# Kita akan melakukannya secara manual untuk memastikan startup yang bersih.
+echo_info "Menghentikan layanan MariaDB untuk memastikan inisialisasi yang bersih..."
+systemctl stop mariadb || true # Jangan berhenti jika layanan belum ada
+
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+  echo_info "Direktori data MariaDB tidak ditemukan. Melakukan inisialisasi..."
+  mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+  echo_success "Inisialisasi direktori data MariaDB selesai."
+else
+  echo_info "Direktori data MariaDB sudah ada."
+fi
+
+# --- Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
+echo_info "Memulai layanan MariaDB..."
 systemctl start mariadb
 systemctl enable mariadb
 
 # [PERBAIKAN KUAT] Loop cerdas untuk menunggu MariaDB siap menerima koneksi DAN otentikasi.
-# Alih-alih hanya memeriksa file socket, kita mencoba menjalankan query sederhana.
 # Ini memastikan server tidak hanya berjalan, tetapi juga siap menerima perintah.
-MAX_WAIT=30
+MAX_WAIT=60
 COUNT=0
-echo_info "Menunggu MariaDB siap untuk otentikasi..."
+echo_info "Memverifikasi kesiapan otentikasi MariaDB..."
 while ! mariadb -u root --protocol=socket -e "SELECT 1" &> /dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
     echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
@@ -459,4 +472,3 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
-
