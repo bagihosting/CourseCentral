@@ -66,7 +66,7 @@ apt-get autoremove -y
 echo_info "Melanjutkan instalasi dependensi utama..."
 apt-get upgrade -y
 # Tambahkan DEBIAN_FRONTEND untuk mencegah prompt interaktif, meningkatkan keandalan.
-DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server psmisc \
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl build-essential mariadb-server mariadb-client psmisc \
                    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
 # --- [PERBAIKAN] Memastikan Layanan MariaDB Berjalan dan Siap Sebelum Konfigurasi ---
@@ -80,7 +80,7 @@ systemctl enable mariadb
 MAX_WAIT=30
 COUNT=0
 echo_info "Menunggu MariaDB siap untuk otentikasi..."
-while ! mariadb --protocol=socket -e "SELECT 1" &> /dev/null; do
+while ! mariadb -u root --protocol=socket -e "SELECT 1" &> /dev/null; do
   if [ $COUNT -lt $MAX_WAIT ]; then
     echo "Menunggu koneksi dan otentikasi MariaDB... (${COUNT}s)"
     sleep 1
@@ -104,7 +104,7 @@ DB_ROOT_PASS=$(openssl rand -base64 16)
 
 # Menjalankan semua perintah keamanan dan setup dalam satu sesi menggunakan sudo.
 # Ini menggunakan autentikasi soket unix untuk pengguna root OS, yang merupakan metode default dan paling andal.
-mariadb --protocol=socket --batch <<-EOSQL
+mariadb -u root --protocol=socket --batch <<-EOSQL
   -- Mengatur kata sandi untuk pengguna root MariaDB, membuatnya dapat diakses dengan kata sandi.
   ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
 
@@ -459,3 +459,4 @@ echo "  5. Setelah domain diarahkan, jalankan 'sudo certbot --nginx' untuk menga
 echo "  6. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan tambahan."
 echo ""
 echo_success "Deployment selesai!"
+
