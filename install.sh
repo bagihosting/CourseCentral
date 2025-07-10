@@ -17,8 +17,9 @@ RUN_USER=${SUDO_USER:-$(logname)}
 PROJECT_DIR=$(pwd)
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
-DB_PASS=$(openssl rand -base64 16)
-PMA_ROOT_PASS=$(openssl rand -base64 16)
+# Menggunakan karakter yang lebih aman untuk kata sandi yang disisipkan ke command line
+DB_PASS=$(openssl rand -hex 12)
+PMA_ROOT_PASS=$(openssl rand -hex 12)
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 # --- Fungsi Bantuan untuk Logging ---
@@ -92,6 +93,7 @@ echo_success "Fail2Ban aktif dan memonitor SSH."
 # --- 2. Setup Database MariaDB (Metode Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 sudo systemctl start mariadb && sudo systemctl enable mariadb
+# Menjalankan perintah SQL sebagai root untuk membuat database dan pengguna
 sudo mariadb --execute="
   ALTER USER 'root'@'localhost' IDENTIFIED BY '${PMA_ROOT_PASS}';
   DELETE FROM mysql.user WHERE User='';
@@ -105,9 +107,18 @@ sudo mariadb --execute="
 "
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
 
-# --- 3. Impor Skema & Data Awal ---
+# --- 3. Impor Skema & Data Awal (Metode Aman) ---
 echo_info "Mengimpor data dari 'schema.sql'..."
-sudo mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
+# Buat file cnf sementara untuk otentikasi
+cat > /tmp/mariadb.cnf <<EOF
+[client]
+user = ${DB_USER}
+password = ${DB_PASS}
+EOF
+# Impor menggunakan file cnf sementara
+sudo mariadb "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+# Hapus file cnf sementara dengan aman
+sudo rm -f /tmp/mariadb.cnf
 echo_success "Struktur database dan data awal berhasil diimpor."
 
 # --- 4. Instalasi & Konfigurasi Cerdas phpMyAdmin ---
