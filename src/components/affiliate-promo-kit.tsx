@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { generatePromoThumbnailAction, generateAffiliatePromoAction } from '@/actions/ai';
+import { generatePromoThumbnail as generatePromoThumbnailAction, generateAffiliatePromoAction } from '@/actions/ai';
 import { Loader2, Sparkles, Copy, Download } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import Link from 'next/link';
 
 const SocialIcon = ({ type, text, url }: { type: 'facebook' | 'twitter' | 'whatsapp' | 'telegram', text: string, url: string }) => {
     const encodedUrl = encodeURIComponent(url);
