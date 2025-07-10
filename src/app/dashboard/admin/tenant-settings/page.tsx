@@ -44,14 +44,18 @@ export default function TenantBrandingPage() {
 
     useEffect(() => {
         async function fetchData() {
-            if (user && user.role === 'admin') {
-                const existingTenant = await getTenantById(user.tenant_id);
-                if (existingTenant) {
-                    setTenant(existingTenant);
-                    setSubdomain(existingTenant.subdomain || '');
-                    setBrandName(existingTenant.brandName || existingTenant.name || '');
-                    setBrandLogoUrl(existingTenant.brandLogoUrl || '');
-                    setBrandPrimaryColor(existingTenant.brandPrimaryColor || '#6a2cf5');
+            if (user && user.role === 'admin' && user.tenant_id !== 'platform_main') {
+                try {
+                    const existingTenant = await getTenantById(user.tenant_id);
+                    if (existingTenant) {
+                        setTenant(existingTenant);
+                        setSubdomain(existingTenant.subdomain || '');
+                        setBrandName(existingTenant.brandName || existingTenant.name || '');
+                        setBrandLogoUrl(existingTenant.brandLogoUrl || '');
+                        setBrandPrimaryColor(existingTenant.brandPrimaryColor || '#6a2cf5');
+                    }
+                } catch (error) {
+                    toast({ title: 'Gagal Memuat Data Tenant', variant: 'destructive'});
                 }
             }
             setLoading(false);
@@ -59,7 +63,7 @@ export default function TenantBrandingPage() {
         if (!userLoading) {
             fetchData();
         }
-    }, [user, userLoading]);
+    }, [user, userLoading, toast]);
     
     const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
