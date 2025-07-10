@@ -17,7 +17,9 @@ RUN_USER=${SUDO_USER:-$(logname)}
 PROJECT_DIR=$(pwd)
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
+# Menggunakan karakter yang lebih aman untuk kata sandi yang disisipkan ke command line
 DB_PASS=$(openssl rand -hex 12)
+ROOT_DB_PASS=$(openssl rand -hex 12)
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 # --- Fungsi Bantuan untuk Logging ---
@@ -62,29 +64,29 @@ sudo sed -i '/^\[sshd\]/a enabled = true' /etc/fail2ban/jail.local
 sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
-# --- 2. Setup Database MariaDB (Metode Andal) ---
+# --- 2. Setup Database MariaDB (Metode Andal & Non-Interaktif) ---
 echo_info "Mengkonfigurasi database MariaDB..."
 sudo systemctl enable --now mariadb
-# Menjalankan skrip keamanan dasar non-interaktif
-sudo mysql_secure_installation <<EOF
 
-y
-${DB_PASS}
-${DB_PASS}
-y
-y
-y
-y
-EOF
+echo_info "Mengamankan MariaDB dan membuat pengguna aplikasi..."
+# Menjalankan semua perintah keamanan dan pembuatan database secara non-interaktif
+sudo mysql -u root --execute="
+  -- Mengamankan instalasi
+  UPDATE mysql.user SET Password=PASSWORD('${ROOT_DB_PASS}') WHERE User='root';
+  DELETE FROM mysql.user WHERE User='';
+  DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+  DROP DATABASE IF EXISTS test;
+  DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 
-echo_info "Membuat database dan pengguna aplikasi..."
-sudo mysql -u root -p"${DB_PASS}" --execute="
+  -- Membuat database dan pengguna aplikasi
   CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
   GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+  
+  -- Menerapkan semua perubahan
   FLUSH PRIVILEGES;
 "
-echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
+echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan diamankan."
 
 # --- 3. Impor Skema & Data Awal ---
 echo_info "Mengimpor data dari 'schema.sql'..."
@@ -186,10 +188,10 @@ echo "  2. Jika menggunakan domain, ganti NEXT_PUBLIC_BASE_URL di file yang sama
 echo "  3. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
 echo ""
 echo_info "INFORMASI KREDENSIAL (SIMPAN DI TEMPAT AMAN):"
-echo_success "  - Database Root Pass: $DB_PASS"
-echo_success "  - Database Name    : $DB_NAME"
-echo_success "  - Database User    : $DB_USER"
-echo_success "  - Database Pass    : $DB_PASS"
+echo_success "  - Database Root Pass : $ROOT_DB_PASS"
+echo_success "  - Database Name      : $DB_NAME"
+echo_success "  - Database User      : $DB_USER"
+echo_success "  - Database Pass      : $DB_PASS"
 echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
