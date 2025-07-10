@@ -54,6 +54,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx curl build-essential mariadb-server mariadb-client psmisc \
     php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl fail2ban
 
+# Tindakan pencegahan: Pastikan direktori data MariaDB memiliki izin yang benar
+echo_info "Memastikan kepemilikan direktori data MariaDB..."
+chown -R mysql:mysql /var/lib/mysql/
+
 # Konfigurasi Fail2Ban
 echo_info "Mengaktifkan proteksi Fail2Ban untuk SSH..."
 cat > /etc/fail2ban/jail.local << EOF
