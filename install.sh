@@ -40,7 +40,7 @@ echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di Ubuntu..."
 # --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
 echo_info "Memastikan integritas manajer paket (dpkg/apt)..."
 rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock
-apt-get purge -y 'mariadb-*' 'phpmyadmin*' &> /dev/null || echo "Pembersihan awal dilewati, melanjutkan."
+apt-get purge -y 'phpmyadmin*' &> /dev/null || echo "Pembersihan awal dilewati, melanjutkan."
 dpkg --configure -a
 apt-get -f install -y
 apt-get autoremove -y
