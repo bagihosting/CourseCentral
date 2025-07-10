@@ -1,8 +1,10 @@
 
+# Panduan Lengkap Instalasi & Deployment
+
 Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda.
 
 - **Metode 0** adalah untuk menjalankan aplikasi di komputer **lokal** Anda untuk development. **Mulai dari sini jika Anda baru pertama kali menjalankan proyek.**
-- **Metode 1** adalah cara deployment langsung di server VPS menggunakan Nginx dan PM2, diotomatisasi dengan skrip.
+- **Metode 1** adalah **panduan manual langkah-demi-langkah** untuk deployment di server VPS menggunakan Nginx dan PM2.
 - **Metode 2** adalah cara modern menggunakan Docker dan Portainer, yang sangat direkomendasikan untuk skalabilitas dan kemudahan pengelolaan.
 - **Metode Keamanan (Sangat Direkomendasikan)** menjelaskan cara menggunakan Cloudflare untuk proteksi DDoS, anti-scraping, dan menyembunyikan IP asli server Anda.
 - **Backup & Restore Database (Penting)** menjelaskan fitur backup otomatis dan cara melakukan restore.
@@ -57,65 +59,127 @@ Jika Anda melihat error `ECONNREFUSED` di konsol, itu artinya:
 
 ---
 
-## Metode 1: Deployment di VPS (Nginx + PM2) dengan Auto-Installer
+## Metode 1: Instalasi Manual di VPS (Nginx + PM2)
 
-Metode ini menggunakan skrip `install.sh` untuk mengotomatiskan seluruh proses instalasi dan konfigurasi di server, termasuk instalasi phpMyAdmin untuk kemudahan pengelolaan database.
+Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.04, 22.04, atau 24.04).
 
-### Prasyarat
-
-- Sebuah server VPS baru yang menjalankan **Ubuntu 20.04, 22.04, atau 24.04**.
-- Akses SSH ke server Anda dengan pengguna non-root yang memiliki hak `sudo`.
-
-### Langkah 1: Unggah File ke Server
-
-1.  **Kompres Folder Proyek**: Di komputer lokal Anda, kompres seluruh folder proyek Anda (termasuk file `schema.sql` dan `install.sh`) menjadi satu file, misalnya `proyek-kursus.zip`.
-2.  **Unggah File ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla) untuk mengunggah file ZIP tersebut ke direktori home pengguna di server Anda.
+### Langkah 1: Persiapan Server Awal
+1.  **Update Sistem**: Masuk ke server Anda melalui SSH, dan jalankan perintah berikut untuk memastikan semua paket sistem terbaru:
     ```bash
-    # Contoh menggunakan scp
-    scp /path/to/your/local/proyek-kursus.zip username@alamat_ip_server:~/
+    sudo apt update && sudo apt upgrade -y
     ```
-3.  **Masuk ke Server dan Ekstrak**:
-    - Masuk ke server Anda melalui SSH: `ssh username@alamat_ip_server`
-    - Instal `unzip` jika belum ada: `sudo apt update && sudo apt install -y unzip`
-    - Ekstrak file proyek Anda. Nama folder hasil ekstraksi tidak penting.
-      ```bash
-      unzip proyek-kursus.zip
+2.  **Instal Dependensi Inti**: Instal Nginx, MariaDB, dan dependensi lain yang dibutuhkan.
+    ```bash
+    sudo apt install -y nginx mariadb-server mariadb-client curl build-essential psmisc
+    ```
+3.  **Instal Node.js v20**:
+    ```bash
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt install -y nodejs
+    ```
+4.  **Instal PM2**: PM2 adalah manajer proses yang akan menjaga aplikasi Anda tetap berjalan.
+    ```bash
+    sudo npm install -g pm2
+    ```
+
+### Langkah 2: Konfigurasi Database MariaDB
+1.  **Amankan MariaDB**: Jalankan skrip keamanan interaktif untuk mengatur kata sandi `root`, menghapus pengguna anonim, dll.
+    ```bash
+    sudo mysql_secure_installation
+    ```
+    - Saat diminta kata sandi `root` saat ini, tekan Enter (karena belum ada).
+    - Jawab `Y` (Yes) untuk semua pertanyaan selanjutnya untuk menerapkan pengaturan keamanan standar.
+2.  **Buat Database & Pengguna**:
+    - Masuk ke MariaDB sebagai `root`: `sudo mariadb -u root -p` (masukkan kata sandi root yang baru Anda buat).
+    - Jalankan perintah SQL berikut satu per satu. **Ganti `password_yang_kuat`** dengan kata sandi yang aman.
+      ```sql
+      CREATE DATABASE coursecentral_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      CREATE USER 'coursecentral_user'@'localhost' IDENTIFIED BY 'password_yang_kuat';
+      GRANT ALL PRIVILEGES ON coursecentral_db.* TO 'coursecentral_user'@'localhost';
+      FLUSH PRIVILEGES;
+      EXIT;
       ```
 
-### Langkah 2: Jalankan Skrip Instalasi
-
-Ini adalah langkah terakhir. Skrip akan melakukan semuanya untuk Anda.
-
-1.  **Masuk ke Folder Proyek**: Masuk ke folder yang baru saja Anda ekstrak.
+### Langkah 3: Unggah & Siapkan Aplikasi
+1.  **Unggah File**: Kompres folder proyek Anda di lokal, lalu unggah ke server menggunakan `scp` atau FileZilla. Ekstrak file tersebut di server, misalnya di `/home/username/course-central`.
+2.  **Impor Skema Database**: Masuk ke folder proyek Anda dan impor `schema.sql`:
     ```bash
-    # Contoh: jika zip Anda bernama proyek-kursus.zip, folder hasil ekstrak mungkin bernama 'proyek-kursus'
-    cd nama-folder-hasil-ekstrak
+    # Masuk ke folder proyek, contoh:
+    # cd /home/username/course-central
+    
+    # Jalankan perintah impor. Anda akan diminta memasukkan kata sandi database.
+    mysql -u coursecentral_user -p coursecentral_db < schema.sql
     ```
-2.  **Jadikan Skrip Dapat Dieksekusi**: `chmod +x install.sh`
-3.  **Jalankan Skrip dengan Sudo**:
+3.  **Konfigurasi Environment**:
+    - Buat file `.env.local` dari contoh: `cp .env.example .env.local`
+    - Buka file tersebut: `nano .env.local`
+    - Isi semua detailnya, terutama detail database yang baru Anda buat. `DB_HOST` harus `127.0.0.1`.
+      ```env
+      GEMINI_API_KEY="PASTE_YOUR_GEMINI_API_KEY_HERE"
+      DB_HOST="127.0.0.1"
+      DB_PORT="3306"
+      DB_USER="coursecentral_user"
+      DB_PASSWORD="password_yang_kuat_yang_anda_buat_tadi"
+      DB_NAME="coursecentral_db"
+      NEXT_PUBLIC_BASE_URL="http://ALAMAT_IP_SERVER_ANDA"
+      ```
+4.  **Instal Dependensi & Build Aplikasi**:
     ```bash
-    sudo ./install.sh
+    npm install
+    npm run build
     ```
-    Skrip akan meminta password sudo Anda, lalu akan berjalan secara otomatis. Skrip ini akan:
-    - Menginstal semua dependensi (Nginx, MariaDB, Node.js, PM2, phpMyAdmin, dll.).
-    - Membuat database dan pengguna baru dengan password acak yang aman.
-    - **Mengimpor semua tabel dan data awal** (termasuk admin default) dari file `schema.sql` Anda.
-    - Membangun aplikasi Next.js Anda.
-    - Menghentikan proses lama yang mungkin berjalan di port 3000.
-    - Menjalankan aplikasi Anda dengan PM2.
-    - Mengkonfigurasi Nginx untuk melayani aplikasi Anda dan **phpMyAdmin**.
-    - **Menginstal dan mengkonfigurasi Fail2Ban** untuk keamanan server dari serangan brute-force.
-    - **Mengatur backup database otomatis** yang berjalan setiap hari.
 
-### Langkah 3: Langkah Final Setelah Skrip Selesai
-
-1.  **Isi API Key**: Skrip telah secara otomatis membuat dan mengisi file `.env.local` dengan semua kredensial database yang diperlukan. **Satu-satunya hal yang perlu Anda lakukan** adalah mengedit file ini dan memasukkan `GEMINI_API_KEY` dan `NEXT_PUBLIC_BASE_URL` Anda.
+### Langkah 4: Jalankan Aplikasi dengan PM2
+1.  **Mulai Aplikasi**: Dari dalam folder proyek Anda, jalankan:
     ```bash
-    # Pastikan Anda masih berada di dalam folder proyek Anda
-    nano .env.local
+    pm2 start npm --name "coursecentral" -- start
     ```
-2.  **Akses Aplikasi Anda**: Buka browser Anda dan akses aplikasi melalui IP server Anda. Anda juga dapat mengelola database melalui `http://ALAMAT_IP_ANDA/phpmyadmin`. Kredensial login untuk phpMyAdmin (`root` dan password-nya) akan ditampilkan di akhir proses instalasi.
-3.  **Arahkan Domain & Aktifkan Keamanan**: Lanjutkan ke **Metode Keamanan Server** di bawah untuk mengarahkan domain Anda melalui Cloudflare dan mengaktifkan proteksi DDoS.
+2.  **Simpan Proses**: Agar aplikasi berjalan otomatis saat server reboot, jalankan:
+    ```bash
+    pm2 save
+    pm2 startup
+    ```
+    Salin dan tempel perintah output dari `pm2 startup` untuk menyelesaikannya.
+
+### Langkah 5: Konfigurasi Nginx sebagai Reverse Proxy
+1.  **Buat File Konfigurasi Baru**:
+    ```bash
+    sudo nano /etc/nginx/sites-available/coursecentral
+    ```
+2.  **Tempelkan Konfigurasi Berikut**: Ganti `ALAMAT_IP_SERVER_ANDA` dengan IP server Anda.
+    ```nginx
+    server {
+        listen 80;
+        listen [::]:80;
+        server_name ALAMAT_IP_SERVER_ANDA www.domainanda.com domainanda.com; # Ganti dengan IP atau domain Anda
+
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+3.  **Aktifkan Situs & Uji Konfigurasi**:
+    ```bash
+    # Buat tautan simbolis untuk mengaktifkan konfigurasi
+    sudo ln -s /etc/nginx/sites-available/coursecentral /etc/nginx/sites-enabled/
+    
+    # Hapus konfigurasi default untuk menghindari konflik
+    sudo rm /etc/nginx/sites-enabled/default
+    
+    # Uji konfigurasi Nginx
+    sudo nginx -t
+    
+    # Jika OK, restart Nginx
+    sudo systemctl restart nginx
+    ```
+4.  **Selesai!** Aplikasi Anda sekarang dapat diakses melalui alamat IP server Anda. Lanjutkan ke **Metode Keamanan Server** untuk mengaktifkan domain dan HTTPS.
 
 ---
 
@@ -130,16 +194,16 @@ Metode ini mengemas aplikasi dan database MariaDB Anda ke dalam sebuah kontainer
 
 ### Langkah 1: Persiapan File
 
-1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server, misalnya ke direktori `/root/coursecentral`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
+1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server, misalnya ke direktori `/root/course-central`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
 
 ### Langkah 2: Buat dan Konfigurasi File Environment
 
 Ini adalah langkah **paling penting**. Aplikasi Anda tidak akan berjalan tanpanya.
 
-1.  Di dalam folder proyek di server (`/root/coursecentral`), buat file baru bernama `.env`.
+1.  Di dalam folder proyek di server (`/root/course-central`), buat file baru bernama `.env`.
     ```bash
     # Masuk ke folder proyek
-    cd /root/coursecentral
+    cd /root/course-central
     
     # Buat file .env dari contoh
     cp .env.example .env
@@ -153,7 +217,7 @@ Ini adalah langkah **paling penting**. Aplikasi Anda tidak akan berjalan tanpany
 
 Ini adalah cara termudah dan paling andal untuk memulai. `docker-compose` akan secara otomatis membuat kontainer untuk aplikasi dan database Anda.
 
-1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/root/coursecentral`), lalu jalankan perintah:
+1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/root/course-central`), lalu jalankan perintah:
     ```bash
     docker-compose up --build -d
     ```
@@ -219,7 +283,7 @@ Setelah nameserver Anda aktif, kembali ke dasbor Cloudflare Anda.
 
 1.  Buka menu **SSL/TLS**. Di tab **Overview**, pastikan mode enkripsi Anda adalah **Full (Strict)**. Ini adalah yang paling aman.
 2.  Agar mode **Full (Strict)** berfungsi, Anda harus menginstal sertifikat SSL di server Anda.
-    -   **Jika menggunakan Metode 1 (Nginx)**: Jalankan `sudo certbot --nginx` di server Anda setelah mengarahkan domain. Certbot akan secara otomatis mendeteksi domain utama dan wildcard Anda untuk membuat sertifikat yang sesuai.
+    -   **Jika menggunakan Metode 1 (Nginx)**: Jalankan `sudo apt install certbot python3-certbot-nginx` lalu `sudo certbot --nginx` di server Anda setelah mengarahkan domain. Certbot akan secara otomatis mendeteksi domain utama dan wildcard Anda untuk membuat sertifikat yang sesuai.
     -   **Jika menggunakan Metode 2 (Docker)**: Biasanya, Anda akan menempatkan Nginx atau reverse proxy lain (seperti Traefik) di depan Docker untuk menangani SSL. Konfigurasi Nginx dari **Metode 1** dapat diadaptasi untuk ini.
 3.  Buka menu **Security > Bots**. Aktifkan **Bot Fight Mode**. Ini akan secara otomatis memblokir banyak bot jahat.
 
@@ -231,12 +295,32 @@ Sekarang, semua lalu lintas ke domain Anda akan melewati Cloudflare terlebih dah
 
 ## Backup & Restore Database (Penting)
 
-Jika Anda menggunakan **Metode 1 (Auto-Installer)**, sistem backup database otomatis telah disiapkan untuk Anda.
+Jika Anda menggunakan **Metode 1 (Auto-Installer)** atau **Metode 1 (Manual)**, Anda dapat mengatur backup database otomatis.
 
-### Fitur Backup Otomatis
-- **Jadwal**: Backup dilakukan secara otomatis setiap hari pada pukul 02:30 pagi.
-- **Lokasi**: File backup (dalam format `.sql.gz`) disimpan di direktori aman `/var/backups/mariadb/`. Direktori ini tidak dapat diakses dari web.
-- **Retensi**: Sistem akan secara otomatis menghapus backup yang lebih tua dari 7 hari untuk menghemat ruang disk.
+### Cara Membuat Skrip Backup Otomatis
+1.  Buat direktori backup: `sudo mkdir -p /var/backups/mariadb`
+2.  Buat skrip backup: `sudo nano /usr/local/bin/backup-mariadb.sh`
+3.  Isi dengan konten berikut. Ganti `DB_USER`, `DB_PASSWORD`, dan `DB_NAME` dengan kredensial Anda yang sebenarnya.
+    ```bash
+    #!/bin/bash
+    DB_USER="coursecentral_user"
+    DB_PASSWORD="password_anda"
+    DB_NAME="coursecentral_db"
+    BACKUP_DIR="/var/backups/mariadb"
+    DATE=$(date +"%Y-%m-%d_%H%M%S")
+
+    # Membuat file backup
+    mysqldump -u $DB_USER -p$DB_PASSWORD $DB_NAME | gzip > $BACKUP_DIR/$DB_NAME-$DATE.sql.gz
+    
+    # Menghapus backup yang lebih tua dari 7 hari
+    find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +7 -delete
+    ```
+4.  Jadikan skrip dapat dieksekusi: `sudo chmod +x /usr/local/bin/backup-mariadb.sh`
+5.  Jalankan secara otomatis dengan cron. Buka editor cron: `sudo crontab -e`.
+6.  Tambahkan baris berikut untuk menjalankannya setiap hari pukul 2:30 pagi:
+    ```
+    30 2 * * * /usr/local/bin/backup-mariadb.sh
+    ```
 
 ### Cara Melakukan Restore Manual
 Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file backup, ikuti langkah-langkah berikut di server Anda:
@@ -256,3 +340,5 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
     gunzip < /var/backups/mariadb/nama_file_backup.sql.gz | mysql -u coursecentral_user -p coursecentral_db
     ```
     **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.
+
+    
