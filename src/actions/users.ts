@@ -8,6 +8,7 @@ import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { getAuthUser, getActiveTenantId } from './utils';
+import { validatePassword } from '@/lib/validation';
 
 function generateReferralCode(length = 8) {
   return crypto.randomBytes(Math.ceil(length / 2))
@@ -61,6 +62,11 @@ export async function getUserByReferralCode(referralCode: string): Promise<Pick<
 export async function registerUser(data: RegisterUserInput): Promise<User> {
     const pool = getPool();
     const tenantId = await getActiveTenantId();
+
+    if (!validatePassword(data.password)) {
+      throw new Error('Kata sandi tidak memenuhi persyaratan keamanan.');
+    }
+
     const [existing] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE username = ?', [data.username]);
     if (existing.length > 0) {
         throw new Error('Nama pengguna sudah digunakan.');
@@ -83,9 +89,31 @@ export async function registerUser(data: RegisterUserInput): Promise<User> {
 
 export async function updateUser(id: string, data: UpdateUserInput): Promise<User> {
     const pool = getPool();
+    const actor = await getAuthUser();
+
+    // Security check: Only admins can update other users. Users can only update themselves.
+    // Tenant admins can only update users within their own tenant.
+    if (actor.id !== id && actor.role !== 'admin') {
+      throw new Error("Anda tidak memiliki izin untuk mengubah pengguna ini.");
+    }
+    
+    // Fetch the user being updated to check their tenant
+    const userToUpdate = await getUserById(id);
+    if (!userToUpdate) {
+      throw new Error("Pengguna yang akan diupdate tidak ditemukan.");
+    }
+
+    // Security check for multi-tenancy
+    if (actor.tenant_id !== 'platform_main' && userToUpdate.tenant_id !== actor.tenant_id) {
+        throw new Error("Akses ditolak. Anda tidak dapat mengubah pengguna di tenant lain.");
+    }
+
     const fieldsToUpdate: { [key: string]: any } = { ...data };
     
     if (fieldsToUpdate.password) {
+        if (!validatePassword(fieldsToUpdate.password)) {
+          throw new Error('Kata sandi tidak memenuhi persyaratan keamanan.');
+        }
         fieldsToUpdate.password = await bcrypt.hash(fieldsToUpdate.password, 10);
     } else {
         delete fieldsToUpdate.password;

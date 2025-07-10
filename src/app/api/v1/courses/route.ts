@@ -54,9 +54,6 @@ export async function GET(request: Request) {
   }
 }
 
-// Anda bisa menambahkan komponen skema Swagger di sini jika diperlukan
-// Misalnya, di dalam file terpisah atau langsung di sini.
-// Contoh:
 /**
  * @swagger
  * components:
@@ -94,6 +91,6 @@ export async function GET(request: Request) {
  *     bearerAuth:
  *       type: http
  *       scheme: bearer
- *       bearerFormat: JWT
+ *       bearerFormat: APIKey
+ *       description: "Masukkan API key Anda dengan prefix 'Bearer '"
  */
-
