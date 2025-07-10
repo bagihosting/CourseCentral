@@ -70,6 +70,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
 echo_info "Mengkonfigurasi database MariaDB..."
 systemctl start mariadb
 systemctl enable mariadb
+echo_info "Memverifikasi status layanan MariaDB..."
+systemctl status mariadb --no-pager || echo_error "Layanan MariaDB mungkin gagal dimulai. Periksa log di atas."
 
 # Mengamankan MariaDB dan membuat database dalam satu blok perintah yang andal
 # Ini adalah cara yang paling kuat dan direkomendasikan untuk setup otomatis
