@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # =================================================================
-# Autoinstaller Cerdas & Andal untuk Aplikasi Next.js di Ubuntu
+# Autoinstaller Cerdas & Andal untuk Aplikasi Next.js
+# Distro: Debian 11/12 & Ubuntu 20.04/22.04/24.04
 # Fokus: Nginx, MariaDB, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
 # Dirancang untuk keandalan, keamanan, dan fungsionalitas produksi.
 # =================================================================
@@ -24,6 +25,8 @@ SERVER_IP=$(hostname -I | awk '{print $1}')
 echo_info() { echo -e "\033[1;34m[INFO]\033[0m $1"; }
 echo_success() { echo -e "\033[1;32m[SUCCESS]\033[0m $1"; }
 echo_error() { echo -e "\033[1;31m[ERROR]\033[0m $1"; }
+echo_warning() { echo -e "\033[1;33m[WARNING]\033[0m $1"; }
+
 
 # --- Verifikasi Awal ---
 if [ "$(id -u)" -ne 0 ]; then
@@ -35,12 +38,17 @@ if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
     exit 1
 fi
 
-echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di Ubuntu..."
+# Cek Distribusi (Debian/Ubuntu)
+if ! grep -qiE "debian|ubuntu" /etc/os-release; then
+    echo_warning "Skrip ini dioptimalkan untuk Debian dan Ubuntu. Hasil di distro lain mungkin bervariasi."
+fi
+
+echo_info "Memulai instalasi cerdas untuk '$APP_NAME'..."
 
 # --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
 echo_info "Memastikan integritas manajer paket (dpkg/apt)..."
-rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock
-apt-get purge -y 'phpmyadmin*' &> /dev/null || echo "Pembersihan awal dilewati, melanjutkan."
+rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock || true
+apt-get purge -y 'mariadb-*' 'phpmyadmin*' &> /dev/null || echo "Pembersihan awal dilewati, melanjutkan."
 dpkg --configure -a
 apt-get -f install -y
 apt-get autoremove -y
@@ -81,8 +89,8 @@ mariadb --execute="
   DROP DATABASE IF EXISTS test;
   DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
   CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-  GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '$DB_USER'@'localhost';
+  CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+  GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
   FLUSH PRIVILEGES;
 "
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
@@ -162,6 +170,15 @@ env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER
 # --- 9. Konfigurasi Nginx (Reverse Proxy & phpMyAdmin) ---
 echo_info "Mengkonfigurasi Nginx..."
 NGINX_CONFIG="/etc/nginx/sites-available/$APP_NAME"
+
+# Deteksi versi PHP yang terinstal secara dinamis
+PHP_SOCK_PATH=$(find /run/php -name "php*-fpm.sock" | head -n 1)
+if [ -z "$PHP_SOCK_PATH" ]; then
+    echo_error "Tidak dapat menemukan socket PHP-FPM. Instalasi php-fpm mungkin gagal."
+    exit 1
+fi
+echo_info "Socket PHP-FPM terdeteksi di: $PHP_SOCK_PATH"
+
 cat > "$NGINX_CONFIG" << EOF
 server {
     listen 80;
@@ -185,7 +202,7 @@ server {
         location ~ ^/phpmyadmin/(.+\.php)\$ {
             try_files \$uri =404;
             root /usr/share/;
-            fastcgi_pass unix:/run/php/php-fpm.sock;
+            fastcgi_pass unix:${PHP_SOCK_PATH};
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
             include fastcgi_params;
@@ -215,11 +232,11 @@ echo "  2. Jika menggunakan domain, ganti NEXT_PUBLIC_BASE_URL di file yang sama
 echo "  3. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
 echo ""
 echo_info "INFORMASI KREDENSIAL (SIMPAN DI TEMPAT AMAN):"
-echo "  - Database Name : $DB_NAME"
-echo "  - Database User : $DB_USER"
-echo "  - Database Pass : $DB_PASS"
-echo "  - phpMyAdmin User: root"
-echo "  - phpMyAdmin Pass: $PMA_ROOT_PASS"
+echo_success "  - Database Name : $DB_NAME"
+echo_success "  - Database User : $DB_USER"
+echo_success "  - Database Pass : $DB_PASS"
+echo_success "  - phpMyAdmin User: root"
+echo_success "  - phpMyAdmin Pass: $PMA_ROOT_PASS"
 echo ""
 echo_info "Backup database harian telah diatur."
 echo_success "Deployment selesai!"
