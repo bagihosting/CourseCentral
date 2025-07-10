@@ -1,8 +1,10 @@
+
 #!/bin/bash
 #
 # =================================================================
 # Pemasang Otomatis Lengkap untuk Aplikasi Next.js di Ubuntu
 # Termasuk: Nginx, MariaDB, Node.js v20, PM2, phpMyAdmin, Fail2Ban, dan Backup Otomatis.
+# Versi Cerdas v3.0 - Dirancang untuk Keandalan Maksimal & Mengatasi Error dpkg.
 # Untuk instruksi lengkap, silakan lihat file DEPLOYMENT.md
 # =================================================================
 
@@ -34,33 +36,32 @@ fi
 
 echo_info "Memulai proses instalasi lengkap untuk $APP_NAME..."
 
-# --- 1. Pembaruan Sistem dan Pemasangan Dependensi ---
+# --- 1. Pembaruan Sistem dan Pra-Pembersihan Paket (Metode Anti-Gagal dpkg) ---
 echo_info "Memperbarui sistem dan melakukan pra-pembersihan paket..."
 apt-get update
-# [PERBAIKAN DPKG] Secara proaktif memperbaiki paket yang rusak sebelum instalasi
+# [PERBAIKAN DPKG] Membersihkan cache paket yang diunduh
+apt-get clean
+# [PERBAIKAN DPKG] Hapus total phpmyadmin jika ada instalasi yang rusak/gagal sebelumnya
+apt-get purge -y phpmyadmin || true
+# [PERBAIKAN DPKG] Secara proaktif memperbaiki paket yang rusak
 apt-get --fix-broken install -y
 apt-get autoremove -y
 # [PERBAIKAN DPKG] Secara paksa mengkonfigurasi ulang paket yang mungkin tertunda
 dpkg --configure -a
 
 echo_info "Memasang dependensi inti..."
-# Mencegah prompt interaktif yang dapat menyebabkan kegagalan pada dpkg
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx curl build-essential mariadb-server mariadb-client psmisc \
-    fail2ban unzip
+    fail2ban unzip debconf-utils
 
-# --- 2. Setup Database MariaDB (Metode Anti-Gagal) ---
+# --- 2. Setup Database MariaDB (Metode Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
-# [PERBAIKAN KRITIS] Hentikan MariaDB terlebih dahulu untuk memastikan inisialisasi yang bersih
 systemctl stop mariadb || true
-
-# Lakukan inisialisasi manual jika direktori data belum ada
 if [ ! -d "/var/lib/mysql/mysql" ]; then
   echo_info "Melakukan inisialisasi direktori data MariaDB..."
   mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
   echo_success "Inisialisasi direktori data MariaDB selesai."
 fi
-
 systemctl start mariadb
 systemctl enable mariadb
 
@@ -72,12 +73,10 @@ DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
 DB_ROOT_PASS=$(openssl rand -base64 16)
 
-# [PERBAIKAN KRITIS] Gunakan mariadb-admin untuk mengatur kata sandi root pertama kali
 echo_info "Mengamankan pengguna root MariaDB..."
 mariadb-admin -u root password "$DB_ROOT_PASS"
 echo_success "Kata sandi root MariaDB berhasil diatur."
 
-# Sekarang gunakan kata sandi root yang baru untuk membuat database dan pengguna aplikasi
 echo_info "Membuat database dan pengguna aplikasi..."
 mariadb -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
   DROP USER IF EXISTS ''@'localhost';
@@ -91,7 +90,6 @@ echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
 
 # --- 3. Impor Skema Database ---
 echo_info "Mengimpor data dari 'schema.sql'..."
-# Langsung gunakan kredensial baru. Ini juga berfungsi sebagai verifikasi.
 mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal berhasil diimpor."
 
@@ -106,10 +104,8 @@ npm install -g pm2
 # --- 5. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
 chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
-
 echo_info "Memasang dependensi proyek (menjalankan sebagai $RUN_USER)..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
-
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
@@ -132,21 +128,28 @@ echo_success "File .env.local berhasil dibuat."
 # --- 7. Mulai Aplikasi dengan PM2 ---
 echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
 fuser -k $APP_PORT/tcp || true
-
 echo_info "Memulai atau me-restart aplikasi '$APP_NAME' dengan PM2..."
 pm2 delete "$APP_NAME" || true
 sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start
-# Mengkonfigurasi PM2 untuk memulai saat sistem reboot
 STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | grep 'sudo' || true)
 if [ -n "$STARTUP_COMMAND" ]; then eval "$STARTUP_COMMAND"; fi
 sudo -u "$RUN_USER" pm2 save
 
-# --- 8. Instalasi & Konfigurasi phpMyAdmin ---
+# --- 8. Instalasi & Konfigurasi phpMyAdmin (Metode Anti-Gagal dpkg) ---
+echo_info "Melakukan pra-konfigurasi phpMyAdmin..."
+# [PERBAIKAN DPKG] Secara otomatis menjawab pertanyaan instalasi phpmyadmin SEBELUM instalasi dimulai.
+# Ini adalah cara paling andal untuk menghindari error dpkg interaktif.
+echo "phpmyadmin phpmyadmin/dbconfig-install boolean true" | debconf-set-selections
+echo "phpmyadmin phpmyadmin/app-password-confirm password $DB_ROOT_PASS" | debconf-set-selections
+echo "phpmyadmin phpmyadmin/mysql/admin-pass password $DB_ROOT_PASS" | debconf-set-selections
+echo "phpmyadmin phpmyadmin/mysql/app-pass password $DB_ROOT_PASS" | debconf-set-selections
+echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none" | debconf-set-selections
+
 echo_info "Memasang phpMyAdmin dan ekstensi PHP yang diperlukan..."
-# [PERBAIKAN DPKG] Instal phpMyAdmin secara terpisah setelah sistem inti stabil
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
 
+# --- 9. Konfigurasi Nginx & Firewall ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 PHP_SOCKET_PATH=$(ls /var/run/php/php*-fpm.sock | head -n 1)
 NGINX_CONFIG="
@@ -155,8 +158,8 @@ server {
     listen [::]:80;
     server_name _;
     
-    root /usr/share/phpmyadmin;
-    index index.php;
+    root /var/www/html; # Root default untuk keamanan
+    index index.html index.htm;
 
     location / {
         proxy_pass http://localhost:$APP_PORT;
@@ -169,23 +172,23 @@ server {
     }
 
     location /phpmyadmin {
-        root /usr/share/phpmyadmin;
-        index index.php index.html index.htm;
+        alias /usr/share/phpmyadmin;
+        index index.php;
+        
         location ~ ^/phpmyadmin(.+\.php)$ {
             try_files \$uri =404;
-            root /usr/share/phpmyadmin;
+            root /usr/share;
             fastcgi_pass unix:$PHP_SOCKET_PATH;
             fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+            fastcgi_param SCRIPT_FILENAME \$request_filename;
             include fastcgi_params;
         }
 
         location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|png|ico|css|js|pdf|txt))$ {
-            root /usr/share/phpmyadmin/;
+            root /usr/share;
         }
     }
-
-    # Aturan tambahan untuk phpMyAdmin agar berfungsi dengan benar
+    
     location ~ /\.ht {
         deny all;
     }
@@ -196,7 +199,6 @@ ln -sf "/etc/nginx/sites-available/$APP_NAME" "/etc/nginx/sites-enabled/"
 nginx -t
 systemctl restart nginx
 
-# --- 9. Konfigurasi Keamanan (Firewall & Fail2Ban) ---
 echo_info "Mengkonfigurasi Firewall (UFW) dan Fail2Ban..."
 ufw default deny incoming
 ufw default allow outgoing
@@ -209,7 +211,6 @@ systemctl start fail2ban
 # --- 10. Setup Backup Database Otomatis ---
 echo_info "Mengkonfigurasi backup database otomatis..."
 mkdir -p /var/backups/mariadb
-# Membuat file kredensial aman untuk mysqldump
 cat > /root/.my.cnf << EOF
 [mysqldump]
 user=$DB_USER
@@ -217,7 +218,6 @@ password=$DB_PASS
 host=127.0.0.1
 EOF
 chmod 600 /root/.my.cnf
-# Membuat skrip backup
 BACKUP_SCRIPT_PATH="/usr/local/bin/backup_mariadb.sh"
 cat > "$BACKUP_SCRIPT_PATH" << 'EOF'
 #!/bin/bash
@@ -231,7 +231,6 @@ mysqldump "$DB_NAME" | gzip > "$BACKUP_FILE"
 find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +$RETENTION_DAYS -exec rm -f {} \;
 EOF
 chmod +x "$BACKUP_SCRIPT_PATH"
-# Membuat cron job untuk backup harian
 (crontab -l 2>/dev/null; echo "30 2 * * * $BACKUP_SCRIPT_PATH >> /var/log/backup_mariadb.log 2>&1") | crontab -
 
 # --- Selesai ---
