@@ -28,7 +28,7 @@ echo_info() { echo -e "\033[1;34m[INFO]\033[0m $1"; }
 echo_success() { echo -e "\033[1;32m[SUCCESS]\033[0m $1"; }
 echo_error() { echo -e "\033[1;31m[ERROR]\033[0m $1"; }
 
-# --- Verifikasi Awal & Ketergantungan Path Absolut ---
+# --- Verifikasi Awal ---
 if [ "$(id -u)" -ne 0 ]; then
   echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install.sh'"
   exit 1
@@ -47,25 +47,17 @@ echo_info "Memeriksa dan memastikan integritas manajer paket (dpkg/apt)..."
 # Membersihkan lock file yang mungkin tersisa dari proses yang gagal
 rm -f /var/lib/dpkg/lock*
 rm -f /var/cache/apt/archives/lock
-# Mencoba memulihkan file status dpkg jika rusak atau hilang
-if [ ! -f /var/lib/dpkg/status ]; then
-    echo_info "File status dpkg tidak ditemukan. Mencoba memulihkan dari cadangan..."
-    if [ -f /var/lib/dpkg/status-old ]; then
-        cp /var/lib/dpkg/status-old /var/lib/dpkg/status
-        echo_success "Berhasil memulihkan dari status-old."
-    elif [ -f /var/backups/dpkg.status.0 ]; then
-        cp /var/backups/dpkg.status.0 /var/lib/dpkg/status
-        echo_success "Berhasil memulihkan dari cadangan utama."
-    else
-        echo_info "Tidak ada cadangan ditemukan. Membuat file status baru yang kosong."
-        touch /var/lib/dpkg/status
-    fi
-fi
+
+# Membersihkan paket yang rusak, terutama MariaDB/MySQL yang sering jadi masalah
+echo_info "Membersihkan instalasi MariaDB yang mungkin rusak..."
+apt-get purge -y 'mariadb-*' || echo "Tidak ada paket mariadb untuk dibersihkan, melanjutkan."
+apt-get autoremove -y
+
 # Memaksa konfigurasi ulang paket yang tertunda
 dpkg --configure -a
 # Mencoba memperbaiki dependensi yang rusak sebagai langkah terakhir
 apt-get --fix-broken install -y
-apt-get update
+apt-get update -y
 echo_success "Manajer paket dalam keadaan siap."
 # --- AKHIR BLOK PEMULIHAN ---
 
