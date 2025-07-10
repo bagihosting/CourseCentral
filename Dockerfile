@@ -1,44 +1,53 @@
-# === Tahap Builder ===
-# Menggunakan image Node.js yang lebih besar untuk proses build
+# Tahap 1: Instalasi Dependensi
+# Menggunakan image Node.js versi 20-alpine yang ringan sebagai dasar.
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+# Salin package.json dan package-lock.json (jika ada) untuk menginstal dependensi.
+COPY package.json ./
+# Pastikan npm tahu kita berada di lingkungan CI untuk menghindari prompt interaktif.
+RUN npm config set --global `npm_config_ci` true
+RUN npm install
+
+# -----------------------------------------------------------------------------------
+
+# Tahap 2: Pembangunan Aplikasi
+# Membangun aplikasi menggunakan dependensi yang sudah diinstal dari tahap sebelumnya.
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Menyalin package.json dan package-lock.json
-COPY package*.json ./
-
-# Menginstal dependensi
-RUN npm install
-
-# Menyalin sisa kode aplikasi
+# Salin node_modules dari tahap 'deps'.
+COPY --from=deps /app/node_modules ./node_modules
+# Salin sisa kode aplikasi.
 COPY . .
 
-# Menjalankan build Next.js
-# Variabel lingkungan dummy mungkin diperlukan jika build Anda bergantung padanya
-ARG GEMINI_API_KEY
+# Build aplikasi Next.js untuk produksi.
+# Environment variable ini memastikan build dioptimalkan untuk produksi.
+ENV NODE_ENV production
 RUN npm run build
 
-# === Tahap Produksi ===
-# Menggunakan image Node.js yang lebih kecil dan dioptimalkan untuk produksi
+# -----------------------------------------------------------------------------------
+
+# Tahap 3: Produksi (Runner)
+# Ini adalah image final yang akan dijalankan, ukurannya sangat kecil dan aman.
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Mengatur environment ke produksi
-ENV NODE_ENV=production
+ENV NODE_ENV production
 
-# Menyalin folder .next yang sudah dioptimalkan dari tahap builder
+# Salin file konfigurasi Next.js yang diperlukan.
+COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/public ./public
+
+# Salin output 'standalone' yang efisien dari tahap builder.
+# Ini berisi semua yang dibutuhkan untuk menjalankan aplikasi, tanpa kode sumber.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Memberi tahu Next.js di mana letak folder .next
-# Ini tidak diperlukan jika struktur folder dipertahankan, tapi bagus untuk kejelasan
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Aplikasi akan berjalan di port 3000
-EXPOSE 3000
-
-# Pengguna non-root untuk keamanan
+# Jalankan aplikasi menggunakan pengguna 'nextjs' yang tidak memiliki hak root (lebih aman).
 USER nextjs
 
-# Perintah untuk menjalankan aplikasi
+EXPOSE 3000
+
+# Perintah untuk menjalankan server Next.js.
 CMD ["node", "server.js"]
