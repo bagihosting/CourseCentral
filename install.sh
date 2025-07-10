@@ -116,7 +116,7 @@ user = ${DB_USER}
 password = ${DB_PASS}
 EOF
 # Impor menggunakan file cnf sementara
-sudo mariadb "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+sudo mariadb --defaults-extra-file=/tmp/mariadb.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
 # Hapus file cnf sementara dengan aman
 sudo rm -f /tmp/mariadb.cnf
 echo_success "Struktur database dan data awal berhasil diimpor."
@@ -262,5 +262,3 @@ echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
 echo_success "Deployment selesai!"
-
-    
