@@ -33,10 +33,35 @@ fi
 
 echo_info "Memulai proses instalasi sederhana untuk $APP_NAME..."
 
-# --- 1. Pembaruan Sistem dan Pemasangan Dependensi Inti ---
-echo_info "Memperbarui sistem dan memasang dependensi inti..."
+# --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
+echo_info "Memeriksa dan memastikan integritas manajer paket (dpkg/apt)..."
+if [ ! -f /var/lib/dpkg/status ]; then
+    echo_info "File status dpkg tidak ditemukan. Mencoba memulihkan..."
+    if [ -f /var/lib/dpkg/status-old ]; then
+        cp /var/lib/dpkg/status-old /var/lib/dpkg/status
+        echo_success "Berhasil memulihkan dari status-old."
+    elif [ -f /var/backups/dpkg.status.0 ]; then
+        cp /var/backups/dpkg.status.0 /var/lib/dpkg/status
+        echo_success "Berhasil memulihkan dari cadangan utama."
+    else
+        echo_info "Tidak ada cadangan ditemukan. Membuat file status baru yang kosong."
+        touch /var/lib/dpkg/status
+    fi
+fi
+# Membersihkan lock file yang mungkin tersisa
+rm -f /var/lib/dpkg/lock*
+rm -f /var/cache/apt/archives/lock
+# Memaksa konfigurasi ulang paket yang tertunda
+dpkg --configure -a
 apt-get update
-# Menggunakan DEBIAN_FRONTEND=noninteractive untuk mencegah dialog interaktif
+# Mencoba memperbaiki paket yang rusak sebagai langkah terakhir
+apt-get --fix-broken install -y
+echo_success "Manajer paket dalam keadaan siap."
+# --- AKHIR BLOK PEMULIHAN ---
+
+
+# --- 1. Pembaruan Sistem dan Pemasangan Dependensi Inti ---
+echo_info "Memasang dependensi inti: Nginx, MariaDB, Node.js..."
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx curl build-essential mariadb-server mariadb-client psmisc
 
@@ -48,21 +73,16 @@ systemctl enable mariadb
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
 DB_PASS=$(openssl rand -base64 12)
-DB_ROOT_PASS=$(openssl rand -base64 16)
 
-echo_info "Mengamankan pengguna root MariaDB dan membuat database aplikasi..."
-# Gunakan `mariadb-admin` untuk mengatur password root, ini lebih andal
-mariadb-admin -u root password "$DB_ROOT_PASS"
-
-# Jalankan perintah selanjutnya dengan password root yang baru
-mariadb -u root -p"$DB_ROOT_PASS" --batch <<-EOSQL
+# Mengamankan MariaDB dan membuat database dalam satu blok perintah yang andal
+mariadb --execute="
   DROP USER IF EXISTS ''@'localhost';
   DROP DATABASE IF EXISTS test;
   CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
   GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '$DB_USER'@'localhost';
   FLUSH PRIVILEGES;
-EOSQL
+"
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
 
 # --- 3. Impor Skema Database ---
