@@ -47,12 +47,21 @@ echo_info "Memulai instalasi cerdas untuk '$APP_NAME'..."
 
 # --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
 echo_info "Memastikan integritas manajer paket (dpkg/apt)..."
-sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock || true
+sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock &>/dev/null || true
+sudo apt-get clean
+
+# Hapus paksa paket-paket yang sering menyebabkan masalah dependensi
+echo_info "Mencoba menghapus paksa paket plugin MariaDB yang mungkin rusak..."
+sudo dpkg --remove --force-remove-reinstreq mariadb-plugin-provider-lz4 mariadb-plugin-provider-snappy mariadb-plugin-provider-bzip2 mariadb-plugin-provider-lzma mariadb-plugin-provider-lzo &>/dev/null || true
+
+# Lakukan pembersihan menyeluruh
 echo_info "Mencoba membersihkan instalasi MariaDB/PMA yang mungkin rusak..."
-sudo apt-get purge -y 'mariadb-*' 'phpmyadmin*' &> /dev/null || echo "Pembersihan awal dilewati, melanjutkan."
+sudo apt-get purge -y 'mariadb-*' 'phpmyadmin*' &>/dev/null || echo "Pembersihan awal dilewati, melanjutkan."
+sudo apt-get autoremove -y --purge
+
+# Konfigurasi ulang dan perbaiki dependensi yang rusak
 sudo dpkg --configure -a
 sudo apt-get -f install -y
-sudo apt-get autoremove -y
 sudo apt-get update
 echo_success "Manajer paket siap."
 # --- AKHIR BLOK PEMULIHAN ---
@@ -242,3 +251,5 @@ echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
 echo_success "Deployment selesai!"
+
+    
