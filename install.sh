@@ -12,11 +12,16 @@ set -e
 # --- Konfigurasi & Variabel Inti ---
 APP_PORT=3000
 APP_NAME="coursecentral"
-RUN_USER=$(logname)
+# Mengambil nama pengguna yang menjalankan sudo, bukan 'root'
+RUN_USER=${SUDO_USER:-$(logname)}
 PROJECT_DIR=$(pwd)
 DB_NAME="coursecentral_db"
 DB_USER="coursecentral_user"
+# Membuat password acak yang kuat untuk database
 DB_PASS=$(openssl rand -base64 12)
+# Dapatkan alamat IP publik utama server
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
 
 # --- Fungsi Bantuan untuk Logging ---
 echo_info() { echo -e "\033[1;34m[INFO]\033[0m $1"; }
@@ -25,7 +30,7 @@ echo_error() { echo -e "\033[1;31m[ERROR]\033[0m $1"; }
 
 # --- Verifikasi Awal & Ketergantungan Path Absolut ---
 if [ "$(id -u)" -ne 0 ]; then
-  echo_error "Skrip ini harus dijalankan sebagai root. Silakan gunakan 'sudo ./install.sh'"
+  echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install.sh'"
   exit 1
 fi
 
@@ -34,59 +39,49 @@ if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
     exit 1
 fi
 
-# Memastikan perintah inti ada di path yang diharapkan untuk mengatasi `command not found`
-# Hanya periksa perintah yang seharusnya ada di sistem Ubuntu dasar. Node/NPM akan diinstal oleh skrip ini.
-COMMANDS_TO_CHECK=(
-    "/usr/bin/dpkg" "/usr/bin/apt-get" "/bin/rm" "/bin/cp" "/bin/ln" "/usr/bin/chown"
-    "/bin/systemctl" "/usr/bin/fuser" "/usr/sbin/nginx" "/usr/bin/mariadb" "/usr/bin/curl"
-)
-for cmd in "${COMMANDS_TO_CHECK[@]}"; do
-    if [ ! -x "$cmd" ]; then
-        echo_error "Perintah sistem kritis '$cmd' tidak ditemukan. Sistem operasi Anda mungkin rusak parah. Pertimbangkan untuk menginstal ulang OS."
-        exit 1
-    fi
-done
-
-echo_info "Memulai proses instalasi sederhana untuk $APP_NAME..."
+echo_info "Memulai proses instalasi cerdas untuk $APP_NAME di Ubuntu..."
+echo_info "Aplikasi akan dijalankan oleh pengguna: $RUN_USER"
 
 # --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
 echo_info "Memeriksa dan memastikan integritas manajer paket (dpkg/apt)..."
+# Membersihkan lock file yang mungkin tersisa dari proses yang gagal
+rm -f /var/lib/dpkg/lock*
+rm -f /var/cache/apt/archives/lock
+# Mencoba memulihkan file status dpkg jika rusak atau hilang
 if [ ! -f /var/lib/dpkg/status ]; then
-    echo_info "File status dpkg tidak ditemukan. Mencoba memulihkan..."
+    echo_info "File status dpkg tidak ditemukan. Mencoba memulihkan dari cadangan..."
     if [ -f /var/lib/dpkg/status-old ]; then
-        /bin/cp /var/lib/dpkg/status-old /var/lib/dpkg/status
+        cp /var/lib/dpkg/status-old /var/lib/dpkg/status
         echo_success "Berhasil memulihkan dari status-old."
     elif [ -f /var/backups/dpkg.status.0 ]; then
-        /bin/cp /var/backups/dpkg.status.0 /var/lib/dpkg/status
+        cp /var/backups/dpkg.status.0 /var/lib/dpkg/status
         echo_success "Berhasil memulihkan dari cadangan utama."
     else
         echo_info "Tidak ada cadangan ditemukan. Membuat file status baru yang kosong."
         touch /var/lib/dpkg/status
     fi
 fi
-# Membersihkan lock file yang mungkin tersisa
-/bin/rm -f /var/lib/dpkg/lock*
-/bin/rm -f /var/cache/apt/archives/lock
 # Memaksa konfigurasi ulang paket yang tertunda
-/usr/bin/dpkg --configure -a
-/usr/bin/apt-get update
-# Mencoba memperbaiki paket yang rusak sebagai langkah terakhir
-/usr/bin/apt-get --fix-broken install -y
+dpkg --configure -a
+# Mencoba memperbaiki dependensi yang rusak sebagai langkah terakhir
+apt-get --fix-broken install -y
+apt-get update
 echo_success "Manajer paket dalam keadaan siap."
 # --- AKHIR BLOK PEMULIHAN ---
 
 # --- 1. Pembaruan Sistem dan Pemasangan Dependensi Inti ---
 echo_info "Memasang dependensi inti: Nginx, MariaDB, Node.js..."
-DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install -y \
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx curl build-essential mariadb-server mariadb-client psmisc
 
 # --- 2. Setup Database MariaDB (Metode Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
-/bin/systemctl start mariadb
-/bin/systemctl enable mariadb
+systemctl start mariadb
+systemctl enable mariadb
 
 # Mengamankan MariaDB dan membuat database dalam satu blok perintah yang andal
-/usr/bin/mariadb --execute="
+# Ini adalah cara yang paling kuat dan direkomendasikan untuk setup otomatis
+mariadb --execute="
   UPDATE mysql.user SET Password=PASSWORD('$DB_PASS') WHERE User='root';
   DELETE FROM mysql.user WHERE User='';
   DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
@@ -101,22 +96,25 @@ echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
 
 # --- 3. Impor Skema Database ---
 echo_info "Mengimpor data dari 'schema.sql'..."
-/usr/bin/mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
+mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal berhasil diimpor."
 
 # --- 4. Pasang Node.js & PM2 ---
 echo_info "Memasang Node.js v20 LTS dan PM2..."
+# Hanya menginstal jika 'node' belum ada atau versinya bukan v20
 if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
-    /usr/bin/curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    /usr/bin/apt-get install -y nodejs
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
 fi
+# Menginstal PM2 secara global menggunakan npm
 npm install -g pm2
 
 # --- 5. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
-/usr/bin/chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
+chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
 echo_info "Memasang dependensi proyek (menjalankan sebagai $RUN_USER)..."
+# Menjalankan npm install sebagai pengguna non-root
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
@@ -133,30 +131,32 @@ DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
 DB_NAME="$DB_NAME"
 # Atur domain utama aplikasi Anda di sini setelah deployment
-NEXT_PUBLIC_BASE_URL="http://ALAMAT_IP_ATAU_DOMAIN_UTAMA_ANDA"
+NEXT_PUBLIC_BASE_URL="http://${SERVER_IP}"
 EOF
-/usr/bin/chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local berhasil dibuat."
+chown $RUN_USER:$RUN_USER "$ENV_FILE"
+echo_success "File .env.local berhasil dibuat dan diisi dengan alamat IP Anda: $SERVER_IP"
 
 # --- 7. Mulai Aplikasi dengan PM2 ---
 echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
-/usr/bin/fuser -k $APP_PORT/tcp || true
+fuser -k $APP_PORT/tcp || true
 
 echo_info "Memulai atau me-restart aplikasi '$APP_NAME' dengan PM2..."
-# Cari path PM2 secara dinamis
+# Cari path PM2 secara dinamis untuk keandalan
 PM2_PATH=$(which pm2)
+# Hapus proses PM2 dengan nama yang sama jika ada
 sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
 # Menjalankan aplikasi sebagai $RUN_USER dengan path PM2 yang benar
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 
 echo_info "Mengatur PM2 agar berjalan saat server startup..."
-# Menjalankan perintah startup PM2
 # Menemukan path absolut untuk Node
 NODE_PATH=$(which node)
+# Menjalankan perintah startup PM2 dengan path yang benar
 env PATH=$NODE_PATH:$PATH "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
 
-# Menyimpan proses PM2 saat ini
+# Menyimpan daftar proses PM2 saat ini
 sudo -u "$RUN_USER" "$PM2_PATH" save
+echo_success "Aplikasi berhasil dijalankan dengan PM2."
 
 # --- 8. Konfigurasi Nginx ---
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
@@ -164,9 +164,9 @@ NGINX_CONFIG="
 server {
     listen 80;
     listen [::]:80;
-    server_name _;
+    server_name ${SERVER_IP} _; # Mendengarkan pada IP server dan sebagai default
     
-    root /var/www/html; # Root default untuk keamanan
+    root /var/www/html;
     index index.html index.htm;
 
     location / {
@@ -177,6 +177,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
     
     location ~ /\.ht {
@@ -185,27 +186,32 @@ server {
 }"
 echo "$NGINX_CONFIG" > "/etc/nginx/sites-available/$APP_NAME"
 
-# Menghapus link Nginx default jika ada
-/bin/rm -f /etc/nginx/sites-enabled/default
+# Menghapus link Nginx default jika ada untuk menghindari konflik
+rm -f /etc/nginx/sites-enabled/default
 
 # Mengaktifkan konfigurasi Nginx baru
-/bin/ln -sf "/etc/nginx/sites-available/$APP_NAME" "/etc/nginx/sites-enabled/"
+ln -sf "/etc/nginx/sites-available/$APP_NAME" "/etc/nginx/sites-enabled/"
 
 echo_info "Menguji konfigurasi Nginx dan me-restart layanan..."
-/usr/sbin/nginx -t
-/bin/systemctl restart nginx
+nginx -t
+systemctl restart nginx
 
 # --- Selesai ---
 echo ""
 echo_success "================= PROSES INSTALASI SELESAI ================="
 echo ""
 echo_info "AKSES APLIKASI ANDA:"
-echo "  - http://<ALAMAT_IP_SERVER_ANDA>"
+echo "  - http://${SERVER_IP}"
 echo ""
-echo_info "LANGKAH SELANJUTNYA:"
+echo_info "LANGKAH SELANJUTNYA YANG SANGAT PENTING:"
 echo "  1. Edit file '$ENV_FILE' untuk menambahkan GEMINI_API_KEY Anda."
-echo "  2. Edit file '$ENV_FILE' untuk mengatur NEXT_PUBLIC_BASE_URL dengan domain utama Anda."
-echo "  3. Arahkan nama domain Anda ke alamat IP server ini."
-echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
+echo "     (Gunakan: nano .env.local)"
+echo "  2. Jika Anda menggunakan domain, edit NEXT_PUBLIC_BASE_URL di file yang sama."
+echo "  3. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
+echo ""
+echo_info "INFORMASI DATABASE (SIMPAN DI TEMPAT AMAN):"
+echo "  - Nama Database: $DB_NAME"
+echo "  - Pengguna Database: $DB_USER"
+echo "  - Password Database: $DB_PASS"
 echo ""
 echo_success "Deployment selesai!"
