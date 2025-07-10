@@ -15,7 +15,6 @@ APP_NAME="coursecentral"
 RUN_USER=$(logname)
 PROJECT_DIR=$(pwd)
 
-
 # --- Fungsi Bantuan untuk Logging ---
 echo_info() { echo -e "\033[1;34m[INFO]\033[0m $1"; }
 echo_success() { echo -e "\033[1;32m[SUCCESS]\033[0m $1"; }
@@ -36,16 +35,19 @@ fi
 echo_info "Memulai proses instalasi lengkap untuk $APP_NAME..."
 
 # --- 1. Pembaruan Sistem dan Pemasangan Dependensi ---
-echo_info "Memperbarui sistem dan memasang dependensi utama..."
+echo_info "Memperbarui sistem dan melakukan pra-pembersihan paket..."
 apt-get update
-# [PERBAIKAN] Memperbaiki paket yang mungkin rusak sebelum instalasi utama
+# [PERBAIKAN DPKG] Secara proaktif memperbaiki paket yang rusak sebelum instalasi
 apt-get --fix-broken install -y
-apt-get upgrade -y
+apt-get autoremove -y
+# [PERBAIKAN DPKG] Secara paksa mengkonfigurasi ulang paket yang mungkin tertunda
+dpkg --configure -a
+
+echo_info "Memasang dependensi inti..."
 # Mencegah prompt interaktif yang dapat menyebabkan kegagalan pada dpkg
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx curl build-essential mariadb-server mariadb-client psmisc \
-    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl \
-    fail2ban
+    fail2ban unzip
 
 # --- 2. Setup Database MariaDB (Metode Anti-Gagal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
@@ -132,14 +134,19 @@ echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
 fuser -k $APP_PORT/tcp || true
 
 echo_info "Memulai atau me-restart aplikasi '$APP_NAME' dengan PM2..."
-sudo -u "$RUN_USER" pm2 delete "$APP_NAME" || true
+pm2 delete "$APP_NAME" || true
 sudo -u "$RUN_USER" pm2 start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start
 # Mengkonfigurasi PM2 untuk memulai saat sistem reboot
 STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup | grep 'sudo' || true)
 if [ -n "$STARTUP_COMMAND" ]; then eval "$STARTUP_COMMAND"; fi
 sudo -u "$RUN_USER" pm2 save
 
-# --- 8. Konfigurasi Nginx & phpMyAdmin ---
+# --- 8. Instalasi & Konfigurasi phpMyAdmin ---
+echo_info "Memasang phpMyAdmin dan ekstensi PHP yang diperlukan..."
+# [PERBAIKAN DPKG] Instal phpMyAdmin secara terpisah setelah sistem inti stabil
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    phpmyadmin php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl
+
 echo_info "Mengkonfigurasi Nginx sebagai reverse proxy..."
 PHP_SOCKET_PATH=$(ls /var/run/php/php*-fpm.sock | head -n 1)
 NGINX_CONFIG="
@@ -148,8 +155,8 @@ server {
     listen [::]:80;
     server_name _;
     
-    root /var/www/html;
-    index index.html;
+    root /usr/share/phpmyadmin;
+    index index.php;
 
     location / {
         proxy_pass http://localhost:$APP_PORT;
@@ -158,19 +165,29 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
     location /phpmyadmin {
-        alias /usr/share/phpmyadmin;
-        index index.php;
+        root /usr/share/phpmyadmin;
+        index index.php index.html index.htm;
         location ~ ^/phpmyadmin(.+\.php)$ {
             try_files \$uri =404;
-            root /usr/share/;
+            root /usr/share/phpmyadmin;
             fastcgi_pass unix:$PHP_SOCKET_PATH;
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
             include fastcgi_params;
         }
+
+        location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|png|ico|css|js|pdf|txt))$ {
+            root /usr/share/phpmyadmin/;
+        }
+    }
+
+    # Aturan tambahan untuk phpMyAdmin agar berfungsi dengan benar
+    location ~ /\.ht {
+        deny all;
     }
 }"
 echo "$NGINX_CONFIG" > "/etc/nginx/sites-available/$APP_NAME"
