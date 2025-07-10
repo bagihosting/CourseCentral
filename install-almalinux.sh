@@ -90,7 +90,7 @@ echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan di
 
 # --- 3. Impor Skema & Data Awal ---
 echo_info "Mengimpor data dari 'schema.sql'..."
-sudo mysql -u ${DB_USER} -p"${DB_PASS}" "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+mysql -u ${DB_USER} -p"${DB_PASS}" "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
 echo_success "Struktur database dan data awal berhasil diimpor."
 
 # --- 4. Pasang PM2 ---
@@ -110,7 +110,7 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 # --- 6. Siapkan Variabel Lingkungan & Backup Otomatis ---
 echo_info "Membuat file .env.local dengan kredensial..."
 ENV_FILE="$PROJECT_DIR/.env.local"
-sudo cat > "$ENV_FILE" << EOF
+cat > "$ENV_FILE" << EOF
 GEMINI_API_KEY="PASTE_YOUR_GEMINI_API_KEY_HERE"
 DB_HOST="127.0.0.1"
 DB_PORT="3306"
@@ -123,7 +123,7 @@ sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
 
 echo_info "Mengatur backup database otomatis harian via cron..."
 BACKUP_SCRIPT="/usr/local/bin/backup-mariadb.sh"
-sudo cat > "$BACKUP_SCRIPT" << EOF
+sudo tee "$BACKUP_SCRIPT" > /dev/null << EOF
 #!/bin/bash
 DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
@@ -150,7 +150,7 @@ sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN
 echo_info "Mengkonfigurasi Nginx..."
 NGINX_CONFIG="/etc/nginx/conf.d/$APP_NAME.conf"
 
-sudo cat > "$NGINX_CONFIG" << EOF
+sudo tee "$NGINX_CONFIG" > /dev/null << EOF
 server {
     listen 80;
     listen [::]:80;
