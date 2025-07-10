@@ -35,10 +35,10 @@ if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
 fi
 
 # Memastikan perintah inti ada di path yang diharapkan untuk mengatasi `command not found`
+# Hanya periksa perintah yang seharusnya ada di sistem Ubuntu dasar. Node/NPM akan diinstal oleh skrip ini.
 COMMANDS_TO_CHECK=(
     "/usr/bin/dpkg" "/usr/bin/apt-get" "/bin/rm" "/bin/cp" "/bin/ln" "/usr/bin/chown"
-    "/bin/systemctl" "/usr/bin/fuser" "/usr/sbin/nginx" "/usr/bin/mariadb"
-    "/usr/bin/curl" "/usr/bin/npm" "/usr/bin/node"
+    "/bin/systemctl" "/usr/bin/fuser" "/usr/sbin/nginx" "/usr/bin/mariadb" "/usr/bin/curl"
 )
 for cmd in "${COMMANDS_TO_CHECK[@]}"; do
     if [ ! -x "$cmd" ]; then
@@ -106,21 +106,21 @@ echo_success "Struktur database dan data awal berhasil diimpor."
 
 # --- 4. Pasang Node.js & PM2 ---
 echo_info "Memasang Node.js v20 LTS dan PM2..."
-if ! command -v node &> /dev/null || [[ $(/usr/bin/node -v) != "v20."* ]]; then
+if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
     /usr/bin/curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     /usr/bin/apt-get install -y nodejs
 fi
-/usr/bin/npm install -g pm2
+npm install -g pm2
 
 # --- 5. Bangun Aplikasi ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna $RUN_USER..."
 /usr/bin/chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
 echo_info "Memasang dependensi proyek (menjalankan sebagai $RUN_USER)..."
-sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && /usr/bin/npm install"
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai $RUN_USER)..."
-sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && /usr/bin/npm run build"
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
 # --- 6. Siapkan Variabel Lingkungan (.env.local) ---
 echo_info "Membuat file .env.local dengan kredensial database..."
@@ -143,14 +143,18 @@ echo_info "Menghentikan proses yang ada di port $APP_PORT (jika ada)..."
 /usr/bin/fuser -k $APP_PORT/tcp || true
 
 echo_info "Memulai atau me-restart aplikasi '$APP_NAME' dengan PM2..."
+# Cari path PM2 secara dinamis
 PM2_PATH=$(which pm2)
 sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
-sudo -u "$RUN_USER" "$PM2_PATH" start npm --name "$APP_NAME" --cwd "$PROJECT_DIR" -- start
+# Menjalankan aplikasi sebagai $RUN_USER dengan path PM2 yang benar
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 
 echo_info "Mengatur PM2 agar berjalan saat server startup..."
 # Menjalankan perintah startup PM2
-STARTUP_COMMAND=$(sudo -u "$RUN_USER" env PATH=$PATH:/usr/bin:/usr/local/bin "$PM2_PATH" startup | grep 'sudo' || true)
-if [ -n "$STARTUP_COMMAND" ]; then eval "$STARTUP_COMMAND"; fi
+# Menemukan path absolut untuk Node
+NODE_PATH=$(which node)
+env PATH=$NODE_PATH:$PATH "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
+
 # Menyimpan proses PM2 saat ini
 sudo -u "$RUN_USER" "$PM2_PATH" save
 
