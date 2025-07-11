@@ -253,12 +253,18 @@ export async function deleteCourse(id: string): Promise<void> {
 
 // --- Course Status Management ---
 
-export async function submitCourseForReview(courseId: string): Promise<void> {
+export async function submitCourseForReview(courseId: string, authorId: string): Promise<void> {
     const pool = getPool();
     const actor = await getAuthUser();
+    
+    // An admin can submit on behalf of an instructor, but an instructor can only submit their own.
+    if (actor.role !== 'admin' && actor.id !== authorId) {
+        throw new Error("Anda tidak memiliki izin untuk mengajukan kursus ini.");
+    }
+    
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'pending_review' WHERE id = ? AND authorId = ? AND tenant_id = ? AND status IN ('draft', 'rejected')",
-        [courseId, actor.id, actor.tenant_id]
+        [courseId, authorId, actor.tenant_id]
     );
     if (result.affectedRows === 0) {
         throw new Error("Kursus tidak dapat diajukan untuk review. Pastikan Anda adalah pemilik dan statusnya adalah draft atau ditolak.");
@@ -286,8 +292,12 @@ export async function rejectCourse(courseId: string, reviewNotes: string): Promi
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat menolak kursus.");
     const tenantId = await getActiveTenantId();
 
-    await pool.query(
+    const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review' AND tenant_id = ?",
         [reviewNotes, courseId, tenantId]
     );
+
+     if (result.affectedRows === 0) {
+        throw new Error("Gagal menolak kursus. Kursus mungkin tidak dalam status 'pending_review' atau tidak ditemukan.");
+    }
 }

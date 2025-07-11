@@ -41,8 +41,7 @@ export async function createApiKey(name: string): Promise<{ apiKey: string }> {
     //    bcrypt is the industry standard for password/key hashing because it's slow and includes a salt.
     const hashedKey = await bcrypt.hash(plainTextKey, 10);
     
-    // 3. Store a short, non-sensitive prefix of the key for quick lookups.
-    //    This avoids having to scan the entire table for a matching key.
+    // 3. Store a short, non-sensitive prefix of the key for display purposes only.
     const prefix = plainTextKey.substring(0, API_KEY_PREFIX.length + 4);
 
     await pool.query(
@@ -100,6 +99,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
 
 /**
  * Validates a given API key. This is the core of the API security model.
+ * This method is hardened against timing attacks.
  * @param key The plain-text API key from the request header.
  * @returns `true` if the key is valid, `false` otherwise.
  */
@@ -112,37 +112,32 @@ export async function validateApiKey(key: string): Promise<boolean> {
         return false;
     }
 
-    // 2. Extract the prefix from the provided key. This allows us to quickly find
-    //    potential candidates in the database without scanning the whole table.
-    const prefix = key.substring(0, API_KEY_PREFIX.length + 4);
-
     try {
+        // 2. Fetch ALL hashed keys from the database. Do not filter by prefix to avoid leaking information.
         const [rows] = await pool.query<RowDataPacket[]>(
-            'SELECT id, hashed_key FROM api_keys WHERE prefix = ?',
-            [prefix]
+            'SELECT id, hashed_key FROM api_keys'
         );
 
-        // 3. If no key in the database has this prefix, it's invalid.
         if (rows.length === 0) {
             return false;
         }
 
-        // 4. Iterate through the candidates (usually just one) and compare the
-        //    full, plain-text key with the stored hash.
+        // 3. Iterate through all keys and compare them securely using bcrypt.
         for (const row of rows) {
-            // 5. CRITICAL: Use `bcrypt.compare`. This is essential. A simple `hash(key) === stored_hash`
+            // 4. CRITICAL: Use `bcrypt.compare`. This is essential. A simple `hash(key) === stored_hash`
             //    is vulnerable to timing attacks. `bcrypt.compare` is designed to take a constant
             //    amount of time, regardless of whether the comparison succeeds or fails early,
             //    preventing attackers from guessing the hash character by character.
             const isMatch = await bcrypt.compare(key, row.hashed_key);
             if (isMatch) {
                 // Key is valid. Update last_used_at in the background (fire-and-forget).
+                // We don't await this to avoid slowing down the API response.
                 pool.query('UPDATE api_keys SET last_used_at = NOW() WHERE id = ?', [row.id]).catch(console.error);
                 return true;
             }
         }
 
-        // 6. If no match was found after checking all candidates, the key is invalid.
+        // 5. If no match was found after checking all candidates, the key is invalid.
         return false;
     } catch (error) {
         console.error("Error validating API key:", error);

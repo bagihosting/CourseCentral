@@ -34,17 +34,22 @@ export async function applyForReseller(userId: string): Promise<void> {
 
 export async function getResellerApplications(): Promise<ResellerApplication[]> {
     const pool = getPool();
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT ra.id, ra.userId, ra.requestDate, ra.status, u.name as userName, u.avatarUrl as userAvatar
-        FROM reseller_applications ra
-        JOIN users u ON ra.userId = u.id
-        WHERE ra.status = 'pending'
-        ORDER BY ra.requestDate ASC
-    `);
-    return rows.map(row => ({
-        ...row,
-        requestDate: new Date(row.requestDate).toISOString(),
-    })) as ResellerApplication[];
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT ra.id, ra.userId, ra.requestDate, ra.status, u.name as userName, u.avatarUrl as userAvatar
+            FROM reseller_applications ra
+            JOIN users u ON ra.userId = u.id
+            WHERE ra.status = 'pending'
+            ORDER BY ra.requestDate ASC
+        `);
+        return rows.map(row => ({
+            ...row,
+            requestDate: new Date(row.requestDate).toISOString(),
+        })) as ResellerApplication[];
+    } catch(error) {
+        console.error("Gagal mengambil permintaan reseller:", error);
+        throw error;
+    }
 }
 
 export async function approveResellerApplication(applicationId: string): Promise<void> {
@@ -93,11 +98,16 @@ export async function rejectResellerApplication(applicationId: string): Promise<
 
 export async function getTenantForReseller(resellerId: string): Promise<Tenant | null> {
     const pool = getPool();
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE ownerId = ?', [resellerId]);
-    if(rows.length > 0) {
-        return rows[0] as Tenant;
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM tenants WHERE ownerId = ?', [resellerId]);
+        if(rows.length > 0) {
+            return rows[0] as Tenant;
+        }
+        return null;
+    } catch (error) {
+        console.error("Gagal mengambil tenant reseller:", error);
+        throw error;
     }
-    return null;
 }
 
 export async function createTenantForReseller(data: {
