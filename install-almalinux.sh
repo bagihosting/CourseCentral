@@ -88,10 +88,20 @@ sudo mysql -u root --execute="
 "
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan diamankan."
 
-# --- 3. Impor Skema & Data Awal ---
+# --- 3. Impor Skema & Data Awal (Metode Aman) ---
 echo_info "Mengimpor data dari 'schema.sql'..."
-mysql -u ${DB_USER} -p"${DB_PASS}" "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+# Buat file cnf sementara untuk otentikasi yang lebih andal
+cat > /tmp/mariadb.cnf <<EOF
+[client]
+user = ${DB_USER}
+password = ${DB_PASS}
+EOF
+# Impor menggunakan file cnf sementara
+sudo mysql --defaults-extra-file=/tmp/mariadb.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+# Hapus file cnf sementara dengan aman
+sudo rm -f /tmp/mariadb.cnf
 echo_success "Struktur database dan data awal berhasil diimpor."
+
 
 # --- 4. Pasang PM2 ---
 echo_info "Memasang PM2 secara global..."
