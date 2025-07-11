@@ -77,22 +77,18 @@ echo_success "Layanan MySQL telah aktif."
 
 echo_info "Mengamankan MySQL dan membuat pengguna aplikasi..."
 # Menjalankan semua perintah keamanan dan pembuatan database secara non-interaktif
-sudo mysql -u root --execute="
-  -- Mengamankan instalasi
-  ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_DB_PASS}';
-  DELETE FROM mysql.user WHERE User='';
-  DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-  DROP DATABASE IF EXISTS test;
-  DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-
-  -- Membuat database dan pengguna aplikasi
-  CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
-  GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
-  
-  -- Menerapkan semua perubahan
-  FLUSH PRIVILEGES;
-"
+# Menggunakan sudo secara eksplisit untuk menjalankan mysql sebagai root sistem
+sudo mysql <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_DB_PASS}';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+EOF
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan diamankan."
 
 # --- 3. Impor Skema & Data Awal (Metode Aman) ---
