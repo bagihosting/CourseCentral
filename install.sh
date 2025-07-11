@@ -92,17 +92,23 @@ echo_success "Fail2Ban aktif dan memonitor SSH."
 
 # --- 2. Setup Database MariaDB (Metode Andal) ---
 echo_info "Mengkonfigurasi database MariaDB..."
-sudo systemctl start mariadb && sudo systemctl enable mariadb
+sudo systemctl enable --now mariadb
+
 # Menjalankan perintah SQL sebagai root untuk membuat database dan pengguna
-sudo mariadb --execute="
+sudo mariadb -u root --execute="
+  -- Mengamankan instalasi
   ALTER USER 'root'@'localhost' IDENTIFIED BY '${PMA_ROOT_PASS}';
   DELETE FROM mysql.user WHERE User='';
   DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
   DROP DATABASE IF EXISTS test;
   DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+
+  -- Membuat database dan pengguna aplikasi
   CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
   GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+  
+  -- Menerapkan semua perubahan
   FLUSH PRIVILEGES;
 "
 echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
@@ -262,3 +268,5 @@ echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
 echo_success "Deployment selesai!"
+
+    

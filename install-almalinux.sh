@@ -206,3 +206,5 @@ echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
 echo_success "Deployment di AlmaLinux 8 selesai!"
+
+    
