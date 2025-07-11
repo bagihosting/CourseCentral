@@ -90,6 +90,13 @@ echo_success "Fail2Ban aktif dan memonitor SSH."
 echo_info "Mengkonfigurasi database MySQL..."
 sudo systemctl enable --now mysql
 
+echo_info "Menunggu layanan MySQL untuk aktif sepenuhnya..."
+while ! sudo mysqladmin ping --silent; do
+    echo_info "Menunggu... (Layanan MySQL belum siap)"
+    sleep 2
+done
+echo_success "Layanan MySQL telah aktif."
+
 # Menjalankan perintah SQL sebagai root untuk membuat database dan pengguna
 sudo mysql -u root --execute="
   -- Mengamankan instalasi
