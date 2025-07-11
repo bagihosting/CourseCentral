@@ -3,7 +3,7 @@
 # =================================================================
 # Autoinstaller Cerdas & Andal untuk Aplikasi Next.js
 # Distro: Debian 11/12 & Ubuntu 20.04/22.04/24.04
-# Fokus: Nginx, MariaDB, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
+# Fokus: Nginx, MySQL, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
 # Dirancang untuk keandalan, keamanan, dan fungsionalitas produksi.
 # =================================================================
 
@@ -51,13 +51,9 @@ echo_info "Memastikan integritas manajer paket (dpkg/apt)..."
 sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock &>/dev/null || true
 sudo apt-get clean
 
-# Hapus paksa paket-paket yang sering menyebabkan masalah dependensi
-echo_info "Mencoba menghapus paksa paket plugin MariaDB yang mungkin rusak..."
-sudo dpkg --remove --force-remove-reinstreq mariadb-plugin-provider-lz4 mariadb-plugin-provider-snappy mariadb-plugin-provider-bzip2 mariadb-plugin-provider-lzma mariadb-plugin-provider-lzo &>/dev/null || true
-
 # Lakukan pembersihan menyeluruh
-echo_info "Mencoba membersihkan instalasi MariaDB/PMA yang mungkin rusak..."
-sudo apt-get purge -y 'mariadb-*' 'phpmyadmin*' &>/dev/null || echo "Pembersihan awal dilewati, melanjutkan."
+echo_info "Mencoba membersihkan instalasi MySQL/PMA yang mungkin rusak..."
+sudo apt-get purge -y 'mysql-*' 'phpmyadmin*' &>/dev/null || echo "Pembersihan awal dilewati, melanjutkan."
 sudo apt-get autoremove -y --purge
 
 # Konfigurasi ulang dan perbaiki dependensi yang rusak
@@ -68,13 +64,13 @@ echo_success "Manajer paket siap."
 # --- AKHIR BLOK PEMULIHAN ---
 
 # --- 1. Pemasangan Dependensi Inti & Keamanan ---
-echo_info "Memasang dependensi: Nginx, MariaDB, Node.js, PHP, Fail2Ban..."
+echo_info "Memasang dependensi: Nginx, MySQL, Node.js, PHP, Fail2Ban..."
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    nginx curl build-essential mariadb-server mariadb-client psmisc \
+    nginx curl build-essential mysql-server mysql-client psmisc \
     php-fpm php-mysql php-mbstring php-zip php-gd php-json php-curl fail2ban
 
-# Tindakan pencegahan: Pastikan direktori data MariaDB memiliki izin yang benar
-echo_info "Memastikan kepemilikan direktori data MariaDB..."
+# Tindakan pencegahan: Pastikan direktori data MySQL memiliki izin yang benar
+echo_info "Memastikan kepemilikan direktori data MySQL..."
 sudo chown -R mysql:mysql /var/lib/mysql/
 
 # Konfigurasi Fail2Ban
@@ -90,12 +86,12 @@ EOF
 sudo systemctl restart fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
-# --- 2. Setup Database MariaDB (Metode Andal) ---
-echo_info "Mengkonfigurasi database MariaDB..."
-sudo systemctl enable --now mariadb
+# --- 2. Setup Database MySQL (Metode Andal) ---
+echo_info "Mengkonfigurasi database MySQL..."
+sudo systemctl enable --now mysql
 
 # Menjalankan perintah SQL sebagai root untuk membuat database dan pengguna
-sudo mariadb -u root --execute="
+sudo mysql -u root --execute="
   -- Mengamankan instalasi
   ALTER USER 'root'@'localhost' IDENTIFIED BY '${PMA_ROOT_PASS}';
   DELETE FROM mysql.user WHERE User='';
@@ -116,15 +112,15 @@ echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat."
 # --- 3. Impor Skema & Data Awal (Metode Aman) ---
 echo_info "Mengimpor data dari 'schema.sql'..."
 # Buat file cnf sementara untuk otentikasi
-cat > /tmp/mariadb.cnf <<EOF
+cat > /tmp/mysql.cnf <<EOF
 [client]
 user = ${DB_USER}
 password = ${DB_PASS}
 EOF
 # Impor menggunakan file cnf sementara
-sudo mariadb --defaults-extra-file=/tmp/mariadb.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+sudo mysql --defaults-extra-file=/tmp/mysql.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
 # Hapus file cnf sementara dengan aman
-sudo rm -f /tmp/mariadb.cnf
+sudo rm -f /tmp/mysql.cnf
 echo_success "Struktur database dan data awal berhasil diimpor."
 
 # --- 4. Instalasi & Konfigurasi Cerdas phpMyAdmin ---
@@ -170,13 +166,13 @@ EOF
 sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
 
 echo_info "Mengatur backup database otomatis harian..."
-BACKUP_SCRIPT="/usr/local/bin/backup-mariadb.sh"
+BACKUP_SCRIPT="/usr/local/bin/backup-mysql.sh"
 sudo cat > "$BACKUP_SCRIPT" << EOF
 #!/bin/bash
 DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
 DB_NAME="$DB_NAME"
-BACKUP_DIR="/var/backups/mariadb"
+BACKUP_DIR="/var/backups/mysql"
 mkdir -p \$BACKUP_DIR
 DATE=\$(date +"%Y-%m-%d_%H%M%S")
 mysqldump --user=\$DB_USER --password=\$DB_PASSWORD \$DB_NAME | gzip > \$BACKUP_DIR/\$DB_NAME-\$DATE.sql.gz
@@ -266,5 +262,5 @@ echo_success "  - phpMyAdmin User: root"
 echo_success "  - phpMyAdmin Pass: $PMA_ROOT_PASS"
 echo ""
 echo_info "Backup database harian telah diatur."
-sudo systemctl status mariadb.service --no-pager
+sudo systemctl status mysql.service --no-pager
 echo_success "Deployment selesai!"

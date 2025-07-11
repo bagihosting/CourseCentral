@@ -9,7 +9,7 @@ Ini adalah proyek starter kaya fitur yang dibangun di Firebase Studio, menggunak
 -   **UI**: React, ShadCN UI
 -   **Styling**: Tailwind CSS
 -   **AI**: Google Gemini & Genkit
--   **Database**: MariaDB/MySQL
+-   **Database**: MySQL
 -   **Deployment**: Docker, Nginx, PM2
 
 ## Fitur Utama

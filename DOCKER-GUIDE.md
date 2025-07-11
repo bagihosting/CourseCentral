@@ -1,6 +1,6 @@
 # Panduan Deployment dengan Docker & Portainer
 
-Metode ini mengemas aplikasi dan database MariaDB Anda ke dalam sebuah kontainer Docker, yang kemudian dapat dikelola melalui antarmuka web Portainer atau langsung dari command line. Ini adalah pendekatan yang paling modern, terisolasi, dan sangat direkomendasikan untuk lingkungan produksi.
+Metode ini mengemas aplikasi dan database MySQL Anda ke dalam sebuah kontainer Docker, yang kemudian dapat dikelola melalui antarmuka web Portainer atau langsung dari command line. Ini adalah pendekatan yang paling modern, terisolasi, dan sangat direkomendasikan untuk lingkungan produksi.
 
 ## Prasyarat
 
@@ -43,7 +43,7 @@ Ini adalah cara termudah dan paling direkomendasikan untuk memulai. `docker-comp
     -   `--build`: Memaksa Docker untuk membangun *image* aplikasi baru dari `Dockerfile` Anda. Gunakan ini saat pertama kali menjalankan atau setelah ada perubahan kode.
     -   `-d`: Menjalankan kontainer di latar belakang (detached mode).
 
-2.  **Selesai!** Aplikasi Anda dan database MariaDB sekarang berjalan di dalam kontainer Docker. Buka browser dan akses aplikasi Anda melalui `http://ALAMAT_IP_SERVER:3000`.
+2.  **Selesai!** Aplikasi Anda dan database MySQL sekarang berjalan di dalam kontainer Docker. Buka browser dan akses aplikasi Anda melalui `http://ALAMAT_IP_SERVER:3000`.
 
 ## Langkah 4 (Alternatif): Deploy dari Antarmuka Portainer
 

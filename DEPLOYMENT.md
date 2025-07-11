@@ -17,7 +17,7 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
 
 ### Prasyarat
 - **Node.js**: Pastikan Node.js (versi 20 atau lebih baru) sudah terinstal.
-- **Server Lokal**: Pastikan Anda sudah menginstal dan menjalankan **XAMPP** atau **Laragon**. Pastikan service **Apache** dan **MySQL/MariaDB** sudah berjalan.
+- **Server Lokal**: Pastikan Anda sudah menginstal dan menjalankan **XAMPP** atau **Laragon**. Pastikan service **Apache** dan **MySQL** sudah berjalan.
 - **Kode Proyek**: Anda sudah memiliki folder kode proyek ini.
 
 ### Langkah 1: Setup Database
@@ -44,7 +44,7 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
    DB_NAME="coursecentral_db"
    NEXT_PUBLIC_BASE_URL="http://localhost:3000"
    ```
-   Jika password `root` MariaDB Anda berbeda, silakan sesuaikan `DB_PASSWORD`.
+   Jika password `root` MySQL Anda berbeda, silakan sesuaikan `DB_PASSWORD`.
 
 ### Langkah 3: Jalankan Aplikasi
 1. Buka terminal atau command prompt di dalam folder proyek Anda.
@@ -54,8 +54,8 @@ Gunakan metode ini untuk menjalankan aplikasi di laptop/PC Anda. Anda memerlukan
 
 ### Troubleshooting: Error `ECONNREFUSED`
 Jika Anda melihat error `ECONNREFUSED` di konsol, itu artinya:
-- **MariaDB/MySQL Anda tidak berjalan.** Pastikan service tersebut aktif di XAMPP atau Laragon.
-- **Port atau Host salah.** Pastikan `DB_HOST` dan `DB_PORT` di file `.env.local` Anda sudah sesuai dengan konfigurasi MariaDB di komputer Anda. Konsol terminal juga akan memberikan petunjuk spesifik saat aplikasi dimulai.
+- **MySQL Anda tidak berjalan.** Pastikan service tersebut aktif di XAMPP atau Laragon.
+- **Port atau Host salah.** Pastikan `DB_HOST` dan `DB_PORT` di file `.env.local` Anda sudah sesuai dengan konfigurasi MySQL di komputer Anda. Konsol terminal juga akan memberikan petunjuk spesifik saat aplikasi dimulai.
 
 ---
 
@@ -68,9 +68,9 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
     ```bash
     sudo apt update && sudo apt upgrade -y
     ```
-2.  **Instal Dependensi Inti**: Instal Nginx, MariaDB, dan dependensi lain yang dibutuhkan.
+2.  **Instal Dependensi Inti**: Instal Nginx, MySQL, dan dependensi lain yang dibutuhkan.
     ```bash
-    sudo apt install -y nginx mariadb-server mariadb-client curl build-essential psmisc
+    sudo apt install -y nginx mysql-server mysql-client curl build-essential psmisc
     ```
 3.  **Instal Node.js v20**:
     ```bash
@@ -82,15 +82,15 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
     sudo npm install -g pm2
     ```
 
-### Langkah 2: Konfigurasi Database MariaDB
-1.  **Amankan MariaDB**: Jalankan skrip keamanan interaktif untuk mengatur kata sandi `root`, menghapus pengguna anonim, dll.
+### Langkah 2: Konfigurasi Database MySQL
+1.  **Amankan MySQL**: Jalankan skrip keamanan interaktif untuk mengatur kata sandi `root`, menghapus pengguna anonim, dll.
     ```bash
     sudo mysql_secure_installation
     ```
     - Saat diminta kata sandi `root` saat ini, tekan Enter (karena belum ada).
     - Jawab `Y` (Yes) untuk semua pertanyaan selanjutnya untuk menerapkan pengaturan keamanan standar.
 2.  **Buat Database & Pengguna**:
-    - Masuk ke MariaDB sebagai `root`: `sudo mariadb -u root -p` (masukkan kata sandi root yang baru Anda buat).
+    - Masuk ke MySQL sebagai `root`: `sudo mysql -u root -p` (masukkan kata sandi root yang baru Anda buat).
     - Jalankan perintah SQL berikut satu per satu. **Ganti `password_yang_kuat`** dengan kata sandi yang aman.
       ```sql
       CREATE DATABASE coursecentral_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -185,7 +185,7 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
 
 ## Metode 2: Deployment menggunakan Docker & Portainer (Disarankan)
 
-Metode ini mengemas aplikasi dan database MariaDB Anda ke dalam sebuah kontainer Docker, yang kemudian dikelola melalui antarmuka web Portainer. Ini adalah pendekatan yang lebih modern, terisolasi, dan andal.
+Metode ini mengemas aplikasi dan database MySQL Anda ke dalam sebuah kontainer Docker, yang kemudian dikelola melalui antarmuka web Portainer. Ini adalah pendekatan yang lebih modern, terisolasi, dan andal.
 
 ### Prasyarat
 
@@ -224,7 +224,7 @@ Ini adalah cara termudah dan paling andal untuk memulai. `docker-compose` akan s
     - `--build`: Memaksa Docker untuk membangun image aplikasi baru dari `Dockerfile`.
     - `-d`: Menjalankan kontainer di latar belakang (detached mode).
 
-2.  **Selesai!** Aplikasi Anda dan database MariaDB sekarang berjalan di dalam kontainer Docker. Lanjutkan ke **Metode Keamanan Server** untuk mengarahkan domain dan mengaktifkan proteksi.
+2.  **Selesai!** Aplikasi Anda dan database MySQL sekarang berjalan di dalam kontainer Docker. Lanjutkan ke **Metode Keamanan Server** untuk mengarahkan domain dan mengaktifkan proteksi.
 
 ### Langkah 4: (Alternatif) Deploy Murni dari Portainer
 
@@ -298,15 +298,15 @@ Sekarang, semua lalu lintas ke domain Anda akan melewati Cloudflare terlebih dah
 Jika Anda menggunakan **Metode 1 (Auto-Installer)** atau **Metode 1 (Manual)**, Anda dapat mengatur backup database otomatis.
 
 ### Cara Membuat Skrip Backup Otomatis
-1.  Buat direktori backup: `sudo mkdir -p /var/backups/mariadb`
-2.  Buat skrip backup: `sudo nano /usr/local/bin/backup-mariadb.sh`
+1.  Buat direktori backup: `sudo mkdir -p /var/backups/mysql`
+2.  Buat skrip backup: `sudo nano /usr/local/bin/backup-mysql.sh`
 3.  Isi dengan konten berikut. Ganti `DB_USER`, `DB_PASSWORD`, dan `DB_NAME` dengan kredensial Anda yang sebenarnya.
     ```bash
     #!/bin/bash
     DB_USER="coursecentral_user"
     DB_PASSWORD="password_anda"
     DB_NAME="coursecentral_db"
-    BACKUP_DIR="/var/backups/mariadb"
+    BACKUP_DIR="/var/backups/mysql"
     DATE=$(date +"%Y-%m-%d_%H%M%S")
 
     # Membuat file backup
@@ -315,11 +315,11 @@ Jika Anda menggunakan **Metode 1 (Auto-Installer)** atau **Metode 1 (Manual)**, 
     # Menghapus backup yang lebih tua dari 7 hari
     find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +7 -delete
     ```
-4.  Jadikan skrip dapat dieksekusi: `sudo chmod +x /usr/local/bin/backup-mariadb.sh`
+4.  Jadikan skrip dapat dieksekusi: `sudo chmod +x /usr/local/bin/backup-mysql.sh`
 5.  Jalankan secara otomatis dengan cron. Buka editor cron: `sudo crontab -e`.
 6.  Tambahkan baris berikut untuk menjalankannya setiap hari pukul 2:30 pagi:
     ```
-    30 2 * * * /usr/local/bin/backup-mariadb.sh
+    30 2 * * * /usr/local/bin/backup-mysql.sh
     ```
 
 ### Cara Melakukan Restore Manual
@@ -327,7 +327,7 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
 
 1.  **Temukan File Backup**: Buka direktori backup dan temukan file yang ingin Anda pulihkan.
     ```bash
-    ls -l /var/backups/mariadb/
+    ls -l /var/backups/mysql/
     ```
 2.  **Dapatkan Kredensial Database**: Anda memerlukan username dan password database. Anda bisa menemukannya di dalam file `.env.local` di direktori proyek Anda.
     ```bash
@@ -337,7 +337,7 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
     ```
 3.  **Jalankan Perintah Restore**: Gunakan perintah di bawah ini. Ganti `nama_file_backup.sql.gz` dengan nama file yang benar. Anda akan diminta untuk memasukkan password database yang Anda temukan di langkah sebelumnya.
     ```bash
-    gunzip < /var/backups/mariadb/nama_file_backup.sql.gz | mysql -u coursecentral_user -p coursecentral_db
+    gunzip < /var/backups/mysql/nama_file_backup.sql.gz | mysql -u coursecentral_user -p coursecentral_db
     ```
     **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.
 

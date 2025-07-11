@@ -3,7 +3,7 @@
 # =================================================================
 # Autoinstaller Cerdas & Andal untuk Aplikasi Next.js
 # Distro: AlmaLinux 8 / RHEL 8
-# Fokus: Nginx, MariaDB, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
+# Fokus: Nginx, MySQL, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
 # Dirancang untuk keandalan, keamanan, dan fungsionalitas produksi.
 # =================================================================
 
@@ -47,7 +47,7 @@ echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di AlmaLinux 8..."
 # --- 1. Pemasangan Dependensi Inti & Keamanan ---
 echo_info "Mengaktifkan modul Node.js 20 dan menginstal dependensi..."
 sudo dnf module enable nodejs:20 -y
-sudo dnf install -y nginx nodejs mariadb-server mariadb curl fail2ban policycoreutils-python-utils
+sudo dnf install -y nginx nodejs mysql-server mysql curl fail2ban policycoreutils-python-utils
 
 # Konfigurasi FirewallD
 echo_info "Mengkonfigurasi firewall untuk mengizinkan HTTP, HTTPS, dan SSH..."
@@ -64,15 +64,15 @@ sudo sed -i '/^\[sshd\]/a enabled = true' /etc/fail2ban/jail.local
 sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
-# --- 2. Setup Database MariaDB (Metode Andal & Non-Interaktif) ---
-echo_info "Memastikan layanan MariaDB berjalan..."
-sudo systemctl enable --now mariadb
+# --- 2. Setup Database MySQL (Metode Andal & Non-Interaktif) ---
+echo_info "Memastikan layanan MySQL berjalan..."
+sudo systemctl enable --now mysqld
 
-echo_info "Mengamankan MariaDB dan membuat pengguna aplikasi..."
+echo_info "Mengamankan MySQL dan membuat pengguna aplikasi..."
 # Menjalankan semua perintah keamanan dan pembuatan database secara non-interaktif
 sudo mysql -u root --execute="
   -- Mengamankan instalasi
-  UPDATE mysql.user SET Password=PASSWORD('${ROOT_DB_PASS}') WHERE User='root';
+  ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_DB_PASS}';
   DELETE FROM mysql.user WHERE User='';
   DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
   DROP DATABASE IF EXISTS test;
@@ -91,15 +91,15 @@ echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan di
 # --- 3. Impor Skema & Data Awal (Metode Aman) ---
 echo_info "Mengimpor data dari 'schema.sql'..."
 # Buat file cnf sementara untuk otentikasi yang lebih andal
-cat > /tmp/mariadb.cnf <<EOF
+cat > /tmp/mysql.cnf <<EOF
 [client]
 user = ${DB_USER}
 password = ${DB_PASS}
 EOF
 # Impor menggunakan file cnf sementara
-sudo mysql --defaults-extra-file=/tmp/mariadb.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
+sudo mysql --defaults-extra-file=/tmp/mysql.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
 # Hapus file cnf sementara dengan aman
-sudo rm -f /tmp/mariadb.cnf
+sudo rm -f /tmp/mysql.cnf
 echo_success "Struktur database dan data awal berhasil diimpor."
 
 
@@ -132,13 +132,13 @@ EOF
 sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
 
 echo_info "Mengatur backup database otomatis harian via cron..."
-BACKUP_SCRIPT="/usr/local/bin/backup-mariadb.sh"
+BACKUP_SCRIPT="/usr/local/bin/backup-mysql.sh"
 sudo tee "$BACKUP_SCRIPT" > /dev/null << EOF
 #!/bin/bash
 DB_USER="$DB_USER"
 DB_PASSWORD="$DB_PASS"
 DB_NAME="$DB_NAME"
-BACKUP_DIR="/var/backups/mariadb"
+BACKUP_DIR="/var/backups/mysql"
 mkdir -p \$BACKUP_DIR
 DATE=\$(date +"%Y-%m-%d_%H%M%S")
 mysqldump --user=\$DB_USER --password=\$DB_PASSWORD \$DB_NAME | gzip > \$BACKUP_DIR/\$DB_NAME-\$DATE.sql.gz
@@ -204,5 +204,5 @@ echo_success "  - Database User      : $DB_USER"
 echo_success "  - Database Pass      : $DB_PASS"
 echo ""
 echo_info "Backup database harian telah diatur."
-sudo systemctl status mariadb.service --no-pager
+sudo systemctl status mysqld.service --no-pager
 echo_success "Deployment di AlmaLinux 8 selesai!"
