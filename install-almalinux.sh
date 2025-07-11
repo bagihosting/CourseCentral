@@ -3,8 +3,8 @@
 # =================================================================
 # Autoinstaller Cerdas & Andal untuk Aplikasi Next.js
 # Distro: AlmaLinux 8 / RHEL 8
-# Fokus: Nginx, MySQL, Node.js v20, PM2, Fail2Ban, Backup Otomatis.
-# Dirancang untuk keandalan, keamanan, dan fungsionalitas produksi.
+# Fokus: Nginx, Node.js v20, PM2, Fail2Ban.
+# Database tidak lagi diinstal oleh skrip ini.
 # =================================================================
 
 # --- Berhenti jika ada kesalahan ---
@@ -15,11 +15,6 @@ APP_PORT=3000
 APP_NAME="coursecentral"
 RUN_USER=${SUDO_USER:-$(logname)}
 PROJECT_DIR=$(pwd)
-DB_NAME="coursecentral_db"
-DB_USER="coursecentral_user"
-# Menggunakan karakter yang lebih aman untuk kata sandi yang disisipkan ke command line
-DB_PASS=$(openssl rand -hex 12)
-ROOT_DB_PASS=$(openssl rand -hex 12)
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 # --- Fungsi Bantuan untuk Logging ---
@@ -33,10 +28,6 @@ if [ "$(id -u)" -ne 0 ]; then
   echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install-almalinux.sh'"
   exit 1
 fi
-if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
-    echo_error "File 'schema.sql' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
-    exit 1
-fi
 
 if ! grep -qiE "AlmaLinux" /etc/redhat-release; then
     echo_warning "Skrip ini dioptimalkan untuk AlmaLinux 8. Hasil di distro RHEL lain mungkin bervariasi."
@@ -47,7 +38,7 @@ echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di AlmaLinux 8..."
 # --- 1. Pemasangan Dependensi Inti & Keamanan ---
 echo_info "Mengaktifkan modul Node.js 20 dan menginstal dependensi..."
 sudo dnf module enable nodejs:20 -y
-sudo dnf install -y nginx nodejs mysql-server mysql curl fail2ban policycoreutils-python-utils
+sudo dnf install -y nginx nodejs curl fail2ban policycoreutils-python-utils
 
 # Konfigurasi FirewallD
 echo_info "Mengkonfigurasi firewall untuk mengizinkan HTTP, HTTPS, dan SSH..."
@@ -64,53 +55,11 @@ sudo sed -i '/^\[sshd\]/a enabled = true' /etc/fail2ban/jail.local
 sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
-# --- 2. Setup Database MySQL (Metode Andal & Non-Interaktif) ---
-echo_info "Memastikan layanan MySQL berjalan..."
-sudo systemctl enable --now mysqld
-
-echo_info "Menunggu layanan MySQL untuk aktif sepenuhnya..."
-while ! sudo mysqladmin ping --silent; do
-    echo_info "Menunggu... (Layanan MySQL belum siap)"
-    sleep 2
-done
-echo_success "Layanan MySQL telah aktif."
-
-echo_info "Mengamankan MySQL dan membuat pengguna aplikasi..."
-# Menjalankan semua perintah keamanan dan pembuatan database secara non-interaktif
-# Menggunakan sudo secara eksplisit untuk menjalankan mysql sebagai root sistem
-sudo mysql <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_DB_PASS}';
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-DROP DATABASE IF EXISTS test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
-GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
-FLUSH PRIVILEGES;
-EOF
-echo_success "Database '$DB_NAME' dan pengguna '$DB_USER' berhasil dibuat dan diamankan."
-
-# --- 3. Impor Skema & Data Awal (Metode Aman) ---
-echo_info "Mengimpor data dari 'schema.sql'..."
-# Buat file cnf sementara untuk otentikasi yang lebih andal
-cat > /tmp/mysql.cnf <<EOF
-[client]
-user = ${DB_USER}
-password = ${DB_PASS}
-EOF
-# Impor menggunakan file cnf sementara
-sudo mysql --defaults-extra-file=/tmp/mysql.cnf "${DB_NAME}" < "$PROJECT_DIR/schema.sql"
-# Hapus file cnf sementara dengan aman
-sudo rm -f /tmp/mysql.cnf
-echo_success "Struktur database dan data awal berhasil diimpor."
-
-
-# --- 4. Pasang PM2 ---
+# --- 2. Pasang PM2 ---
 echo_info "Memasang PM2 secara global..."
 sudo npm install -g pm2
 
-# --- 5. Bangun Aplikasi (Sebagai Pengguna Non-Root) ---
+# --- 3. Bangun Aplikasi (Sebagai Pengguna Non-Root) ---
 echo_info "Mengatur kepemilikan file proyek ke pengguna '$RUN_USER'..."
 sudo chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
@@ -120,38 +69,17 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai '$RUN_USER')..."
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
-# --- 6. Siapkan Variabel Lingkungan & Backup Otomatis ---
-echo_info "Membuat file .env.local dengan kredensial..."
+# --- 4. Siapkan Variabel Lingkungan ---
+echo_info "Membuat file .env.local dari .env.example..."
 ENV_FILE="$PROJECT_DIR/.env.local"
-cat > "$ENV_FILE" << EOF
-GEMINI_API_KEY="PASTE_YOUR_GEMINI_API_KEY_HERE"
-DB_HOST="127.0.0.1"
-DB_PORT="3306"
-DB_USER="$DB_USER"
-DB_PASSWORD="$DB_PASS"
-DB_NAME="$DB_NAME"
-NEXT_PUBLIC_BASE_URL="http://${SERVER_IP}"
-EOF
+cp "$PROJECT_DIR/.env.example" "$ENV_FILE"
+
+# Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
+sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=http://${SERVER_IP}|" "$ENV_FILE"
 sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
+echo_success "File .env.local telah dibuat. Harap isi detail database Anda secara manual."
 
-echo_info "Mengatur backup database otomatis harian via cron..."
-BACKUP_SCRIPT="/usr/local/bin/backup-mysql.sh"
-sudo tee "$BACKUP_SCRIPT" > /dev/null << EOF
-#!/bin/bash
-DB_USER="$DB_USER"
-DB_PASSWORD="$DB_PASS"
-DB_NAME="$DB_NAME"
-BACKUP_DIR="/var/backups/mysql"
-mkdir -p \$BACKUP_DIR
-DATE=\$(date +"%Y-%m-%d_%H%M%S")
-mysqldump --user=\$DB_USER --password=\$DB_PASSWORD \$DB_NAME | gzip > \$BACKUP_DIR/\$DB_NAME-\$DATE.sql.gz
-find \$BACKUP_DIR -type f -name "*.sql.gz" -mtime +7 -delete
-EOF
-sudo chmod +x "$BACKUP_SCRIPT"
-# Menambahkan cron job jika belum ada
-(sudo crontab -l 2>/dev/null | grep -Fq "$BACKUP_SCRIPT") || (sudo crontab -l 2>/dev/null; echo "30 2 * * * $BACKUP_SCRIPT") | sudo crontab -
-
-# --- 7. Jalankan Aplikasi dengan PM2 (Sebagai Pengguna Non-Root) ---
+# --- 5. Jalankan Aplikasi dengan PM2 (Sebagai Pengguna Non-Root) ---
 echo_info "Menjalankan aplikasi '$APP_NAME' dengan PM2..."
 PM2_PATH=$(which pm2)
 sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
@@ -159,7 +87,7 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --na
 sudo -u "$RUN_USER" "$PM2_PATH" save
 sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
 
-# --- 8. Konfigurasi Nginx (Reverse Proxy) & SELinux ---
+# --- 6. Konfigurasi Nginx (Reverse Proxy) & SELinux ---
 echo_info "Mengkonfigurasi Nginx..."
 NGINX_CONFIG="/etc/nginx/conf.d/$APP_NAME.conf"
 
@@ -192,20 +120,13 @@ echo ""
 echo_success "================= PROSES INSTALASI SELESAI ================="
 echo ""
 echo_info "AKSES APLIKASI ANDA:"
-echo "  - Aplikasi Utama: http://${SERVER_IP}"
+echo "  - URL Aplikasi: http://${SERVER_IP}"
 echo ""
 echo_info "LANGKAH PENTING SELANJUTNYA:"
-echo "  1. Edit file '$ENV_FILE' untuk menambahkan GEMINI_API_KEY Anda."
+echo "  1. Buka file '.env.local' untuk mengisi kredensial database dan GEMINI_API_KEY Anda."
 echo "     (Gunakan: sudo nano .env.local)"
-echo "  2. Jika menggunakan domain, ganti NEXT_PUBLIC_BASE_URL di file yang sama dan di konfigurasi Nginx."
-echo "  3. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
+echo "  2. Pastikan database Anda dapat diakses dari server ini dan impor file 'schema.sql' secara manual."
+echo "  3. Setelah mengisi .env.local, restart aplikasi dengan: pm2 restart $APP_NAME"
+echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
 echo ""
-echo_info "INFORMASI KREDENSIAL (SIMPAN DI TEMPAT AMAN):"
-echo_success "  - Database Root Pass : $ROOT_DB_PASS"
-echo_success "  - Database Name      : $DB_NAME"
-echo_success "  - Database User      : $DB_USER"
-echo_success "  - Database Pass      : $DB_PASS"
-echo ""
-echo_info "Backup database harian telah diatur."
-sudo systemctl status mysqld.service --no-pager
 echo_success "Deployment di AlmaLinux 8 selesai!"
