@@ -13,6 +13,8 @@ import { getInstructorApplications } from '@/actions/instructor';
 import { Users, BookOpenCheck, Gem, GraduationCap, Banknote, DollarSign, ArrowRight, BookOpen, UserCheck, FileClock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { Course } from '@/types';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -29,6 +31,7 @@ export default function AdminDashboardPage() {
     instructorRequests: 0,
     certificateRequests: 0
   });
+  const [recentCourses, setRecentCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,6 +61,8 @@ export default function AdminDashboardPage() {
         const instructors = users.filter(u => u.role === 'instructor').length;
         const totalUnpaid = affiliateStats.reduce((acc, stat) => acc + stat.unpaidBalance, 0);
         const totalWithdrawn = withdrawals.filter(w => w.status === 'approved').reduce((acc, w) => acc + w.amount, 0);
+        
+        setRecentCourses(courses.slice(0, 5));
 
         setStats({
           totalUsers: users.length,
@@ -96,6 +101,14 @@ export default function AdminDashboardPage() {
             </div>
              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+            </div>
+             <div className="space-y-4">
+                <Skeleton className="h-7 w-48 mb-2" />
+                <Card>
+                    <CardContent className="p-6">
+                        <Skeleton className="h-40 w-full" />
+                    </CardContent>
+                </Card>
             </div>
         </div>
       );
@@ -162,6 +175,47 @@ export default function AdminDashboardPage() {
                 ))}
             </div>
         </div>
+
+        <Card>
+            <CardHeader>
+              <CardTitle>Kursus Terbaru</CardTitle>
+              <CardDescription>5 kursus yang baru saja ditambahkan ke platform.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Judul Kursus</TableHead>
+                    <TableHead className="hidden md:table-cell">Instruktur</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentCourses.length > 0 ? (
+                    recentCourses.map((course) => (
+                      <TableRow key={course.id}>
+                        <TableCell className="font-medium">{course.title}</TableCell>
+                        <TableCell className="hidden md:table-cell">{course.instructor}</TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/dashboard/courses/${course.id}/edit`}>
+                            <Button variant="outline" size="sm">
+                              Kelola
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                     <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center">
+                            Belum ada kursus yang dibuat.
+                        </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
     </div>
   );
 }
