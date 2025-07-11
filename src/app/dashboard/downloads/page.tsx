@@ -4,11 +4,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAllCourses } from '@/actions/courses';
+import { getEnrolledCoursesForUser } from '@/actions/enrollments';
 import { getApprovedCertificatesForUser } from '@/actions/requests';
 import { Download, FileText, Film, Archive, Lock, Sparkles, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import type { Course, Lesson } from '@/types';
+import type { Lesson } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -64,13 +64,15 @@ export default function DownloadsPage() {
   useEffect(() => {
     async function fetchData() {
         if (!userLoading && user && (user.role === 'admin' || user.role === 'pro')) {
-            const allCoursesData = await getAllCourses();
-            
+            const enrolledCourses = await getEnrolledCoursesForUser(user.id);
             const approvedCertificates = await getApprovedCertificatesForUser(user.id);
             const completedCourseIds = new Set(approvedCertificates.map(cert => cert.courseId));
-            const coursesWithPdfAccess = allCoursesData.filter(course => completedCourseIds.has(course.id));
+            
+            // Courses where user can download text as PDF
+            const coursesWithPdfAccess = enrolledCourses.filter(course => completedCourseIds.has(course.id));
 
-            const regularDownloads = allCoursesData.flatMap(course => 
+            // Regular file downloads (ZIP) from all enrolled courses
+            const regularDownloads = enrolledCourses.flatMap(course => 
                 course.modules.flatMap(module => 
                 module.lessons
                     .filter(lesson => lesson.downloadable && lesson.type !== 'text' && lesson.contentUrl)
@@ -84,6 +86,7 @@ export default function DownloadsPage() {
                 )
             );
 
+            // PDF downloads only from courses with approved certificates
             const pdfDownloads = coursesWithPdfAccess.flatMap(course => 
                 course.modules.flatMap(module => 
                 module.lessons

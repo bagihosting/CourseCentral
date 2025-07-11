@@ -108,7 +108,6 @@ function RegisterForm() {
 
   const validateWhatsapp = (number: string): boolean => {
     if (!number) return true; // Optional field
-    // Allows for 08..., 628..., +628... and spaces/dashes
     const whatsappRegex = /^(?:\+?62|0)8[1-9][0-9\s-]{6,12}$/;
     return whatsappRegex.test(number);
   }

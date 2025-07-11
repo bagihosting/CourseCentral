@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await getCourseById(params.id);
   const seoSettings = await getSeoSettings();
 
-  if (!course) {
+  if (!course || course.status !== 'published') {
     return {
       title: 'Kursus Tidak Ditemukan',
     };

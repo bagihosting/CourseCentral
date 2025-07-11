@@ -19,28 +19,40 @@ function generateReferralCode(length = 8) {
 
 export async function getAllUsers(): Promise<User[]> {
   const pool = getPool();
-  const tenantId = await getActiveTenantId();
+  const actor = await getAuthUser();
+
   try {
+    if (actor.tenant_id === 'platform_main' && actor.role === 'admin') {
+       const [rows] = await pool.query<RowDataPacket[]>(`
+        SELECT * FROM users ORDER BY createdAt DESC
+       `);
+       return rows.map(mapRowToUser);
+    }
+    
     const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT *
       FROM users
       WHERE tenant_id = ?
       ORDER BY createdAt DESC
-    `, [tenantId]);
-    return rows.map(row => ({
-        ...row,
-        affiliateBalance: Number(row.affiliateBalance),
-        affiliatePaid: Number(row.affiliatePaid),
-        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
-        lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
-        loginCount: Number(row.loginCount),
-        lessonsCreatedToday: Number(row.lessons_created_today),
-        lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,
-    })) as User[];
+    `, [actor.tenant_id]);
+    return rows.map(mapRowToUser);
   } catch (error) {
     console.error("🔴 Gagal mengambil semua pengguna:", error);
     throw error;
   }
+}
+
+function mapRowToUser(row: RowDataPacket): User {
+  return {
+    ...row,
+    affiliateBalance: Number(row.affiliateBalance),
+    affiliatePaid: Number(row.affiliatePaid),
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+    lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
+    loginCount: Number(row.loginCount),
+    lessonsCreatedToday: Number(row.lessons_created_today),
+    lastLessonCreatedAt: row.last_lesson_created_at ? new Date(row.last_lesson_created_at).toISOString() : null,
+  } as User;
 }
 
 export async function getUserByReferralCode(referralCode: string): Promise<Pick<User, 'name'> | null> {
@@ -92,7 +104,6 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
     const actor = await getAuthUser();
 
     // Security check: Only admins can update other users. Users can only update themselves.
-    // Tenant admins can only update users within their own tenant.
     if (actor.id !== id && actor.role !== 'admin') {
       throw new Error("Anda tidak memiliki izin untuk mengubah pengguna ini.");
     }
@@ -103,7 +114,7 @@ export async function updateUser(id: string, data: UpdateUserInput): Promise<Use
       throw new Error("Pengguna yang akan diupdate tidak ditemukan.");
     }
 
-    // Security check for multi-tenancy
+    // Security check for multi-tenancy: Tenant admin can only update users within their own tenant.
     if (actor.tenant_id !== 'platform_main' && userToUpdate.tenant_id !== actor.tenant_id) {
         throw new Error("Akses ditolak. Anda tidak dapat mengubah pengguna di tenant lain.");
     }
@@ -142,13 +153,35 @@ export async function deleteUser(id: string): Promise<void> {
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa menghapus pengguna.");
     if(actor.id === id) throw new Error("Aksi tidak diizinkan: Anda tidak dapat menghapus akun Anda sendiri.");
     
-    // Admin tenant hanya bisa menghapus pengguna di dalam tenant mereka sendiri
-    await pool.query('DELETE FROM users WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);
+    // Fetch user to be deleted to check tenant_id
+    const userToDelete = await getUserById(id);
+    if (!userToDelete) {
+        return; // User already gone
+    }
+
+    // Security check for multi-tenancy
+    if (actor.tenant_id !== 'platform_main' && userToDelete.tenant_id !== actor.tenant_id) {
+        throw new Error("Akses ditolak. Anda tidak dapat menghapus pengguna di tenant lain.");
+    }
+
+    await pool.query('DELETE FROM users WHERE id = ?', [id]);
 }
 
 export async function reactivateUser(id: string): Promise<void> {
     const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang bisa mengaktifkan pengguna.");
-    await pool.query('UPDATE users SET status = "active" WHERE id = ? AND tenant_id = ?', [id, actor.tenant_id]);
+    
+    // Fetch user to be reactivated to check tenant_id
+    const userToReactivate = await getUserById(id);
+    if (!userToReactivate) {
+        throw new Error("Pengguna tidak ditemukan.");
+    }
+
+    // Security check for multi-tenancy
+    if (actor.tenant_id !== 'platform_main' && userToReactivate.tenant_id !== actor.tenant_id) {
+        throw new Error("Akses ditolak. Anda tidak dapat mengaktifkan pengguna di tenant lain.");
+    }
+
+    await pool.query('UPDATE users SET status = "active" WHERE id = ?', [id]);
 }

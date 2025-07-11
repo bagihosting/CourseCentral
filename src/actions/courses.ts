@@ -46,14 +46,16 @@ export async function getAllCourses(): Promise<Course[]> {
 export async function getAllCoursesForAdmin(): Promise<Course[]> {
   const pool = getPool();
   const actor = await getAuthUser();
-  const tenantId = actor.tenant_id === 'platform_main' ? await getActiveTenantId() : actor.tenant_id;
+  
   try {
-    const query = actor.tenant_id === 'platform_main' 
-      ? 'SELECT * FROM courses ORDER BY created_at DESC'
-      : 'SELECT * FROM courses WHERE tenant_id = ? ORDER BY created_at DESC';
-    const params = actor.tenant_id === 'platform_main' ? [] : [tenantId];
+    // A super admin can see all courses across all tenants.
+    if (actor.role === 'admin' && actor.tenant_id === 'platform_main') {
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses ORDER BY created_at DESC');
+        return rows.map(mapRowToCourse);
+    }
     
-    const [rows] = await pool.query<RowDataPacket[]>(query, params);
+    // Tenant admins can only see courses within their own tenant.
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE tenant_id = ? ORDER BY created_at DESC', [actor.tenant_id]);
     return rows.map(mapRowToCourse);
   } catch (error) {
     console.error("🔴 Gagal mengambil semua kursus untuk admin:", error);
@@ -78,7 +80,8 @@ export async function getCoursesByAuthor(authorId: string): Promise<Course[]> {
 export type CourseForReview = Course & { instructorName: string };
 export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
     const pool = getPool();
-    const tenantId = await getActiveTenantId();
+    const actor = await getAuthUser();
+    const tenantId = actor.tenant_id;
     try {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT c.*, u.name as instructorName 
@@ -100,15 +103,10 @@ export async function getCoursesForAdminReview(): Promise<CourseForReview[]> {
 
 export async function getCourseById(id: string): Promise<Course | null> {
     const pool = getPool();
-    const tenantId = await getActiveTenantId();
     try {
-        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? AND tenant_id = ?', [id, tenantId]);
-        if (rows.length === 0) {
-            // A super-admin might be trying to access a course from another tenant's subdomain.
-            // Allow this, but it's a rare case. The primary check is on tenantId.
-            // For simplicity, we'll keep the tenant check strict here.
-            return null;
-        }
+        const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
+        if (rows.length === 0) return null;
+        
         return mapRowToCourse(rows[0]);
     } catch (error) {
         console.error(`🔴 Peringatan di getCourseById: Tidak dapat terhubung ke database untuk ID ${id}. Mengembalikan null.`, error);
@@ -144,11 +142,10 @@ export async function createCourse(data: Omit<Course, 'id' | 'modules' | 'status
             author.id
         ]);
         
-        // Temporarily override tenant context to fetch the newly created course for verification
-        const [createdRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [newId]);
-        if (createdRows.length === 0) throw new Error('Gagal memverifikasi kursus yang baru dibuat.');
+        const createdCourse = await getCourseById(newId);
+        if (!createdCourse) throw new Error('Gagal memverifikasi kursus yang baru dibuat.');
         
-        return mapRowToCourse(createdRows[0]);
+        return createdCourse;
     } catch (error) {
         console.error("🔴 Gagal membuat kursus baru:", error);
         throw error;
@@ -166,14 +163,14 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
         const [existingRows] = await connection.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? FOR UPDATE', [id]);
         if (existingRows.length === 0) throw new Error("Kursus tidak ditemukan untuk diperbarui.");
 
-        let courseToUpdate = mapRowToCourse(existingRows[0]);
+        const courseToUpdate = mapRowToCourse(existingRows[0]);
 
-        // Check ownership and tenancy
+        // Security Check: Tenant admins can only edit courses in their tenant. Instructors can only edit their own courses.
+        if (actor.tenant_id !== 'platform_main' && courseToUpdate.tenant_id !== actor.tenant_id) {
+            throw new Error("Akses ditolak. Anda tidak dapat mengubah kursus di tenant lain.");
+        }
         if (actor.role !== 'admin' && courseToUpdate.authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk mengubah kursus ini.");
-        }
-        if (actor.tenant_id !== 'platform_main' && courseToUpdate.tenant_id !== actor.tenant_id) {
-            throw new Error("Akses ditolak. Kursus ini milik tenant lain.");
         }
         
         const updatedData = { ...courseToUpdate, ...data };
@@ -204,10 +201,10 @@ export async function updateCourse(id: string, data: Partial<Omit<Course, 'id' |
         
         await connection.commit();
 
-        const [updatedRows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ?', [id]);
-        if (updatedRows.length === 0) throw new Error('Gagal mengambil kursus setelah pembaruan.');
+        const updatedCourse = await getCourseById(id);
+        if (!updatedCourse) throw new Error('Gagal mengambil kursus setelah pembaruan.');
 
-        return mapRowToCourse(updatedRows[0]);
+        return updatedCourse;
     } catch (error) {
         await connection.rollback();
         console.error(`🔴 Gagal memperbarui kursus dengan ID ${id}:`, error);
@@ -232,11 +229,14 @@ export async function deleteCourse(id: string): Promise<void> {
         }
 
         const courseToDelete = courseRows[0];
+        
+        // Security Check: Ensure admin is in the correct tenant or is super-admin.
+        if(actor.tenant_id !== 'platform_main' && courseToDelete.tenant_id !== actor.tenant_id) {
+             throw new Error("Akses ditolak. Anda tidak dapat menghapus kursus di tenant lain.");
+        }
+        // Security Check: Ensure user is the author or an admin.
         if(actor.role !== 'admin' && courseToDelete.authorId !== actor.id) {
             throw new Error("Anda tidak memiliki izin untuk menghapus kursus ini.");
-        }
-        if(actor.tenant_id !== 'platform_main' && courseToDelete.tenant_id !== actor.tenant_id) {
-             throw new Error("Akses ditolak. Kursus ini milik tenant lain.");
         }
 
         await connection.query<ResultSetHeader>('DELETE FROM courses WHERE id = ?', [id]);
@@ -275,11 +275,10 @@ export async function publishCourse(courseId: string): Promise<void> {
     const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat mempublikasikan kursus.");
-    const tenantId = await getActiveTenantId();
     
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'published' WHERE id = ? AND status = 'pending_review' AND tenant_id = ?",
-        [courseId, tenantId]
+        [courseId, actor.tenant_id]
     );
     if (result.affectedRows === 0) {
         throw new Error("Hanya kursus yang sedang direview di tenant ini yang dapat dipublikasikan.");
@@ -290,11 +289,10 @@ export async function rejectCourse(courseId: string, reviewNotes: string): Promi
     const pool = getPool();
     const actor = await getAuthUser();
     if(actor.role !== 'admin') throw new Error("Hanya admin yang dapat menolak kursus.");
-    const tenantId = await getActiveTenantId();
 
     const [result] = await pool.query<ResultSetHeader>(
         "UPDATE courses SET status = 'rejected', reviewNotes = ? WHERE id = ? AND status = 'pending_review' AND tenant_id = ?",
-        [reviewNotes, courseId, tenantId]
+        [reviewNotes, courseId, actor.tenant_id]
     );
 
      if (result.affectedRows === 0) {
