@@ -179,7 +179,7 @@ DB_NAME="$DB_NAME"
 BACKUP_DIR="/var/backups/mariadb"
 mkdir -p \$BACKUP_DIR
 DATE=\$(date +"%Y-%m-%d_%H%M%S")
-mysqldump -u \$DB_USER -p\$DB_PASSWORD \$DB_NAME | gzip > \$BACKUP_DIR/\$DB_NAME-\$DATE.sql.gz
+mysqldump --user=\$DB_USER --password=\$DB_PASSWORD \$DB_NAME | gzip > \$BACKUP_DIR/\$DB_NAME-\$DATE.sql.gz
 find \$BACKUP_DIR -type f -name "*.sql.gz" -mtime +7 -delete
 EOF
 sudo chmod +x "$BACKUP_SCRIPT"

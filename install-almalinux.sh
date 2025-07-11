@@ -65,7 +65,7 @@ sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
 # --- 2. Setup Database MariaDB (Metode Andal & Non-Interaktif) ---
-echo_info "Mengkonfigurasi database MariaDB..."
+echo_info "Memastikan layanan MariaDB berjalan..."
 sudo systemctl enable --now mariadb
 
 echo_info "Mengamankan MariaDB dan membuat pengguna aplikasi..."
@@ -206,3 +206,5 @@ echo ""
 echo_info "Backup database harian telah diatur."
 sudo systemctl status mariadb.service --no-pager
 echo_success "Deployment di AlmaLinux 8 selesai!"
+
+    
