@@ -29,8 +29,8 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
-    echo_error "File 'schema.sql' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
+if [ ! -f "$PROJECT_DIR/package.json" ]; then
+    echo_error "File 'package.json' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
     exit 1
 fi
 
@@ -43,7 +43,9 @@ echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di AlmaLinux 8..."
 # --- 1. Pemasangan Dependensi Inti & Keamanan ---
 echo_info "Mengaktifkan modul Node.js 20 dan menginstal dependensi..."
 sudo dnf module enable nodejs:20 -y
-sudo dnf install -y nginx nodejs curl fail2ban policycoreutils-python-utils
+sudo dnf install -y nginx nodejs curl fail2ban policycoreutils-python-utils python3
+echo_info "Menginstal alat build penting untuk kompilasi native..."
+sudo dnf groupinstall -y "Development Tools"
 
 # Konfigurasi FirewallD
 echo_info "Mengkonfigurasi firewall untuk mengizinkan HTTP, HTTPS, dan SSH..."
@@ -77,12 +79,15 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 # --- 4. Siapkan Variabel Lingkungan ---
 echo_info "Membuat file .env.local dari .env.example..."
 ENV_FILE="$PROJECT_DIR/.env.local"
-cp "$PROJECT_DIR/.env.example" "$ENV_FILE"
-
-# Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
-sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=http://${SERVER_IP}|" "$ENV_FILE"
-sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local telah dibuat. Harap isi detail database Anda secara manual."
+if [ ! -f "$ENV_FILE" ]; then
+    cp "$PROJECT_DIR/.env.example" "$ENV_FILE"
+    # Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
+    sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=http://${SERVER_IP}|" "$ENV_FILE"
+    sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
+    echo_success "File .env.local telah dibuat. Harap isi detailnya."
+else
+    echo_warning "File .env.local sudah ada, tidak menimpa."
+fi
 
 # --- 5. Jalankan Aplikasi dengan PM2 (Sebagai Pengguna Non-Root) ---
 echo_info "Menjalankan aplikasi '$APP_NAME' dengan PM2..."
@@ -91,6 +96,7 @@ sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 sudo -u "$RUN_USER" "$PM2_PATH" save
 sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
+echo_success "Aplikasi berjalan di bawah PM2."
 
 # --- 6. Konfigurasi Nginx (Reverse Proxy) & SELinux ---
 echo_info "Mengkonfigurasi Nginx..."
@@ -119,6 +125,7 @@ echo_info "Mengizinkan Nginx untuk bertindak sebagai reverse proxy melalui SELin
 sudo setsebool -P httpd_can_network_connect 1
 sudo systemctl enable --now nginx
 sudo nginx -t && sudo systemctl restart nginx
+echo_success "Nginx berhasil dikonfigurasi sebagai reverse proxy."
 
 # --- Selesai ---
 echo ""
