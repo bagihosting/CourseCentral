@@ -21,7 +21,6 @@ import { RankBadge } from '@/components/rank-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { validatePassword } from '@/lib/validation';
-import { fetchUserById } from '@/data/users';
 
 function TestimonialForm() {
   const { user } = useAuth();
@@ -137,15 +136,12 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchInitialData() {
         if (user) {
-            const freshUser = await fetchUserById(user.id);
-            if (freshUser) {
-                setName(freshUser.name);
-                setWhatsapp(freshUser.whatsapp || '');
-                setAvatarPreview(freshUser.avatarUrl);
-                if (freshUser.role === 'member' || freshUser.role === 'pro') {
-                    const count = await getCompletedCourseCount(freshUser.id);
-                    setCompletedCourses(count);
-                }
+            setName(user.name);
+            setWhatsapp(user.whatsapp || '');
+            setAvatarPreview(user.avatarUrl);
+            if (user.role === 'member' || user.role === 'pro') {
+                const count = await getCompletedCourseCount(user.id);
+                setCompletedCourses(count);
             }
         }
     }
@@ -356,3 +352,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
