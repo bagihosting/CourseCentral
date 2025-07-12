@@ -65,6 +65,28 @@ export async function getCommissionHistory(userId: string): Promise<Commission[]
     }
 }
 
+export async function getCommissionTrend(userId: string): Promise<{ date: string, total: number }[]> {
+    const pool = getPool();
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                DATE(createdAt) as date, 
+                SUM(amount) as total
+            FROM commissions
+            WHERE userId = ? AND createdAt >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(createdAt)
+            ORDER BY date ASC
+        `, [userId]);
+        return rows.map(row => ({
+            date: new Date(row.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }),
+            total: Number(row.total)
+        }));
+    } catch (error) {
+        console.error("Gagal mengambil tren komisi:", error);
+        throw error;
+    }
+}
+
 export async function getWithdrawalHistory(userId: string): Promise<WithdrawalRequest[]> {
     const pool = getPool();
     try {
@@ -98,20 +120,18 @@ export async function requestWithdrawal(bankDetails: WithdrawalRequest['bankDeta
             throw new Error("Saldo Anda tidak mencukupi untuk melakukan penarikan.");
         }
 
-        const [existingPending] = await connection.query<RowDataPacket[]>('SELECT id FROM withdrawal_requests WHERE userId = ? AND status = "pending"', [user.id]);
-        if(existingPending.length > 0) {
+        const existingPending = await connection.query<RowDataPacket[]>('SELECT id FROM withdrawal_requests WHERE userId = ? AND status = "pending"', [user.id]);
+        if(existingPending[0].length > 0) {
             throw new Error("Anda sudah memiliki permintaan penarikan yang sedang diproses.");
         }
 
         const withdrawalId = `wd_${Date.now()}`;
         
-        // Create withdrawal request
         await connection.query(
             'INSERT INTO withdrawal_requests (id, userId, amount, bankDetails, status, requestDate) VALUES (?, ?, ?, ?, "pending", NOW())',
             [withdrawalId, user.id, balance, JSON.stringify(bankDetails)]
         );
 
-        // Deduct from balance
         await connection.query(
             'UPDATE users SET affiliateBalance = 0 WHERE id = ?',
             [user.id]

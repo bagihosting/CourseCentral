@@ -9,38 +9,70 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getAffiliateStatsForUser, getCommissionHistory, getWithdrawalHistory, requestWithdrawal } from '@/actions/affiliate';
-import { getPaymentSettings } from '@/actions/settings';
-import type { Commission, WithdrawalRequest, PaymentAccount } from '@/types';
-import { Copy, DollarSign, Users, Banknote, Sparkles, Send, Loader2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { getAffiliateStatsForUser, getCommissionHistory, getWithdrawalHistory, requestWithdrawal, getCommissionTrend } from '@/actions/affiliate';
+import type { Commission, WithdrawalRequest } from '@/types';
+import { Copy, DollarSign, Users, Banknote, Sparkles, Send, Loader2, CheckCircle, Clock, XCircle, LineChart } from 'lucide-react';
 import { AffiliatePromoKit } from '@/components/affiliate-promo-kit';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RelativeTime } from '@/components/relative-time';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const MINIMUM_WITHDRAWAL = 50000;
 
+function CommissionChart({ data }: { data: { date: string, total: number }[] }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <LineChart className="h-5 w-5 text-primary"/>
+                    Tren Komisi (30 Hari Terakhir)
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={{}} className="h-[250px] w-full">
+                    <BarChart accessibilityLayer data={data}>
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => value.slice(0, 6)}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) => `Rp${Number(value) / 1000}k`}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent indicator="line" />}
+                        />
+                        <Bar dataKey="total" fill="var(--color-primary)" radius={4} />
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    );
+}
+
 function WithdrawalDialog({ balance, onFinished }: { balance: number, onFinished: () => void }) {
-    const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
-    const [selectedBank, setSelectedBank] = useState('');
+    const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [accountHolder, setAccountHolder] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     
-    useEffect(() => {
-        getPaymentSettings().then(setPaymentAccounts);
-    }, []);
-
     const handleSubmit = async () => {
-        if (!selectedBank || !accountHolder || !accountNumber) {
+        if (!bankName || !accountHolder || !accountNumber) {
             toast({ title: 'Gagal', description: 'Harap isi semua detail bank.', variant: 'destructive'});
             return;
         }
         setIsSubmitting(true);
         try {
-            await requestWithdrawal({ bankName: selectedBank, accountNumber, accountHolder });
+            await requestWithdrawal({ bankName, accountNumber, accountHolder });
             toast({ title: 'Sukses!', description: 'Permintaan penarikan Anda telah dikirim.' });
             onFinished();
         } catch (error) {
@@ -63,7 +95,7 @@ function WithdrawalDialog({ balance, onFinished }: { balance: number, onFinished
             <div className="space-y-4 py-4">
                 <div className="space-y-2">
                     <Label htmlFor="bankName">Bank Tujuan</Label>
-                    <Input id="bankName" value={selectedBank} onChange={e => setSelectedBank(e.target.value)} placeholder="Contoh: BCA" />
+                    <Input id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Contoh: BCA" />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="accountNumber">Nomor Rekening</Label>
@@ -90,6 +122,7 @@ export default function AffiliatePage() {
     const { toast } = useToast();
     const [stats, setStats] = useState({ referralCount: 0, unpaidBalance: 0, totalPaid: 0 });
     const [commissions, setCommissions] = useState<Commission[]>([]);
+    const [commissionTrend, setCommissionTrend] = useState<{ date: string, total: number }[]>([]);
     const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [isWithdrawalDialogOpen, setIsWithdrawalDialogOpen] = useState(false);
@@ -100,14 +133,16 @@ export default function AffiliatePage() {
         if (user) {
             setLoading(true);
             try {
-                const [statsData, commissionsData, withdrawalsData] = await Promise.all([
+                const [statsData, commissionsData, withdrawalsData, trendData] = await Promise.all([
                     getAffiliateStatsForUser(user.id),
                     getCommissionHistory(user.id),
                     getWithdrawalHistory(user.id),
+                    getCommissionTrend(user.id)
                 ]);
                 setStats(statsData);
                 setCommissions(commissionsData);
                 setWithdrawals(withdrawalsData);
+                setCommissionTrend(trendData);
             } catch (error) {
                 toast({ title: "Gagal memuat data", variant: 'destructive'});
             }
@@ -141,6 +176,7 @@ export default function AffiliatePage() {
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                  </div>
+                 <Skeleton className="h-64 w-full" />
                  <Skeleton className="h-40 w-full" />
             </div>
         )
@@ -160,7 +196,7 @@ export default function AffiliatePage() {
         )
     }
     
-    const canWithdraw = stats.unpaidBalance >= MINIMUM_WITHDRAWAL;
+    const canWithdraw = stats.unpaidBalance >= MINIMUM_WITHDRAWAL && !withdrawals.some(w => w.status === 'pending');
     
     const getWithdrawalStatusBadge = (status: WithdrawalRequest['status']) => {
         switch(status) {
@@ -182,6 +218,8 @@ export default function AffiliatePage() {
                 <Card><CardHeader><CardTitle className="text-sm font-medium flex items-center justify-between">Total Ditarik<Banknote className="h-5 w-5 text-muted-foreground"/></CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">Rp{stats.totalPaid.toLocaleString('id-ID')}</p></CardContent></Card>
                 <Card><CardHeader><CardTitle className="text-sm font-medium flex items-center justify-between">Jumlah Rujukan<Users className="h-5 w-5 text-muted-foreground"/></CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{stats.referralCount}</p></CardContent></Card>
             </div>
+
+            <CommissionChart data={commissionTrend} />
             
             <Card>
                 <CardHeader>
@@ -199,7 +237,7 @@ export default function AffiliatePage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Penarikan Dana</CardTitle>
-                    <CardDescription>Anda dapat menarik seluruh saldo jika sudah mencapai minimum Rp{MINIMUM_WITHDRAWAL.toLocaleString('id-ID')}.</CardDescription>
+                    <CardDescription>Anda dapat menarik seluruh saldo jika sudah mencapai minimum Rp{MINIMUM_WITHDRAWAL.toLocaleString('id-ID')} dan tidak ada permintaan yang sedang diproses.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Dialog open={isWithdrawalDialogOpen} onOpenChange={setIsWithdrawalDialogOpen}>
@@ -210,7 +248,14 @@ export default function AffiliatePage() {
                         </DialogTrigger>
                         <WithdrawalDialog balance={stats.unpaidBalance} onFinished={handleWithdrawalFinished} />
                     </Dialog>
-                    {!canWithdraw && <p className="text-xs text-muted-foreground mt-2">Saldo Anda belum mencapai batas minimum penarikan.</p>}
+                    {!canWithdraw && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {withdrawals.some(w => w.status === 'pending')
+                                ? 'Anda sudah memiliki permintaan penarikan yang sedang diproses.'
+                                : 'Saldo Anda belum mencapai batas minimum penarikan.'
+                            }
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 

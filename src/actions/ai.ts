@@ -29,6 +29,8 @@ import { generateGenkitApp as generateGenkitAppFlow, type GenerateGenkitAppInput
 import { suggestModuleTitle as suggestModuleTitleFlow, type SuggestModuleTitleInput, type SuggestModuleTitleOutput } from '@/ai/flows/suggest-module-title';
 import { generateLessonContent as generateLessonContentFlow, type GenerateLessonContentInput, type GenerateLessonContentOutput } from '@/ai/flows/generate-lesson-content';
 import { suggestLessonTitle as suggestLessonTitleFlow, type SuggestLessonTitleInput, type SuggestLessonTitleOutput } from '@/ai/flows/suggest-lesson-title';
+import { generatePromoThumbnail as generatePromoThumbnailFlow } from '@/ai/flows/generate-promo-thumbnail';
+import { generateAffiliatePromo as generateAffiliatePromoFlow, type GenerateAffiliatePromoInput, type GenerateAffiliatePromoOutput } from '@/ai/flows/generate-affiliate-promo';
 import DOMPurify from 'isomorphic-dompurify';
 
 export async function generateThumbnailAction(
@@ -471,5 +473,30 @@ export async function suggestLessonTitleAction(
   } catch (error) {
     console.error('Error suggesting lesson title:', error);
     return { error: 'Gagal memberikan saran judul pelajaran.' };
+  }
+}
+
+export async function generatePromoThumbnailAction(): Promise<{ imageUrl: string } | { error: string }> {
+  try {
+    const result = await generatePromoThumbnailFlow();
+    return { imageUrl: result.imageUrl };
+  } catch (error) {
+    console.error('Error generating promo thumbnail:', error);
+    return { error: 'Gagal membuat thumbnail promosi. Silakan coba lagi.' };
+  }
+}
+
+export async function generateAffiliatePromoAction(
+  input: GenerateAffiliatePromoInput
+): Promise<GenerateAffiliatePromoOutput | { error: string }> {
+  if (!input.referralLink) {
+    return { error: 'Link referral tidak boleh kosong.' };
+  }
+  try {
+    const result = await generateAffiliatePromoFlow(input);
+    return result;
+  } catch (error) {
+    console.error('Error generating affiliate promo texts:', error);
+    return { error: 'Gagal membuat teks promosi. Silakan coba lagi.' };
   }
 }
