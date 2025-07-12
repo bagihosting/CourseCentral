@@ -15,8 +15,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Course } from '@/types';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     proMembers: 0,
@@ -113,6 +115,10 @@ export default function AdminDashboardPage() {
         </div>
       );
   }
+  
+  const isSuperAdmin = user?.tenant_id === 'platform_main';
+  const welcomeMessage = isSuperAdmin ? 'Dasbor Super Admin' : 'Dasbor Admin';
+  const welcomeDescription = isSuperAdmin ? 'Ringkasan dan statistik vital dari seluruh platform.' : 'Ringkasan dan statistik vital dari tenant Anda.';
 
   const statCards = [
       { title: "Total Pengguna", value: stats.totalUsers, icon: Users },
@@ -133,53 +139,57 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
         <div>
-            <h1 className="text-3xl font-bold">Dasbor Admin</h1>
-            <p className="text-muted-foreground">Ringkasan dan statistik vital dari platform Anda.</p>
+            <h1 className="text-3xl font-bold">{welcomeMessage}</h1>
+            <p className="text-muted-foreground">{welcomeDescription}</p>
         </div>
         
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {statCards.map(card => (
-                <Card key={card.title}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                        <card.icon className="h-5 w-5 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{card.value}</div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-        
-        <div>
-            <h2 className="text-2xl font-bold mb-4">Tindakan Cepat</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {pendingCards.map(card => (
-                    <Card key={card.title} className="flex flex-col">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                           <div className="space-y-1">
-                                <CardTitle className="text-lg">{card.title}</CardTitle>
-                                <div className="text-3xl font-bold">{card.value}</div>
-                           </div>
-                           <card.icon className="h-8 w-8 text-muted-foreground" />
+        {!isSuperAdmin && (
+          <>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {statCards.map(card => (
+                    <Card key={card.title}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                            <card.icon className="h-5 w-5 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent className="flex-grow"></CardContent>
-                        <CardFooter>
-                           <Button asChild className="w-full">
-                                <Link href={card.href}>
-                                    Tinjau Sekarang <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                           </Button>
-                        </CardFooter>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{card.value}</div>
+                        </CardContent>
                     </Card>
                 ))}
             </div>
-        </div>
+            
+            <div>
+                <h2 className="text-2xl font-bold mb-4">Tindakan Cepat</h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {pendingCards.map(card => (
+                        <Card key={card.title} className="flex flex-col">
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                               <div className="space-y-1">
+                                    <CardTitle className="text-lg">{card.title}</CardTitle>
+                                    <div className="text-3xl font-bold">{card.value}</div>
+                               </div>
+                               <card.icon className="h-8 w-8 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent className="flex-grow"></CardContent>
+                            <CardFooter>
+                               <Button asChild className="w-full">
+                                    <Link href={card.href}>
+                                        Tinjau Sekarang <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                               </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+          </>
+        )}
 
         <Card>
             <CardHeader>
               <CardTitle>Kursus Terbaru</CardTitle>
-              <CardDescription>5 kursus yang baru saja ditambahkan ke platform.</CardDescription>
+              <CardDescription>5 kursus yang baru saja ditambahkan di {isSuperAdmin ? 'seluruh platform' : 'tenant Anda'}.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>

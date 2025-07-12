@@ -4,24 +4,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial } from '@/actions/settings';
-import type { LandingPageSettings, Testimonial, FAQItem } from '@/types';
+import { getLandingPageSettings, updateLandingPageSettings, getAllTestimonials, deleteTestimonial, getSeoSettings, updateSeoSettings } from '@/actions/settings';
+import type { LandingPageSettings, Testimonial, FAQItem, SeoSettings } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle, Download } from 'lucide-react';
+import { Loader2, Trash2, Star, Image as ImageIcon, Wand2, PlusCircle, Download, Save, Globe } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Image from 'next/image';
-import { generateHeroImageAction } from '@/actions/ai';
+import { generateHeroImageAction, generateTitleSuffixAction, generateMetaDescriptionAction, generateMetaKeywordsAction } from '@/actions/ai';
 import imageCompression from 'browser-image-compression';
 
 
 export default function LandingPageSettingsPage() {
     const [settings, setSettings] = useState<LandingPageSettings | null>(null);
+    const [seoSettings, setSeoSettings] = useState<SeoSettings | null>(null);
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [featuredIds, setFeaturedIds] = useState<string[]>([]);
     const [faqs, setFaqs] = useState<FAQItem[]>([]);
@@ -29,11 +30,17 @@ export default function LandingPageSettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isGeneratingHero, setIsGeneratingHero] = useState(false);
     const [generatedHeroPreview, setGeneratedHeroPreview] = useState<string | null>(null);
+
+    const [isGeneratingSuffix, setIsGeneratingSuffix] = useState(false);
+    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+    const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
     const { toast } = useToast();
 
     const refreshData = useCallback(async () => {
         const settingsData = await getLandingPageSettings();
+        const seoData = await getSeoSettings();
         setSettings(settingsData);
+        setSeoSettings(seoData);
         setFeaturedIds(settingsData.featuredTestimonialIds || []);
         setTestimonials(await getAllTestimonials());
         setFaqs(settingsData.faqs || []);
@@ -137,13 +144,19 @@ export default function LandingPageSettingsPage() {
         setFaqs(faqs.filter(faq => faq.id !== id));
     };
 
+    const handleSeoInputChange = (field: keyof SeoSettings, value: string) => {
+        setSeoSettings(prev => prev ? { ...prev, [field]: value } : null);
+    };
 
-    const handleSave = async () => {
-        if (!settings) return;
+    const handleSaveAll = async () => {
+        if (!settings || !seoSettings) return;
         setIsSaving(true);
         try {
-            await updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds, faqs });
-            toast({ title: 'Sukses', description: 'Pengaturan halaman depan berhasil disimpan.' });
+            await Promise.all([
+                updateLandingPageSettings({ ...settings, featuredTestimonialIds: featuredIds, faqs }),
+                updateSeoSettings(seoSettings)
+            ]);
+            toast({ title: 'Sukses', description: 'Pengaturan berhasil disimpan.' });
             await refreshData();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
@@ -152,8 +165,68 @@ export default function LandingPageSettingsPage() {
             setIsSaving(false);
         }
     };
+
+    const handleGenerateTitleSuffix = async () => {
+        if (!seoSettings?.platformName || !seoSettings?.metaDescription) {
+            toast({ title: 'Input Diperlukan', description: 'Nama platform dan deskripsi meta global harus diisi.', variant: 'destructive' });
+            return;
+        }
+        setIsGeneratingSuffix(true);
+        const result = await generateTitleSuffixAction({
+            platformName: seoSettings.platformName,
+            platformDescription: seoSettings.metaDescription
+        });
+        setIsGeneratingSuffix(false);
+
+        if('error' in result) {
+            toast({ title: 'Gagal Membuat Akhiran Judul', description: result.error, variant: 'destructive'});
+        } else {
+            handleSeoInputChange('titleSuffix', result.titleSuffix);
+            toast({ title: 'Sukses', description: 'Saran akhiran judul berhasil dibuat oleh AI.'});
+        }
+      };
     
-    if (loading || !settings) {
+    const handleGenerateMetaDescription = async () => {
+        if (!seoSettings?.platformName || !seoSettings?.titleSuffix) {
+            toast({ title: 'Input Diperlukan', description: 'Nama platform dan akhiran judul SEO harus diisi.', variant: 'destructive' });
+            return;
+        }
+        setIsGeneratingDesc(true);
+        const result = await generateMetaDescriptionAction({
+            platformName: seoSettings.platformName,
+            titleSuffix: seoSettings.titleSuffix
+        });
+        setIsGeneratingDesc(false);
+    
+        if('error' in result) {
+            toast({ title: 'Gagal Membuat Deskripsi', description: result.error, variant: 'destructive'});
+        } else {
+            handleSeoInputChange('metaDescription', result.metaDescription);
+            toast({ title: 'Sukses', description: 'Deskripsi meta global berhasil dibuat oleh AI.'});
+        }
+    };
+    
+    const handleGenerateMetaKeywords = async () => {
+        if (!seoSettings?.platformName || !seoSettings?.metaDescription) {
+            toast({ title: 'Input Diperlukan', description: 'Nama platform dan deskripsi meta harus diisi.', variant: 'destructive' });
+            return;
+        }
+        setIsGeneratingKeywords(true);
+        const result = await generateMetaKeywordsAction({
+            platformName: seoSettings.platformName,
+            platformDescription: seoSettings.metaDescription
+        });
+        setIsGeneratingKeywords(false);
+
+        if('error' in result) {
+            toast({ title: 'Gagal Membuat Kata Kunci', description: result.error, variant: 'destructive'});
+        } else {
+            handleSeoInputChange('metaKeywords', result.metaKeywords);
+            toast({ title: 'Sukses', description: 'Saran kata kunci berhasil dibuat oleh AI.'});
+        }
+    };
+    
+    if (loading || !settings || !seoSettings) {
         return (
             <div className="space-y-6">
                 <Skeleton className="h-9 w-64 mb-2" />
@@ -201,14 +274,20 @@ export default function LandingPageSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Pengaturan Halaman Depan</h1>
-              <p className="text-muted-foreground">Kelola konten yang ditampilkan di landing page Anda.</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold">Pengaturan Halaman Depan</h1>
+                <p className="text-muted-foreground">Kelola konten yang ditampilkan di landing page Anda.</p>
+              </div>
+              <Button onClick={handleSaveAll} disabled={isSaving || isGeneratingHero || isGeneratingSuffix || isGeneratingDesc || isGeneratingKeywords}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Simpan Semua Perubahan
+              </Button>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Pengaturan Umum & Kontak</CardTitle>
+                    <CardTitle>Pengaturan Umum &amp; Kontak</CardTitle>
                     <CardDescription>Atur logo, footer, dan informasi yang ditampilkan di halaman Kontak.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -259,6 +338,52 @@ export default function LandingPageSettingsPage() {
                             rows={3}
                             placeholder="Jl. Sudirman No. 1, Jakarta"
                         />
+                    </div>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Globe/>Pengaturan SEO</CardTitle>
+                    <CardDescription>Optimalkan bagaimana situs Anda ditemukan di mesin pencari.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="platform-name">Nama Platform</Label>
+                        <Input id="platform-name" value={seoSettings.platformName} onChange={(e) => handleSeoInputChange('platformName', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="titleSuffix">Akhiran Judul (Title Suffix)</Label>
+                        <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={handleGenerateTitleSuffix} disabled={isGeneratingSuffix || !seoSettings.platformName || !seoSettings.metaDescription} >
+                            {isGeneratingSuffix ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            Buat dengan AI
+                        </Button>
+                    </div>
+                    <Input id="titleSuffix" name="titleSuffix" value={seoSettings.titleSuffix} onChange={(e) => handleSeoInputChange('titleSuffix', e.target.value)} placeholder="| Nama Platform Anda" disabled={isGeneratingSuffix} />
+                    <p className="text-xs text-muted-foreground">Teks ini akan ditambahkan di akhir setiap judul halaman.</p>
+                    </div>
+                    <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="metaDescription">Deskripsi Meta Global</Label>
+                        <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={handleGenerateMetaDescription} disabled={isGeneratingDesc || !seoSettings.platformName || !seoSettings.titleSuffix}>
+                            {isGeneratingDesc ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            Buat dengan AI
+                        </Button>
+                    </div>
+                    <Textarea id="metaDescription" name="metaDescription" value={seoSettings.metaDescription} onChange={(e) => handleSeoInputChange('metaDescription', e.target.value)} rows={3} disabled={isGeneratingDesc}/>
+                    <p className="text-xs text-muted-foreground">Deskripsi default untuk halaman (150-160 karakter).</p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="metaKeywords">Kata Kunci Meta Global</Label>
+                            <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={handleGenerateMetaKeywords} disabled={isGeneratingKeywords || !seoSettings.platformName || !seoSettings.metaDescription}>
+                                {isGeneratingKeywords ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                Buat dengan AI
+                            </Button>
+                        </div>
+                    <Input id="metaKeywords" name="metaKeywords" value={seoSettings.metaKeywords} onChange={(e) => handleSeoInputChange('metaKeywords', e.target.value)} placeholder="kursus online, belajar, skill" disabled={isGeneratingKeywords}/>
+                    <p className="text-xs text-muted-foreground">Pisahkan kata kunci dengan koma.</p>
                     </div>
                 </CardContent>
             </Card>
@@ -507,13 +632,6 @@ export default function LandingPageSettingsPage() {
                     )}
                 </CardContent>
             </Card>
-
-            <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSave} disabled={isSaving || isGeneratingHero}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Simpan Semua Perubahan
-                </Button>
-            </div>
         </div>
     )
 }
