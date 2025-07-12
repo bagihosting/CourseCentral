@@ -7,10 +7,10 @@ import DOMPurify from 'isomorphic-dompurify';
 import { getPool } from '@/lib/db';
 import type { RowDataPacket } from 'mysql2';
 import { getAuthUser } from './utils';
-import { INSTRUCTOR_MILESTONE_COMMISSION } from './affiliate';
 
 const INSTRUCTOR_DAILY_LESSON_LIMIT = 10;
 const INSTRUCTOR_LESSON_MILESTONE = 10;
+const INSTRUCTOR_MILESTONE_COMMISSION = 25000;
 
 export async function addModule(courseId: string): Promise<void> {
     const actor = await getAuthUser();
