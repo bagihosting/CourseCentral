@@ -1,12 +1,18 @@
-import type {NextConfig} from 'next';
+/** @type {import('next').NextConfig} */
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const withPWA = require('@ducanh2912/next-pwa').default({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+});
+
+const nextConfig = {
   output: 'standalone',
   typescript: {
+    // Mencegah error TypeScript menggagalkan build
     ignoreBuildErrors: true,
   },
   eslint: {
+    // Mencegah error ESLint menggagalkan build
     ignoreDuringBuilds: true,
   },
   images: {
@@ -21,4 +27,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = withPWA(nextConfig);
