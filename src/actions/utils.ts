@@ -2,11 +2,12 @@
 'use server';
 
 import type { User } from '@/types';
-import type { RowDataPacket, PoolConnection } from 'mysql2/promise';
+import type { PoolConnection } from 'mysql2/promise';
 import { getPool } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 import { getTenantBySubdomain } from '@/lib/tenants';
+import { fetchUserById } from '@/data/users';
 
 /**
  * A cached function to resolve a subdomain to a tenant ID from the database.
@@ -51,23 +52,23 @@ export async function getActiveTenantId(): Promise<string> {
  * @throws Akan melempar Error jika pengguna tidak terotentikasi atau mencoba mengakses tenant yang salah.
  */
 export async function getAuthUser(connection?: PoolConnection): Promise<User> {
-    const db = connection || getPool();
-    const activeTenantId = await getActiveTenantId();
     const userId = cookies().get('user_session_id')?.value;
 
     if (!userId) {
         throw new Error('Not Authenticated. Sesi tidak valid atau telah berakhir.');
     }
     
-    const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ?', [userId]);
+    const user = await fetchUserById(userId);
 
-    if (rows.length === 0) {
+    if (!user) {
+        // This case can happen if the user was deleted but the cookie remains.
+        // It's good practice to clear the cookie here.
+        cookies().delete('user_session_id');
         throw new Error('User not found.');
     }
 
-    const user = rows[0] as User;
-
     // Pemeriksaan keamanan penting untuk multitenancy
+    const activeTenantId = await getActiveTenantId();
     // Seorang Super Admin (dari 'platform_main') dapat mengakses tenant mana pun.
     // Pengguna biasa hanya bisa mengakses data di dalam tenant mereka sendiri.
     if (user.tenant_id !== 'platform_main' && user.tenant_id !== activeTenantId) {
@@ -76,10 +77,5 @@ export async function getAuthUser(connection?: PoolConnection): Promise<User> {
         throw new Error('Tenant mismatch. Access denied.');
     }
 
-    return {
-        ...user,
-        affiliateBalance: Number(user.affiliateBalance),
-        affiliatePaid: Number(user.affiliatePaid),
-        loginCount: Number(user.loginCount),
-    };
+    return user;
 }

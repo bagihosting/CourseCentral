@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllUsers } from '@/actions/users';
 import { getEnrolledCoursesForUser } from '@/actions/enrollments';
 import { getAllCourses } from '@/actions/courses';
+import { getAllUsers } from '@/actions/users';
 import type { Course, User as UserType } from '@/types';
 import { BookOpenCheck, Users, GraduationCap, ArrowRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,15 +25,19 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
         if (user) {
-          const allCoursesData = await getAllCourses();
-          setCourses(allCoursesData);
-          if (user.role === 'admin') {
-            const allUsersData = await getAllUsers();
-            setUsers(allUsersData);
-          } else {
-            const enrolledCoursesData = await getEnrolledCoursesForUser(user.id);
-            setEnrolledCourses(enrolledCoursesData);
-          }
+            try {
+                const allCoursesData = await getAllCourses();
+                setCourses(allCoursesData);
+                if (user.role === 'admin') {
+                    const allUsersData = await getAllUsers();
+                    setUsers(allUsersData);
+                } else {
+                    const enrolledCoursesData = await getEnrolledCoursesForUser(user.id);
+                    setEnrolledCourses(enrolledCoursesData);
+                }
+            } catch (e) {
+                console.error("Failed to fetch dashboard data:", e);
+            }
         }
         setLoading(false);
     };
@@ -241,5 +245,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

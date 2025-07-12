@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Course } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
+import { fetchAllCoursesFromDb } from '@/data/courses'; // Import from data layer
+import { fetchAllUsersFromDb } from '@/data/users'; // Import from data layer
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -38,6 +40,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!user) return;
       try {
         const [
           users, 
@@ -49,8 +52,8 @@ export default function AdminDashboardPage() {
           instructorRequests,
           certificateRequests
         ] = await Promise.all([
-          getAllUsers(),
-          getAllCoursesForAdmin(),
+          fetchAllUsersFromDb(user.tenant_id),
+          fetchAllCoursesForAdminFromDb(user.tenant_id),
           getAffiliateStats(),
           getWithdrawalRequests(),
           getUpgradeRequests(),
@@ -89,7 +92,7 @@ export default function AdminDashboardPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [user]);
 
   if (loading) {
       return (

@@ -25,14 +25,20 @@ export default function AdminUsersPage() {
 
     const refreshUsers = async () => {
         setLoading(true);
-        const data = await getAllUsers();
-        setUsers(data);
+        try {
+            const data = await getAllUsers();
+            setUsers(data);
+        } catch(e) {
+            toast({title: "Gagal memuat pengguna", variant: 'destructive'})
+        }
         setLoading(false);
     };
 
     useEffect(() => {
-        refreshUsers();
-    }, []);
+        if(adminUser) {
+            refreshUsers();
+        }
+    }, [adminUser]);
 
     const handleDeleteUser = async (userId: string) => {
         setProcessingId(userId);
