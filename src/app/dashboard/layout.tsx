@@ -67,6 +67,7 @@ const tenantAdminNavItems = [
   { href: '/dashboard/admin/certificate-management', icon: Download, label: 'Manajemen Unduhan' },
   { href: '/dashboard/admin/app-settings', icon: ToggleRight, label: 'Pengaturan Aplikasi' },
   { href: '/dashboard/admin/landing-page-settings', icon: LayoutTemplate, label: 'Halaman Depan' },
+  { href: '/dashboard/admin/tenant-settings', icon: Palette, label: 'Branding & Domain' },
   { href: '/dashboard/admin/course-settings', icon: Settings, label: 'Pengaturan Global' },
 ];
 
