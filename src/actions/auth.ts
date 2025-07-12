@@ -11,7 +11,6 @@ import { getActiveTenantId } from './utils';
 // --- Core Functions (Used by Server Actions) ---
 
 export async function validateUser(username: string, password: string): Promise<User | null> {
-    const activeTenantId = await getActiveTenantId();
     const user = await fetchUserByUsername(username);
 
     if (!user) {
@@ -27,14 +26,14 @@ export async function validateUser(username: string, password: string): Promise<
     const passwordMatch = await bcrypt.compare(password, storedPassword);
 
     if (passwordMatch) {
-        // Cek kecocokan tenant. Pengguna hanya bisa login via subdomain tenant mereka atau domain utama.
-        if (user.tenant_id !== 'platform_main' && user.tenant_id !== activeTenantId) {
-            return null; // Pengguna mencoba login di tenant yang salah.
-        }
-        
+        // Cek status akun, tetapi jangan blokir login untuk admin
         if (user.role !== 'admin' && user.status === 'inactive') {
             throw new Error('ACCOUNT_INACTIVE');
         }
+        
+        // Pengecekan tenant yang terlalu ketat dihapus dari sini.
+        // Pemisahan data tenant ditangani oleh getAuthUser() dan lapisan action.
+        // Hal ini memastikan admin dapat login dari domain utama atau subdomain tenant mereka.
         
         const updatedUser = await updateUserLoginStatus(user.id);
         return updatedUser;
