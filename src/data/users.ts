@@ -1,4 +1,6 @@
 
+'use server';
+
 import { getPool } from '@/lib/db';
 import type { User, RegisterUserInput, UpdateUserInput } from '@/types';
 import type { RowDataPacket, ResultSetHeader, PoolConnection } from 'mysql2/promise';
@@ -84,6 +86,7 @@ export async function createUserInDb(data: RegisterUserInput): Promise<User> {
         await connection.beginTransaction();
         const tenantId = await getActiveTenantId();
 
+        // Username must be unique across all tenants
         const [existing] = await connection.query<RowDataPacket[]>('SELECT id FROM users WHERE username = ?', [data.username]);
         if (existing.length > 0) {
             throw new Error('Nama pengguna sudah digunakan.');

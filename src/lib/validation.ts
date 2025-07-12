@@ -1,4 +1,5 @@
 
+
 /**
  * Memvalidasi kata sandi berdasarkan kriteria keamanan.
  * @param password Kata sandi yang akan divalidasi.
