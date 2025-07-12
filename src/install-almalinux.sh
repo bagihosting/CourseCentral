@@ -29,6 +29,11 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
+    echo_error "File 'schema.sql' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
+    exit 1
+fi
+
 if ! grep -qiE "AlmaLinux" /etc/redhat-release; then
     echo_warning "Skrip ini dioptimalkan untuk AlmaLinux 8. Hasil di distro RHEL lain mungkin bervariasi."
 fi
