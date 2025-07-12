@@ -1,4 +1,6 @@
 
+'use server';
+
 import { getPool } from './db';
 import type { Tenant } from '@/types';
 import type { RowDataPacket } from 'mysql2';
@@ -40,3 +42,4 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
         return null;
     }
 }
+
