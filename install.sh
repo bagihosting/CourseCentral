@@ -29,8 +29,8 @@ if [ "$(id -u)" -ne 0 ]; then
   echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install.sh'"
   exit 1
 fi
-if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
-    echo_error "File 'schema.sql' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
+if [ ! -f "$PROJECT_DIR/package.json" ]; then
+    echo_error "File 'package.json' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
     exit 1
 fi
 
@@ -83,12 +83,15 @@ sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 # --- 4. Siapkan Variabel Lingkungan ---
 echo_info "Membuat file .env.local dari .env.example..."
 ENV_FILE="$PROJECT_DIR/.env.local"
-cp "$PROJECT_DIR/.env.example" "$ENV_FILE"
-
-# Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
-sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=http://${SERVER_IP}|" "$ENV_FILE"
-sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
-echo_success "File .env.local telah dibuat. Harap isi detail database Anda secara manual."
+if [ ! -f "$ENV_FILE" ]; then
+    cp "$PROJECT_DIR/.env.example" "$ENV_FILE"
+    # Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
+    sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=http://${SERVER_IP}|" "$ENV_FILE"
+    sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
+    echo_success "File .env.local telah dibuat. Harap isi detailnya."
+else
+    echo_warning "File .env.local sudah ada, tidak menimpa."
+fi
 
 # --- 5. Jalankan Aplikasi dengan PM2 (Sebagai Pengguna Non-Root) ---
 echo_info "Menjalankan aplikasi '$APP_NAME' dengan PM2..."
@@ -97,6 +100,7 @@ sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 sudo -u "$RUN_USER" "$PM2_PATH" save
 sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
+echo_success "Aplikasi berjalan di bawah PM2."
 
 # --- 6. Konfigurasi Nginx (Reverse Proxy) ---
 echo_info "Mengkonfigurasi Nginx..."
@@ -123,6 +127,7 @@ EOF
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo ln -sf "$NGINX_CONFIG" "/etc/nginx/sites-enabled/"
 sudo nginx -t && sudo systemctl restart nginx
+echo_success "Nginx berhasil dikonfigurasi sebagai reverse proxy."
 
 # --- Selesai ---
 echo ""
