@@ -70,7 +70,7 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
     ```
 2.  **Instal Dependensi Inti**: Instal Nginx, MySQL, dan dependensi lain yang dibutuhkan.
     ```bash
-    sudo apt install -y nginx mysql-server mysql-client curl build-essential psmisc
+    sudo apt install -y nginx mysql-server mysql-client curl build-essential psmisc unzip
     ```
 3.  **Instal Node.js v20**:
     ```bash
@@ -101,13 +101,17 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
       ```
 
 ### Langkah 3: Unggah & Siapkan Aplikasi
-1.  **Unggah File**: Kompres folder proyek Anda di lokal, lalu unggah ke server menggunakan `scp` atau FileZilla. Ekstrak file tersebut di server, misalnya di `/home/username/course-central`.
+1.  **Unggah File**: Kompres folder proyek Anda di lokal menjadi `project.zip`, lalu unggah ke server menggunakan `scp` atau FileZilla. Ekstrak file tersebut di server di `/opt/coursecentral`.
+    ```bash
+    # Di server Anda
+    sudo mkdir -p /opt/coursecentral
+    sudo mv /path/to/your/project.zip /opt/coursecentral/
+    cd /opt/coursecentral
+    sudo unzip project.zip
+    ```
 2.  **Impor Skema Database**: Masuk ke folder proyek Anda dan impor `schema.sql`:
     ```bash
-    # Masuk ke folder proyek, contoh:
-    # cd /home/username/course-central
-    
-    # Jalankan perintah impor. Anda akan diminta memasukkan kata sandi database.
+    # Masih di dalam /opt/coursecentral
     mysql -u coursecentral_user -p coursecentral_db < schema.sql
     ```
 3.  **Konfigurasi Environment**:
@@ -128,10 +132,17 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
     npm install
     npm run build
     ```
+5.  **Atur Kepemilikan (Penting)**: Pastikan pengguna non-root dapat mengakses file.
+    ```bash
+    # Ganti 'ubuntu' dengan username non-root Anda jika berbeda
+    sudo chown -R ubuntu:ubuntu /opt/coursecentral 
+    ```
 
 ### Langkah 4: Jalankan Aplikasi dengan PM2
-1.  **Mulai Aplikasi**: Dari dalam folder proyek Anda, jalankan:
+1.  **Mulai Aplikasi**: Dari dalam folder proyek Anda, jalankan sebagai pengguna non-root:
     ```bash
+    # Pastikan Anda bukan root. Jika iya, jalankan `su - ubuntu`
+    cd /opt/coursecentral
     pm2 start npm --name "coursecentral" -- start
     ```
 2.  **Simpan Proses**: Agar aplikasi berjalan otomatis saat server reboot, jalankan:
@@ -194,16 +205,16 @@ Metode ini mengemas aplikasi dan database MySQL Anda ke dalam sebuah kontainer D
 
 ### Langkah 1: Persiapan File
 
-1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server, misalnya ke direktori `/root/course-central`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
+1.  **Unggah Folder Proyek**: Sama seperti metode pertama, unggah seluruh folder proyek Anda ke server ke direktori `/opt/coursecentral`. Folder ini sudah berisi `Dockerfile` dan `docker-compose.yml` yang diperlukan.
 
 ### Langkah 2: Buat dan Konfigurasi File Environment
 
 Ini adalah langkah **paling penting**. Aplikasi Anda tidak akan berjalan tanpanya.
 
-1.  Di dalam folder proyek di server (`/root/course-central`), buat file baru bernama `.env`.
+1.  Di dalam folder proyek di server (`/opt/coursecentral`), buat file baru bernama `.env`.
     ```bash
     # Masuk ke folder proyek
-    cd /root/course-central
+    cd /opt/coursecentral
     
     # Buat file .env dari contoh
     cp .env.example .env
@@ -217,7 +228,7 @@ Ini adalah langkah **paling penting**. Aplikasi Anda tidak akan berjalan tanpany
 
 Ini adalah cara termudah dan paling andal untuk memulai. `docker-compose` akan secara otomatis membuat kontainer untuk aplikasi dan database Anda.
 
-1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/root/course-central`), lalu jalankan perintah:
+1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek Anda (`/opt/coursecentral`), lalu jalankan perintah:
     ```bash
     docker-compose up --build -d
     ```
@@ -332,7 +343,7 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
 2.  **Dapatkan Kredensial Database**: Anda memerlukan username dan password database. Anda bisa menemukannya di dalam file `.env.local` di direktori proyek Anda.
     ```bash
     # Masuk ke direktori proyek Anda
-    # cd /path/to/your/project
+    cd /opt/coursecentral
     cat .env.local
     ```
 3.  **Jalankan Perintah Restore**: Gunakan perintah di bawah ini. Ganti `nama_file_backup.sql.gz` dengan nama file yang benar. Anda akan diminta untuk memasukkan password database yang Anda temukan di langkah sebelumnya.

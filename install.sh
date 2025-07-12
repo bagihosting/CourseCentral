@@ -99,7 +99,7 @@ PM2_PATH=$(which pm2)
 sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
 sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 sudo -u "$RUN_USER" "$PM2_PATH" save
-sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
+sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/opt"
 echo_success "Aplikasi berjalan di bawah PM2."
 
 # --- 6. Konfigurasi Nginx (Reverse Proxy) ---

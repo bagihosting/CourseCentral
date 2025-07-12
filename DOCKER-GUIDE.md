@@ -10,18 +10,21 @@ Metode ini mengemas aplikasi dan database MySQL Anda ke dalam sebuah kontainer D
 ## Langkah 1: Unggah Folder Proyek ke Server
 
 1.  **Kompres Folder Proyek**: Di komputer lokal Anda, kompres seluruh folder proyek ini menjadi satu file ZIP (misalnya, `proyek.zip`).
-2.  **Unggah ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla atau Termius) untuk mengunggah file ZIP tersebut ke direktori mana pun di server Anda, misalnya ke `/root/coursecentral`.
+2.  **Unggah ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla atau Termius) untuk mengunggah file ZIP tersebut ke direktori `/opt/` di server Anda.
 3.  **Ekstrak di Server**:
     -   Masuk ke server Anda melalui SSH.
+    -   Buat direktori proyek: `sudo mkdir -p /opt/coursecentral`
+    -   Pindahkan zip ke sana: `sudo mv proyek.zip /opt/coursecentral/`
     -   Instal `unzip` jika belum ada: `sudo apt update && sudo apt install -y unzip`.
-    -   Pindah ke direktori tujuan: `cd /root/coursecentral`.
-    -   Ekstrak file Anda: `unzip proyek.zip`.
+    -   Pindah ke direktori tujuan: `cd /opt/coursecentral`.
+    -   Ekstrak file Anda: `sudo unzip proyek.zip`.
+    -   Atur kepemilikan: `sudo chown -R $USER:$USER /opt/coursecentral` (Ganti `$USER` dengan username Anda jika perlu).
 
 ## Langkah 2: Buat dan Isi File `.env` (Langkah Paling Kritis!)
 
 Aplikasi Anda **tidak akan bisa berjalan** tanpa file konfigurasi ini.
 
-1.  **Masuk ke Folder Proyek**: Pastikan Anda berada di dalam folder proyek Anda di server (misalnya, `/root/coursecentral`).
+1.  **Masuk ke Folder Proyek**: Pastikan Anda berada di dalam folder proyek Anda di server (yaitu, `/opt/coursecentral`).
 2.  **Buat File `.env`**: Salin file contoh yang sudah disediakan.
     ```bash
     cp .env.example .env
@@ -36,7 +39,7 @@ Aplikasi Anda **tidak akan bisa berjalan** tanpa file konfigurasi ini.
 
 Ini adalah cara termudah dan paling direkomendasikan untuk memulai. `docker-compose` akan membaca konfigurasi Anda dan membuat kontainer untuk aplikasi dan database secara otomatis.
 
-1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek (`/root/coursecentral`), lalu jalankan perintah berikut:
+1.  **Jalankan Docker Compose**: Pastikan Anda berada di dalam folder proyek (`/opt/coursecentral`), lalu jalankan perintah berikut:
     ```bash
     docker-compose up --build -d
     ```
@@ -55,12 +58,13 @@ Gunakan metode ini jika Anda lebih suka melakukan semuanya dari antarmuka web Po
 4.  **Tambah Stack Baru**: Klik tombol "+ Add stack".
 5.  **Konfigurasi Stack**:
     -   **Name**: Beri nama stack Anda, misalnya `coursecentral`.
-    -   **Build method**: Pilih **Web editor**.
-    -   **Web editor**: Salin **seluruh isi** dari file `docker-compose.yml` yang ada di proyek Anda, dan tempelkan ke dalam editor teks.
+    -   **Build method**: Pilih **Git Repository**.
+    -   **Repository URL**: Masukkan URL Git repository proyek Anda.
+    -   **Compose path**: Biarkan `docker-compose.yml`.
 6.  **Konfigurasi Variabel Lingkungan**:
     -   Gulir ke bawah ke bagian "Environment variables".
     -   **PENTING**: Daripada menambahkan variabel satu per satu, klik tombol **"Load variables from .env file"** dan unggah file `.env` yang sudah Anda isi pada Langkah 2.
-7.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan membaca file `compose`, membangun *image*, dan menjalankan kontainer aplikasi serta database Anda.
+7.  **Deploy Stack**: Gulir ke bawah dan klik tombol "Deploy the stack". Portainer akan menarik proyek dari Git, membaca file compose, membangun *image*, dan menjalankan kontainer aplikasi serta database Anda.
 
 ## Langkah Selanjutnya: Mengamankan dengan Domain & Cloudflare
 
