@@ -68,7 +68,7 @@ const generateThumbnailFlow = ai.defineFlow(
     });
 
     if (!media) {
-      throw new Error('Image generation failed.');
+      throw new Error('Image generation failed. The model did not return any media, possibly due to safety filters. Try a different title.');
     }
 
     return { imageUrl: media.url };

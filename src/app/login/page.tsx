@@ -48,7 +48,7 @@ function LoginForm() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui.';
       if (errorMessage === 'ACCOUNT_INACTIVE') {
-        const adminContact = contacts.length > 0 ? contacts[0].whatsapp : '';
+        const adminContact = contacts.length > 0 ? contacts[0].whatsapp.replace(/[^0-9]/g, '') : '';
         let whatsappUrl = '#';
         if(adminContact) {
           const message = encodeURIComponent(`Halo Admin, mohon bantuannya untuk mengaktifkan kembali akun saya dengan username: ${username}. Terima kasih.`);
@@ -106,12 +106,6 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  const validateWhatsapp = (number: string): boolean => {
-    if (!number) return true; // Optional field
-    const whatsappRegex = /^(?:\+?62|0)8[1-9][0-9\s-]{6,12}$/;
-    return whatsappRegex.test(number);
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !username || !password || !confirmPassword) {
@@ -128,14 +122,6 @@ function RegisterForm() {
             description: 'Kata sandi harus memenuhi persyaratan keamanan yang ditentukan.', 
             variant: 'destructive',
             duration: 7000,
-        });
-        return;
-    }
-    if (!validateWhatsapp(whatsapp)) {
-        toast({ 
-            title: 'Nomor WhatsApp Tidak Valid', 
-            description: 'Format nomor WhatsApp Indonesia tidak benar. Contoh: 081234567890 atau +6281234567890.', 
-            variant: 'destructive',
         });
         return;
     }

@@ -1,4 +1,3 @@
-
 # Panduan Lengkap Instalasi & Deployment
 
 Dokumen ini berisi metode untuk development dan deployment aplikasi Next.js Anda.
@@ -129,19 +128,20 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
       ```
 4.  **Instal Dependensi & Build Aplikasi**:
     ```bash
-    npm install
-    npm run build
+    # Jalankan sebagai pengguna non-root yang sesuai (sadewa)
+    sudo -u sadewa bash -c 'cd /opt/coursecentral && npm install'
+    sudo -u sadewa bash -c 'cd /opt/coursecentral && npm run build'
     ```
 5.  **Atur Kepemilikan (Penting)**: Pastikan pengguna non-root dapat mengakses file.
     ```bash
-    # Ganti 'ubuntu' dengan username non-root Anda jika berbeda
-    sudo chown -R ubuntu:ubuntu /opt/coursecentral 
+    # Ganti 'sadewa' dengan username non-root Anda jika berbeda
+    sudo chown -R sadewa:sadewa /opt/coursecentral 
     ```
 
 ### Langkah 4: Jalankan Aplikasi dengan PM2
 1.  **Mulai Aplikasi**: Dari dalam folder proyek Anda, jalankan sebagai pengguna non-root:
     ```bash
-    # Pastikan Anda bukan root. Jika iya, jalankan `su - ubuntu`
+    # Pastikan Anda bukan root. Jika iya, jalankan `su - sadewa`
     cd /opt/coursecentral
     pm2 start npm --name "coursecentral" -- start
     ```
@@ -352,4 +352,3 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
     ```
     **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.
 
-    
