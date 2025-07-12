@@ -3,7 +3,7 @@ import { getPool } from '@/lib/db';
 import type { User, RegisterUserInput, UpdateUserInput } from '@/types';
 import type { RowDataPacket, ResultSetHeader, PoolConnection } from 'mysql2/promise';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { getActiveTenantId } from '@/actions/utils';
 
 function generateReferralCode(length = 8) {

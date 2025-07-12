@@ -3,7 +3,7 @@
 
 import { getPool } from '@/lib/db';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { getAuthUser } from './utils';
 import type { RowDataPacket } from 'mysql2';
 

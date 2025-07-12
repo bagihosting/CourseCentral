@@ -4,7 +4,7 @@
 import { getPool } from '@/lib/db';
 import type { User } from '@/types';
 import { fetchUserById, fetchUserByUsername, updateUserLoginStatus } from '@/data/users';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { getActiveTenantId } from './utils';
 

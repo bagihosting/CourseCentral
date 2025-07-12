@@ -3,9 +3,9 @@
 
 import { getPool } from '@/lib/db';
 import type { Tenant, User } from '@/types';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { getAuthUser } from './utils';
 import { validatePassword } from '@/lib/validation';
 
