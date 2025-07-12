@@ -129,8 +129,9 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
 4.  **Instal Dependensi & Build Aplikasi**:
     ```bash
     # Jalankan sebagai pengguna non-root yang sesuai (sadewa)
-    sudo -u sadewa bash -c 'cd /opt/coursecentral && npm install'
-    sudo -u sadewa bash -c 'cd /opt/coursecentral && npm run build'
+    cd /opt/coursecentral
+    sudo -u sadewa bash -c 'npm install'
+    sudo -u sadewa bash -c 'npm run build'
     ```
 5.  **Atur Kepemilikan (Penting)**: Pastikan pengguna non-root dapat mengakses file.
     ```bash
@@ -352,3 +353,5 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
     ```
     **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.
 
+
+    

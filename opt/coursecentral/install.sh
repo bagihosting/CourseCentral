@@ -71,20 +71,19 @@ fi
 sudo npm install -g pm2
 
 # --- 3. Bangun Aplikasi (Sebagai Pengguna Non-Root) ---
-echo_info "Mengatur kepemilikan file proyek ke pengguna '$RUN_USER'..."
-# Pastikan direktori proyek ada sebelum mengubah kepemilikan
+echo_info "Memastikan direktori proyek ada dan mengatur kepemilikan ke pengguna '$RUN_USER'..."
 sudo mkdir -p "$PROJECT_DIR"
 sudo chown -R $RUN_USER:$RUN_USER "$PROJECT_DIR"
 
 echo_info "Memasang dependensi proyek (menjalankan sebagai '$RUN_USER')..."
-sudo -u "$RUN_USER" bash -c "cd \"$(pwd)\" && npm install"
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm install"
 
 echo_info "Membangun aplikasi Next.js untuk produksi (menjalankan sebagai '$RUN_USER')..."
-sudo -u "$RUN_USER" bash -c "cd \"$(pwd)\" && npm run build"
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && npm run build"
 
 # --- 4. Siapkan Variabel Lingkungan ---
 echo_info "Membuat file .env.local dari .env.example..."
-ENV_FILE="$(pwd)/.env.local"
+ENV_FILE="$PROJECT_DIR/.env.local"
 if [ ! -f "$ENV_FILE" ]; then
     cp "$(pwd)/.env.example" "$ENV_FILE"
     # Perbarui NEXT_PUBLIC_BASE_URL di file .env.local
@@ -99,9 +98,10 @@ fi
 echo_info "Menjalankan aplikasi '$APP_NAME' dengan PM2..."
 PM2_PATH=$(which pm2)
 sudo -u "$RUN_USER" "$PM2_PATH" delete "$APP_NAME" || true
-sudo -u "$RUN_USER" bash -c "cd \"$(pwd)\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
+sudo -u "$RUN_USER" bash -c "cd \"$PROJECT_DIR\" && \"$PM2_PATH\" start npm --name \"$APP_NAME\" -- start"
 sudo -u "$RUN_USER" "$PM2_PATH" save
-sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/opt"
+# Menjalankan startup PM2 sebagai root untuk membuat service systemd
+sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/home/$RUN_USER"
 echo_success "Aplikasi berjalan di bawah PM2."
 
 # --- 6. Konfigurasi Nginx (Reverse Proxy) ---
@@ -140,9 +140,11 @@ echo "  - URL Aplikasi: http://${SERVER_IP}"
 echo ""
 echo_info "LANGKAH PENTING SELANJUTNYA:"
 echo "  1. Buka file '.env.local' untuk mengisi kredensial database dan GEMINI_API_KEY Anda."
-echo "     (Gunakan: sudo nano .env.local)"
+echo "     (Gunakan: sudo nano ${PROJECT_DIR}/.env.local)"
 echo "  2. Pastikan database Anda dapat diakses dari server ini dan impor file 'schema.sql' secara manual."
 echo "  3. Setelah mengisi .env.local, restart aplikasi dengan: pm2 restart $APP_NAME"
 echo "  4. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
 echo ""
 echo_success "Deployment aplikasi selesai!"
+
+    
