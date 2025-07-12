@@ -36,7 +36,7 @@ export default function InstructorCoursesPage() {
   };
 
   useEffect(() => {
-    if (!userLoading) {
+    if (!userLoading && user) {
       fetchCourses();
     }
   }, [userLoading, user]);

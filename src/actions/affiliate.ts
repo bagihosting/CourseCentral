@@ -8,6 +8,7 @@ import type { PoolConnection } from 'mysql2/promise';
 import { getAuthUser } from './utils';
 
 const REFERRAL_COMMISSION = 25000;
+export const INSTRUCTOR_MILESTONE_COMMISSION = 25000;
 
 export async function awardReferralCommission(referredUserId: string, referrerId: string, connection: PoolConnection): Promise<void> {
     const commissionId = `comm_${Date.now()}`;

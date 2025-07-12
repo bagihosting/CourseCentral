@@ -1,14 +1,16 @@
 
 'use server';
 
-import { getCourseById, updateCourse } from './courses';
+import { getCourseById } from './courses';
 import type { Lesson, Module } from '@/types';
 import DOMPurify from 'isomorphic-dompurify';
 import { getPool } from '@/lib/db';
 import type { RowDataPacket } from 'mysql2';
 import { getAuthUser } from './utils';
+import { INSTRUCTOR_MILESTONE_COMMISSION } from './affiliate';
 
 const INSTRUCTOR_DAILY_LESSON_LIMIT = 10;
+const INSTRUCTOR_LESSON_MILESTONE = 10;
 
 export async function addModule(courseId: string): Promise<void> {
     const actor = await getAuthUser();
@@ -22,21 +24,25 @@ export async function addModule(courseId: string): Promise<void> {
         lessons: []
     };
     course.modules.push(newModule);
-    await updateCourse(courseId, { modules: course.modules });
+    
+    const pool = getPool();
+    await pool.query('UPDATE courses SET modules = ? WHERE id = ?', [JSON.stringify(course.modules), courseId]);
 }
 
 export async function updateModule(courseId: string, moduleId: string, data: { title: string }): Promise<void> {
     const actor = await getAuthUser();
     const course = await getCourseById(courseId);
     if (!course) throw new Error("Kursus tidak ditemukan.");
-     if (course.authorId !== actor.id && actor.role !== 'admin') throw new Error("Anda tidak berhak mengubah kursus ini.");
+    if (course.authorId !== actor.id && actor.role !== 'admin') throw new Error("Anda tidak berhak mengubah kursus ini.");
 
     const moduleIndex = course.modules.findIndex(m => m.id === moduleId);
     if(moduleIndex === -1) throw new Error("Modul tidak ditemukan.");
 
     course.modules[moduleIndex].title = data.title;
     course.modules.sort((a, b) => a.title.localeCompare(b.title));
-    await updateCourse(courseId, { modules: course.modules });
+    
+    const pool = getPool();
+    await pool.query('UPDATE courses SET modules = ? WHERE id = ?', [JSON.stringify(course.modules), courseId]);
 }
 
 export async function deleteModule(courseId: string, moduleId: string): Promise<void> {
@@ -49,7 +55,8 @@ export async function deleteModule(courseId: string, moduleId: string): Promise<
     course.modules = course.modules.filter(m => m.id !== moduleId);
     if (course.modules.length === initialLength) throw new Error("Modul tidak ditemukan untuk dihapus.");
 
-    await updateCourse(courseId, { modules: course.modules });
+    const pool = getPool();
+    await pool.query('UPDATE courses SET modules = ? WHERE id = ?', [JSON.stringify(course.modules), courseId]);
 }
 
 export async function addLesson(courseId: string, moduleId: string, data: Omit<Lesson, 'id' | 'downloadable'>): Promise<void> {
@@ -63,11 +70,13 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
         if (userRows.length === 0) throw new Error("Pengajar tidak ditemukan.");
         const user = userRows[0];
 
-        const [courseRows] = await connection.query<RowDataPacket[]>("SELECT * FROM courses WHERE id = ? FOR UPDATE", [courseId]);
+        const [courseRows] = await connection.query<RowDataPacket[]>("SELECT modules, authorId FROM courses WHERE id = ? FOR UPDATE", [courseId]);
         if(courseRows.length === 0) throw new Error("Kursus tidak ditemukan.");
-        const course = JSON.parse(JSON.stringify(courseRows[0]));
-        course.modules = JSON.parse(course.modules || '[]');
-
+        
+        const course = {
+            modules: JSON.parse(courseRows[0].modules || '[]'),
+            authorId: courseRows[0].authorId
+        };
 
         if (course.authorId !== author.id && author.role !== 'admin') throw new Error("Anda tidak berhak menambah pelajaran ke kursus ini.");
 
@@ -75,11 +84,11 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
             throw new Error("Hanya pengajar atau admin yang bisa menambah pelajaran.");
         }
 
+        let lessonsToday = user.lessons_created_today;
         if (user.role === 'instructor') {
             const today = new Date().toISOString().split('T')[0];
             const lastCreationDate = user.last_lesson_created_at ? new Date(user.last_lesson_created_at).toISOString().split('T')[0] : null;
             
-            let lessonsToday = user.lessons_created_today;
             if (lastCreationDate !== today) {
                 lessonsToday = 0;
             }
@@ -106,10 +115,24 @@ export async function addLesson(courseId: string, moduleId: string, data: Omit<L
         );
 
         if (user.role === 'instructor') {
+            const newTotalLessonsToday = lessonsToday + 1;
             await connection.query(
-                "UPDATE users SET lessons_created_today = IF(DATE(last_lesson_created_at) = CURDATE(), lessons_created_today + 1, 1), last_lesson_created_at = NOW() WHERE id = ?",
-                [author.id]
+                "UPDATE users SET lessons_created_today = ?, last_lesson_created_at = NOW() WHERE id = ?",
+                [newTotalLessonsToday, author.id]
             );
+
+            // Award commission if milestone is reached
+            if (newTotalLessonsToday > 0 && newTotalLessonsToday % INSTRUCTOR_LESSON_MILESTONE === 0) {
+                 const commissionId = `comm_${Date.now()}`;
+                 await connection.query(
+                    'INSERT INTO commissions (id, userId, amount, type) VALUES (?, ?, ?, "instructor_milestone")',
+                    [commissionId, author.id, INSTRUCTOR_MILESTONE_COMMISSION]
+                 );
+                 await connection.query(
+                    'UPDATE users SET affiliateBalance = affiliateBalance + ? WHERE id = ?',
+                    [INSTRUCTOR_MILESTONE_COMMISSION, author.id]
+                 );
+            }
         }
 
         await connection.commit();
@@ -146,7 +169,9 @@ export async function updateLesson(courseId: string, moduleId: string, lessonId:
     }
     module.lessons[lessonIndex] = updatedLesson;
     module.lessons.sort((a, b) => a.title.localeCompare(b.title));
-    await updateCourse(courseId, { modules: course.modules });
+    
+    const pool = getPool();
+    await pool.query('UPDATE courses SET modules = ? WHERE id = ?', [JSON.stringify(course.modules), courseId]);
 }
 
 export async function deleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<void> {
@@ -162,5 +187,6 @@ export async function deleteLesson(courseId: string, moduleId: string, lessonId:
     module.lessons = module.lessons.filter(l => l.id !== lessonId);
     if (module.lessons.length === initialLength) throw new Error("Pelajaran tidak ditemukan untuk dihapus.");
     
-    await updateCourse(courseId, { modules: course.modules });
+    const pool = getPool();
+    await pool.query('UPDATE courses SET modules = ? WHERE id = ?', [JSON.stringify(course.modules), courseId]);
 }

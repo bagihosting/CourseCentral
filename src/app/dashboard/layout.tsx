@@ -79,25 +79,23 @@ const resellerNavItems = [
   { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
   { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
-  { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
   { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
 
 const instructorNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
+  { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
   { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
   { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
   { href: '/dashboard/my-courses', icon: GraduationCap, label: 'Kursus Saya' },
   { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
-  { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
-  { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' },
   { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
 ];
 
-const proNavItems = [
+const proNavItems = (user: any) => [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dasbor' },
   { href: '/dashboard/courses', icon: BookOpenCheck, label: 'Katalog Kursus' },
   { href: '/dashboard/aplikasi', icon: AppWindow, label: 'Aplikasi AI' },
@@ -105,7 +103,9 @@ const proNavItems = [
   { href: '/dashboard/my-certificates', icon: Award, label: 'Sertifikat Saya' },
   { href: '/dashboard/downloads', icon: Download, label: 'Unduhan' },
   { href: '/dashboard/custom-app-request', icon: Rocket, label: 'Request Aplikasi' },
-  { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
+  user.instructorStatus === 'approved' 
+    ? { href: '/dashboard/instructor/courses', icon: Library, label: 'Konten Saya' }
+    : { href: '/dashboard/instructor/apply', icon: BookUser, label: 'Jadi Pengajar' },
   { href: '/dashboard/reseller/apply', icon: Store, label: 'Jadi Reseller' },
   { href: '/dashboard/affiliate', icon: DollarSign, label: 'Afiliasi' },
   { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan' },
@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       case 'instructor':
         return instructorNavItems;
       case 'pro':
-        return proNavItems;
+        return proNavItems(user);
       case 'member':
         return memberNavItems;
       default:

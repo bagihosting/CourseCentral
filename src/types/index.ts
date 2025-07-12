@@ -59,6 +59,10 @@ export type Course = {
   updated_at: string;
 };
 
+export type CourseForReview = Course & {
+    instructorName: string;
+};
+
 export type Module = {
   id:string;
   title: string;
