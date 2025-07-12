@@ -51,16 +51,17 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (contacts.length === 0) {
+        toast({ title: "Gagal Mengirim Pesan", description: "Admin belum mengatur nomor kontak yang bisa dihubungi.", variant: "destructive" });
+        return;
+    }
+
     if (!formName || !formEmail || !formMessage) {
         toast({ title: "Gagal", description: "Harap isi semua kolom pesan.", variant: "destructive" });
         return;
     }
     
-    if (contacts.length === 0) {
-        toast({ title: "Gagal", description: "Admin belum mengatur nomor kontak.", variant: "destructive" });
-        return;
-    }
-
     setIsSubmitting(true);
     
     const targetWhatsapp = contacts[0].whatsapp.replace(/[^0-9]/g, '');
