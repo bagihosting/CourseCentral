@@ -4,7 +4,7 @@ import mysql, { type Pool } from 'mysql2/promise';
 let poolInstance: Pool | null = null;
 
 /**
- * Initializes and returns a singleton instance of the MariaDB connection pool.
+ * Initializes and returns a singleton instance of the MySQL connection pool.
  * This lazy initialization prevents connection issues with Next.js middleware.
  */
 export const getPool = (): Pool => {
