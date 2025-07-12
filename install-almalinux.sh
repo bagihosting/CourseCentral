@@ -29,6 +29,11 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+if [ ! -f "$PROJECT_DIR/schema.sql" ]; then
+    echo_error "File 'schema.sql' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
+    exit 1
+fi
+
 if ! grep -qiE "AlmaLinux" /etc/redhat-release; then
     echo_warning "Skrip ini dioptimalkan untuk AlmaLinux 8. Hasil di distro RHEL lain mungkin bervariasi."
 fi
@@ -50,7 +55,7 @@ echo_success "Firewall dikonfigurasi."
 
 # Konfigurasi Fail2Ban
 echo_info "Mengaktifkan proteksi Fail2Ban untuk SSH..."
-sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local &>/dev/null || true
 sudo sed -i '/^\[sshd\]/a enabled = true' /etc/fail2ban/jail.local
 sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
