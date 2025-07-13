@@ -126,18 +126,19 @@ Gunakan panduan ini untuk melakukan instalasi dari nol di server **Ubuntu** (20.
       DB_NAME="coursecentral_db"
       NEXT_PUBLIC_BASE_URL="http://ALAMAT_IP_SERVER_ANDA"
       ```
-4.  **Instal Dependensi & Build Aplikasi**:
+4.  **Atur Kepemilikan (Penting)**: Pastikan pengguna non-root dapat mengakses file.
+    ```bash
+    # Ganti 'sadewa' dengan username non-root Anda jika berbeda
+    sudo chown -R sadewa:sadewa /opt/coursecentral 
+    ```
+5.  **Instal Dependensi & Build Aplikasi**:
     ```bash
     # Jalankan sebagai pengguna non-root yang sesuai (sadewa)
     cd /opt/coursecentral
     sudo -u sadewa bash -c 'npm install'
     sudo -u sadewa bash -c 'npm run build'
     ```
-5.  **Atur Kepemilikan (Penting)**: Pastikan pengguna non-root dapat mengakses file.
-    ```bash
-    # Ganti 'sadewa' dengan username non-root Anda jika berbeda
-    sudo chown -R sadewa:sadewa /opt/coursecentral 
-    ```
+
 
 ### Langkah 4: Jalankan Aplikasi dengan PM2
 1.  **Mulai Aplikasi**: Dari dalam folder proyek Anda, jalankan sebagai pengguna non-root:
@@ -352,6 +353,3 @@ Jika terjadi keadaan darurat dan Anda perlu mengembalikan database dari file bac
     gunzip < /var/backups/mysql/nama_file_backup.sql.gz | mysql -u coursecentral_user -p coursecentral_db
     ```
     **Peringatan**: Perintah ini akan menimpa seluruh data yang ada di database `coursecentral_db` dengan data dari file backup. Pastikan Anda memilih file backup yang benar.
-
-
-    

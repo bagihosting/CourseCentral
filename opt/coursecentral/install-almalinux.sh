@@ -2,7 +2,7 @@
 #
 # =================================================================
 # Autoinstaller Cerdas & Andal untuk Aplikasi Next.js
-# Distro: Debian 11/12 & Ubuntu 20.04/22.04/24.04
+# Distro: AlmaLinux 8 / RHEL 8
 # Fokus: Nginx, Node.js v20, PM2, Fail2Ban, dan Otomatisasi Database.
 # =================================================================
 
@@ -24,37 +24,37 @@ echo_success() { echo -e "\033[1;32m[SUCCESS]\033[0m $1"; }
 echo_error() { echo -e "\033[1;31m[ERROR]\033[0m $1"; }
 echo_warning() { echo -e "\033[1;33m[WARNING]\033[0m $1"; }
 
-
 # --- Verifikasi Awal ---
 if [ "$(id -u)" -ne 0 ]; then
-  echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install.sh'"
+  echo_error "Skrip ini harus dijalankan dengan 'sudo'. Contoh: 'sudo ./install-almalinux.sh'"
   exit 1
 fi
+
 if [ ! -f "$(pwd)/package.json" ]; then
-    echo_error "File 'package.json' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek."
+    echo_error "File 'package.json' tidak ditemukan. Pastikan Anda menjalankan skrip ini dari dalam direktori utama proyek di /opt/coursecentral."
     exit 1
 fi
 
-# Cek Distribusi (Debian/Ubuntu)
-if ! grep -qiE "debian|ubuntu" /etc/os-release; then
-    echo_warning "Skrip ini dioptimalkan untuk Debian dan Ubuntu. Hasil di distro lain mungkin bervariasi."
+if ! grep -qiE "AlmaLinux" /etc/redhat-release; then
+    echo_warning "Skrip ini dioptimalkan untuk AlmaLinux 8. Hasil di distro RHEL lain mungkin bervariasi."
 fi
 
-echo_info "Memulai instalasi cerdas untuk '$APP_NAME'..."
-
-# --- BLOK PEMULIHAN SISTEM OTOMATIS (DPKG/APT REPAIR) ---
-echo_info "Memastikan integritas manajer paket (dpkg/apt)..."
-sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock &>/dev/null || true
-sudo apt-get clean
-sudo dpkg --configure -a
-sudo apt-get -f install -y
-sudo apt-get update
-echo_success "Manajer paket siap."
-# --- AKHIR BLOK PEMULIHAN ---
+echo_info "Memulai instalasi cerdas untuk '$APP_NAME' di AlmaLinux 8..."
 
 # --- 1. Pemasangan Dependensi Inti & Keamanan ---
-echo_info "Memasang dependensi: Nginx, Node.js, Fail2Ban, MySQL..."
-sudo apt-get install -y nginx curl build-essential psmisc fail2ban mysql-server
+echo_info "Mengaktifkan modul Node.js 20 dan menginstal dependensi..."
+sudo dnf module enable nodejs:20 -y
+sudo dnf install -y nginx nodejs curl fail2ban policycoreutils-python-utils python3 mariadb-server
+echo_info "Menginstal alat build penting untuk kompilasi native..."
+sudo dnf groupinstall -y "Development Tools"
+
+# Konfigurasi FirewallD
+echo_info "Mengkonfigurasi firewall untuk mengizinkan HTTP, HTTPS, dan SSH..."
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --reload
+echo_success "Firewall dikonfigurasi."
 
 # Konfigurasi Fail2Ban
 echo_info "Mengaktifkan proteksi Fail2Ban untuk SSH..."
@@ -64,15 +64,15 @@ sudo systemctl enable --now fail2ban
 echo_success "Fail2Ban aktif dan memonitor SSH."
 
 # --- 2. Konfigurasi & Otomatisasi Database ---
-echo_info "Memulai dan mengaktifkan layanan MySQL..."
-sudo systemctl enable --now mysql
+echo_info "Memulai dan mengaktifkan layanan MariaDB (MySQL)..."
+sudo systemctl enable --now mariadb
 
 echo_info "Membuat database dan pengguna secara otomatis..."
 DB_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
-sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-sudo mysql -e "FLUSH PRIVILEGES;"
+sudo mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -u root -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
+sudo mysql -u root -e "FLUSH PRIVILEGES;"
 echo_success "Database '${DB_NAME}' dan pengguna '${DB_USER}' berhasil dibuat."
 
 echo_info "Mengimpor skema database dari 'schema.sql'..."
@@ -83,12 +83,8 @@ else
     echo_warning "File 'schema.sql' tidak ditemukan. Langkah impor dilewati."
 fi
 
-# --- 3. Pasang Node.js & PM2 ---
-echo_info "Memasang Node.js v20 LTS dan PM2..."
-if ! command -v node &> /dev/null || [[ $(node -v) != "v20."* ]]; then
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
-    sudo apt-get install -y nodejs
-fi
+# --- 3. Pasang PM2 ---
+echo_info "Memasang PM2 secara global..."
 sudo npm install -g pm2
 
 # --- 4. Bangun Aplikasi (Sebagai Pengguna Non-Root) ---
@@ -117,7 +113,7 @@ if [ ! -f "$ENV_FILE" ]; then
     sed -i "s/^DB_NAME=.*/DB_NAME=${DB_NAME}/" "$ENV_FILE"
     sed -i "s/^DB_USER=.*/DB_USER=${DB_USER}/" "$ENV_FILE"
     sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" "$ENV_FILE"
-
+    
     sudo chown $RUN_USER:$RUN_USER "$ENV_FILE"
     echo_success "File .env.local telah dibuat dan diisi dengan detail database."
 else
@@ -134,9 +130,9 @@ sudo -u "$RUN_USER" "$PM2_PATH" save
 sudo env PATH=$PATH:/usr/bin "$PM2_PATH" startup -u "$RUN_USER" --hp "/opt"
 echo_success "Aplikasi berjalan di bawah PM2."
 
-# --- 7. Konfigurasi Nginx (Reverse Proxy) ---
+# --- 7. Konfigurasi Nginx (Reverse Proxy) & SELinux ---
 echo_info "Mengkonfigurasi Nginx..."
-NGINX_CONFIG="/etc/nginx/sites-available/$APP_NAME"
+NGINX_CONFIG="/etc/nginx/conf.d/$APP_NAME.conf"
 
 sudo tee "$NGINX_CONFIG" > /dev/null << EOF
 server {
@@ -153,11 +149,13 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$server_name;
     }
 }
 EOF
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo ln -sf "$NGINX_CONFIG" "/etc/nginx/sites-enabled/"
+echo_info "Mengizinkan Nginx untuk bertindak sebagai reverse proxy melalui SELinux..."
+sudo setsebool -P httpd_can_network_connect 1
+sudo systemctl enable --now nginx
 sudo nginx -t && sudo systemctl restart nginx
 echo_success "Nginx berhasil dikonfigurasi sebagai reverse proxy."
 
@@ -174,4 +172,4 @@ echo "     (Gunakan: sudo nano ${PROJECT_DIR}/.env.local)"
 echo "  2. Setelah mengisi .env.local, restart aplikasi dengan: pm2 restart $APP_NAME"
 echo "  3. (Sangat Disarankan) Konfigurasi domain Anda dengan Cloudflare untuk keamanan dan HTTPS."
 echo ""
-echo_success "Deployment aplikasi selesai!"
+echo_success "Deployment di AlmaLinux 8 selesai!"

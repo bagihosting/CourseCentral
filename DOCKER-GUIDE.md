@@ -10,11 +10,11 @@ Metode ini mengemas aplikasi dan database MySQL Anda ke dalam sebuah kontainer D
 ## Langkah 1: Unggah Folder Proyek ke Server
 
 1.  **Kompres Folder Proyek**: Di komputer lokal Anda, kompres seluruh folder proyek ini menjadi satu file ZIP (misalnya, `proyek.zip`).
-2.  **Unggah ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla atau Termius) untuk mengunggah file ZIP tersebut ke direktori `/opt/` di server Anda.
+2.  **Unggah ke Server**: Gunakan `scp` atau klien SFTP (seperti FileZilla atau Termius) untuk mengunggah file ZIP tersebut ke direktori `/root/` di server Anda.
 3.  **Ekstrak di Server**:
     -   Masuk ke server Anda melalui SSH.
     -   Buat direktori proyek: `sudo mkdir -p /opt/coursecentral`
-    -   Pindahkan zip ke sana: `sudo mv proyek.zip /opt/coursecentral/`
+    -   Pindahkan zip ke sana: `sudo mv /root/proyek.zip /opt/coursecentral/`
     -   Instal `unzip` jika belum ada: `sudo apt update && sudo apt install -y unzip`.
     -   Pindah ke direktori tujuan: `cd /opt/coursecentral`.
     -   Ekstrak file Anda: `sudo unzip proyek.zip`.
